@@ -2,8 +2,7 @@
 .env
 .env.local
 .env.*.local
-config.php
-config.production.php
+
 
 # Data & flags (never commit data or flags)
 /data/

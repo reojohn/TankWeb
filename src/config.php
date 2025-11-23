@@ -13,11 +13,11 @@ ini_set('error_log', __DIR__ . '/../logs/errors.log');
 
 // ---------------------------------
 // Database Configuration
-// ---------------------------------
+// ---------------------------------    
 $DB_HOST = getenv('DB_HOST') ?: 'localhost';
 $DB_NAME = getenv('DB_NAME') ?: 'fortressauth';
 $DB_USER = getenv('DB_USER') ?: 'fortress_user';
-$DB_PASS = getenv('DB_PASS') ?: 'F0rtress@2025Secure!';
+$DB_PASS = getenv('DB_PASS') ?: '';
 $DB_PORT = getenv('DB_PORT') ?: 5432;
 
 $dsn = "pgsql:host=$DB_HOST;port=$DB_PORT;dbname=$DB_NAME";
