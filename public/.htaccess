@@ -1,0 +1,11 @@
+# Enable mod_rewrite
+RewriteEngine On
+
+# Allow PHP, HTML, CSS, JS, images
+<FilesMatch "\.(php|html|css|js|png|jpg|gif)$">
+    Require all granted
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src-elem 'self' https://cdnjs.cloudflare.com; img-src 'self';"
+</IfModule>

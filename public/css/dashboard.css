@@ -1,0 +1,366 @@
+/* 🌌 Body - dark theme */
+body {
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #2b1055, #12021f 60%, #0a0014);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Floating particles */
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(200, 150, 255, 0.25);
+  border-radius: 50%;
+  animation: floatUp 10s linear infinite;
+  filter: blur(1px);
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(1); opacity: 0.3; }
+  100% { transform: translateY(-120vh) scale(1.4); opacity: 0; }
+}
+
+/* Dashboard card */
+.dashboard-card {
+  background: rgba(25, 5, 60, 0.85);
+  backdrop-filter: blur(18px);
+  padding: 35px 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+  width: 900px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(183,102,255,0.3);
+  animation: fadeIn 0.6s ease;
+}
+
+/* Header */
+.header-box h2 {
+  text-align: center;
+  color: #d6b3ff;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, #9b59b6, #b366ff) 1;
+  padding-bottom: 10px;
+  margin-bottom: 25px;
+  font-size: 28px;
+  letter-spacing: 1px;
+}
+
+/* Grid layout */
+.dashboard-grid {
+  display: flex;
+  gap: 20px;
+}
+
+/* Left column */
+.left-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Right column */
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Section boxes */
+.section-box {
+  background: rgba(45, 15, 70, 0.9);
+  padding: 18px 16px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 25px rgba(183,102,255,0.35);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.section-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(183,102,255,0.5);
+}
+
+.section-box h3 {
+  font-size: 15px;
+  color: #b366ff;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  margin-bottom: 12px;
+}
+
+/* Info & status rows */
+.info-row, .status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(50, 15, 80, 0.6);
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.info-row:hover, .status-row:hover {
+  background: rgba(70, 20, 140, 0.8);
+  transform: translateX(3px);
+}
+
+.info-icon, .status-icon {
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.info-label, .status-label {
+  font-weight: 600;
+  color: #c9a0ff;
+}
+
+.info-value {
+  font-weight: 500;
+  color: #fff;
+}
+
+.check {
+  color: #6aff8e;
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: 6px;
+  text-shadow: 0 0 4px rgba(106, 255, 142, 0.6);
+  display: inline-block;
+  animation: checkPulse 2s infinite;
+}
+
+@keyframes checkPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* Flag container */
+.flag-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px;
+  margin-bottom: 25px;
+  background: linear-gradient(135deg, rgba(120,50,200,0.25), rgba(200,50,180,0.25));
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(183,102,255,0.5);
+  gap: 15px;
+}
+
+/* Flag image */
+.flag-icon {
+  width: 500px;
+  max-width: 50%;
+  height: auto;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%,20%,50%,80%,100% { transform: translateY(0); }
+  40% { transform: translateY(-25px); }
+  60% { transform: translateY(-12px); }
+}
+
+/* Troll button */
+.troll-btn {
+  display: block;
+  padding: 12px 28px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff5bbd, #ff00ff);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(255,0,255,0.5);
+}
+
+.troll-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(255,0,255,0.6);
+}
+
+/* Troll card */
+.troll-card {
+  display: none;
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #ff99ff, #ff00ff);
+  border-radius: 15px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(255,0,255,0.6);
+  animation: popUp 0.5s ease forwards;
+}
+
+@keyframes popUp {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Logout button */
+.logout-btn {
+  display: block;
+  margin: 25px auto 0;
+  padding: 14px 32px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #9b59b6, #b366ff);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(183,102,255,0.4);
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #b366ff, #d699ff);
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(183,102,255,0.6);
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.troll-btn {
+  margin-top: 15px;
+}
+
+.troll-card {
+  margin-top: 15px;
+}
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  position: relative; /* allow stacking */
+  z-index: 1;
+}
+
+.troll-btn {
+  margin-top: 15px;
+  z-index: 2;
+  position: relative;
+}
+
+.troll-card {
+  display: none;
+  margin-top: 15px;
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #ff99ff, #ff00ff);
+  border-radius: 15px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(255,0,255,0.6);
+  animation: popUp 0.5s ease forwards;
+  z-index: 2;
+  position: relative;
+}
+
+
+/* Security Logs Card (matching flag-container width) */
+.security-card {
+    width: 400px; /* same as flag container width */
+    max-width: 90%; /* responsive on smaller screens */
+    padding: 10px 15px; /* reduced from 25px */
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(120,50,200,0.25), rgba(200,50,180,0.25));
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 40px rgba(183,102,255,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px; /* reduced from 15px */
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+.security-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 50px rgba(183,102,255,0.6);
+}
+
+/* Security Card Header */
+.security-card .header-box {
+    font-size: 24px;
+    font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #9b59b6, #b366ff);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    box-shadow: 0 4px 20px rgba(183,102,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+/* Add a subtle glow on hover */
+.security-card .header-box:hover {
+    box-shadow: 0 6px 25px rgba(183,102,255,0.8);
+    transform: translateY(-2px);
+}
+
+/* Security Card Paragraph */
+.security-card p {
+    font-size: 15px;
+    font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+    color: #e0d7ff;
+    line-height: 1.6;
+    background: rgba(75, 0, 130, 0.4); /* semi-transparent background */
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+
+.security-card .troll-btn {
+    padding: 12px 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #9b59b6, #b366ff);
+    border-radius: 12px;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 5px 15px rgba(255,0,255,0.5);
+    transition: all 0.3s ease;
+}
+
+.security-card .troll-btn:hover {
+    background: linear-gradient(135deg, #b366ff, #d699ff);
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(255,0,255,0.6);
+}

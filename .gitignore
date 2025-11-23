@@ -1,0 +1,56 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+config.php
+config.production.php
+
+# Data & flags (never commit data or flags)
+/data/
+data/
+*/data/
+data/*.txt
+data/*.log
+data/flag.txt
+
+# Logs and runtime files
+logs/
+*.log
+php-error.log
+php_security.log
+
+# Composer / vendor
+/vendor/
+/composer.lock
+
+# Node / front-end
+/node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build / cache / temp
+.cache/
+tmp/
+*.cache
+*.tmp
+*.bak
+
+# Ignore coverage, test outputs
+coverage/
+*.coverage
+
+# Ignore local server files
+.htpasswd
+
+# Composer / package artifacts
+composer.phar
+
+# Ignore any generated .env with secrets
+.env.*.local

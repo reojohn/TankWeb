@@ -1,0 +1,221 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ✨ MODERN DARK BACKGROUND ✨ */
+body {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at top, #2b1055, #12021f 60%, #0a0014);
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Floating particles (optional for effect) */
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(200, 150, 255, 0.25);
+  border-radius: 50%;
+  animation: floatUp 10s linear infinite;
+  filter: blur(1px);
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-120vh) scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Main card — unchanged size */
+.card {
+  background: rgba(30, 10, 63, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 40px 30px;
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  width: 360px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  z-index: 10;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+}
+
+/* Logo */
+.logo-container {
+  margin-bottom: 20px;
+}
+
+.logo-container img {
+  width: 300px; /* smaller logo */
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.3));
+}
+
+/* Title */
+h2 {
+  margin-bottom: 28px;
+  font-size: 32px;
+  color: #d6b3ff;
+  text-shadow: 0 3px 8px rgba(0,0,0,0.6);
+}
+
+/* Error message */
+.error {
+  background: #b0002e;
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 22px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Form */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+label {
+  text-align: left;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #c9a0ff;
+  font-weight: 500;
+}
+
+input {
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background-color: rgba(45, 15, 70, 0.8);
+  color: #fff;
+  font-size: 16px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+input:focus {
+  outline: 2px solid #c47eff;
+  background-color: rgba(60, 20, 100, 0.9);
+  transform: scale(1.02);
+}
+
+button {
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #9b59b6, #b366ff);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #b366ff, #d699ff);
+  transform: scale(1.04);
+  box-shadow: 0 8px 20px rgba(183,102,255,0.6);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.error-message {
+    position: relative;
+    margin: 20px auto;
+    padding: 20px 25px 20px 60px; /* extra left padding for icon */
+    max-width: 400px;
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.8), rgba(255, 50, 50, 0.6));
+    border-radius: 15px;
+    color: #fff;
+    font-size: 1rem;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.6);
+    border: 1px solid rgba(255, 0, 0, 0.8);
+    animation: shakeFadeIn 0.6s ease forwards;
+}
+
+/* Warning icon using ::before */
+.error-message::before {
+    content: "⚠"; /* Unicode warning icon */
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+}
+
+/* Fade-in + shake effect */
+@keyframes shakeFadeIn {
+    0% { opacity: 0; transform: translateY(-10px) rotate(0deg); }
+    20% { transform: translateY(0) rotate(-2deg); }
+    40% { transform: translateY(0) rotate(2deg); }
+    60% { transform: translateY(0) rotate(-1deg); }
+    80% { transform: translateY(0) rotate(1deg); }
+    100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+
+
+/* Banned IP message styling */
+/* Banned IP message — now matching other error styles */
+.error-message.ban {
+    background: linear-gradient(135deg, rgba(255, 0, 0, 0.85), rgba(255, 80, 80, 0.7));
+    border-radius: 15px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 20px 25px 20px 60px; /* match other error-message padding */
+    max-width: 400px;
+    margin: 20px auto;
+    border: 1px solid rgba(255, 0, 0, 0.8);
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.6);
+    position: relative;
+    animation: shakeFadeIn 0.6s ease forwards;
+}
+
+/* Warning icon for banned IP message */
+.error-message.ban::before {
+    content: "⚠"; /* Unicode warning icon */
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+}
+
+
+/* Shake animation */
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+}
