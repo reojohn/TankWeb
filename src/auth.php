@@ -1,9 +1,7 @@
 <?php
-// src/auth.php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/sanitize.php';
-
 // -------------------------
 // Secure Session Settings
 // -------------------------

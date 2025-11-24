@@ -1,20 +1,15 @@
 <?php
+// ============================================
+// VERIFY 2FA
+// ============================================
 
+// Start session first
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Start session if not active
-
-
-
-require __DIR__ . '/../src/config.php';   // <--- REQUIRED
+// Include config first (DB & logging)
+require __DIR__ . '/../src/config.php';
 require __DIR__ . '/../src/middleware.php';
 require_once __DIR__ . '/../src/sanitize.php';
 require_once __DIR__ . '/../src/auth.php'; // login_user() available
@@ -24,7 +19,7 @@ require_once __DIR__ . '/../src/session.php';
 $secondary_password = 'The$Sky^Burns&At_4AM_When*Giants_Fight#2025';
 
 // Ensure pending 2FA exists
-if (!isset($_SESSION['pending_admin_2fa']) || !isset($_SESSION['pending_user_id'])) {
+if (!isset($_SESSION['pending_admin_2fa'], $_SESSION['pending_user_id'])) {
     header("Location: login.php");
     exit;
 }
@@ -35,18 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (hash_equals($secondary_password, $input)) {
         // ✅ FULL ADMIN LOGIN
-
-        // Set session UID
         login_user($_SESSION['pending_user_id']);
-
-        // Mark admin fully verified for require_admin_auth()
         $_SESSION['admin_verified'] = true;
 
         // Clean up pending vars
-        unset($_SESSION['pending_user_id']);
-        unset($_SESSION['pending_admin_2fa']);
+        unset($_SESSION['pending_user_id'], $_SESSION['pending_admin_2fa']);
 
-        // Hardened session
+        // Hardened session — do this **before any output**
         session_regenerate_id(true);
 
         // Log 2FA success
@@ -55,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Redirect to dashboard
         header("Location: ./dashboard.php");
         exit;
-
     } else {
         // Wrong 2FA → set error & redirect back
         $_SESSION['2fa_error'] = "Invalid 2FA password.";
