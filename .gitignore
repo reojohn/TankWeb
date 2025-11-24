@@ -6,10 +6,6 @@
 
 # Data & flags (never commit data or flags)
 /data/
-data/
-*/data/
-data/*.txt
-data/*.log
 data/flag.txt
 
 # Logs and runtime files
