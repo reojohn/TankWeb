@@ -21,7 +21,7 @@ $DB_USER = getenv('DB_USER') ?: 'fortress_user';
 $DB_PASS = getenv('DB_PASS') ?: 'MtIsdz6tXBo9LWqLp7zY51aqfv4UYYv7';
 
 
-$dsn = "pgsql:host=$DB_HOST;port=$DB_PORT;dbname=$DB_NAME";
+$dsn = "pgsql:host=$DB_HOST;port=$DB_PORT;dbname=$DB_NAME;sslmode=require";
 
 try {
     $pdo = new PDO($dsn, $DB_USER, $DB_PASS, [
