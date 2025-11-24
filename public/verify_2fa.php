@@ -11,9 +11,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Start session if not active
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+
 
 
 require __DIR__ . '/../src/config.php';   // <--- REQUIRED
