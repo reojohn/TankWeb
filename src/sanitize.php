@@ -1,6 +1,5 @@
 <?php
 // src/sanitize.php
-
 // Escape HTML output
 if (!function_exists('e')) {
     function e($str) {
@@ -33,4 +32,3 @@ function sanitize_text($str, $max = 255) {
 function sanitize_id($id) {
     return filter_var($id, FILTER_VALIDATE_INT);
 }
-?>

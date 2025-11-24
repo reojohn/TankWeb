@@ -2,7 +2,6 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/sanitize.php';
-
 // -------------------------
 // Secure Session Settings
 // -------------------------
@@ -128,4 +127,3 @@ function generate_csrf_token() {
 function verify_csrf_token($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
-?>

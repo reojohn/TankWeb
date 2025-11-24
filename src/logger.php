@@ -1,6 +1,5 @@
 <?php
 // src/logger.php
-
 // Get real IP even behind Render / Cloudflare / proxies
 function getRealIP() {
     $keys = [

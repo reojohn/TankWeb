@@ -1,5 +1,4 @@
 <?php
-
 // ==========================================
 // SHELL / COMMAND INJECTION DETECTION
 // ==========================================
@@ -162,5 +161,4 @@ function security_check_inputs($inputs, $userAgent = null) {
 
     return $issues; // empty = clean and safe
 }
-
 ?>

@@ -2,7 +2,6 @@
 // src/rate_limit.php
 // Simple per-IP limiter using temporary files.
 // For production, use Redis or DB-based counters.
-
 function rate_limit_check($action = 'login', $limit = 3, $window_seconds = 60) {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $dir = sys_get_temp_dir() . "/fa_rl_$action";

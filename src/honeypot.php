@@ -1,5 +1,4 @@
 <?php
-
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $logFile = __DIR__ . '/../data/honeypot_log.txt';
 

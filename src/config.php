@@ -1,6 +1,5 @@
 <?php
 // src/config.php
-
 // ---------------------------------
 // Production Error Handling
 // ---------------------------------
@@ -36,4 +35,3 @@ try {
     http_response_code(500);
     exit('Internal server error');
 }
-?>
