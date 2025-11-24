@@ -1,9 +1,12 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 // ============================================
 // VERIFY 2FA
 // ============================================
 
-// Start session first
+// Start session only if none exists
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -37,7 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($_SESSION['pending_user_id'], $_SESSION['pending_admin_2fa']);
 
         // Hardened session — do this **before any output**
-        session_regenerate_id(true);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
 
         // Log 2FA success
         audit_log("2fa_success uid=" . intval($_SESSION['uid']));
@@ -49,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Wrong 2FA → set error & redirect back
         $_SESSION['2fa_error'] = "Invalid 2FA password.";
         audit_log("2fa_failed uid=" . intval($_SESSION['pending_user_id']));
+
         header("Location: ./admin_2fa.php");
         exit;
     }
@@ -57,3 +63,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: ./admin_2fa.php");
     exit;
 }
+?>

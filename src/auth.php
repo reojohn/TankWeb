@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/sanitize.php';
+
 // -------------------------
 // Secure Session Settings
 // -------------------------
@@ -9,16 +10,14 @@ require_once __DIR__ . '/sanitize.php';
 $cookie_secure = (!in_array($_SERVER['SERVER_NAME'], ['localhost', '127.0.0.1']) &&
                   (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'));
 
-session_start([
-    'cookie_httponly' => true,
-    'cookie_secure' => $cookie_secure,
-    'use_strict_mode' => true,
-    'cookie_samesite' => 'Strict'
-]);
-
-if (!isset($_SESSION['initiated'])) {
-    session_regenerate_id(true);
-    $_SESSION['initiated'] = true;
+// Start session only if none exists
+if (session_status() === PHP_SESSION_NONE) {
+    session_start([
+        'cookie_httponly' => true,
+        'cookie_secure' => $cookie_secure,
+        'use_strict_mode' => true,
+        'cookie_samesite' => 'Strict'
+    ]);
 }
 
 // -------------------------
@@ -28,7 +27,14 @@ $SESSION_TIMEOUT = 1800; // 30 minutes
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $SESSION_TIMEOUT) {
     session_unset();
     session_destroy();
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start([
+            'cookie_httponly' => true,
+            'cookie_secure' => $cookie_secure,
+            'use_strict_mode' => true,
+            'cookie_samesite' => 'Strict'
+        ]);
+    }
 }
 $_SESSION['last_activity'] = time();
 
@@ -63,26 +69,20 @@ function verify_login($username, $password, $pdo) {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     $_SESSION['last_attempt'] = time();
 
-    // FAILED LOGIN
     if (!$user || !password_verify($password, $user['password_hash'])) {
         $_SESSION['login_attempts']++;
-
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         record_login_attempt($pdo, $ip, $username, false);
-
         audit_log("login_failed username=" . e($username));
         return false;
     }
 
-    // SUCCESSFUL LOGIN
     $_SESSION['login_attempts'] = 0;
-
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     record_login_attempt($pdo, $ip, $username, true);
 
     return intval($user['id']);
 }
-
 
 // -------------------------
 // Log the user in
@@ -113,7 +113,6 @@ function require_admin_auth() {
         exit('Forbidden: Admin access requires full verification.');
     }
 }
-
 
 // -------------------------
 // CSRF Token
