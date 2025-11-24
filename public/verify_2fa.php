@@ -1,4 +1,7 @@
 <?php
+
+
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -12,6 +15,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+
+require __DIR__ . '/../src/config.php';   // <--- REQUIRED
 require __DIR__ . '/../src/middleware.php';
 require_once __DIR__ . '/../src/sanitize.php';
 require_once __DIR__ . '/../src/auth.php'; // login_user() available
