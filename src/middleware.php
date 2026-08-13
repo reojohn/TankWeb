@@ -1,37 +1,89 @@
 <?php
-require_once __DIR__ . '/logger.php'; // ensure getRealIP() is available
 
-$ip = getRealIP();
+declare(strict_types=1);
 
-$whitelist = ['127.0.0.1', '::1'];
-
-$banFile = __DIR__ . '/../data/banned_ips.txt';
-
-// Skip banning for localhost
-if (!in_array($ip, $whitelist)) {
-
-    // Check if IP is banned
-    if (file_exists($banFile)) {
-        $banned = file($banFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if (in_array($ip, $banned)) {
-            http_response_code(403);
-            exit("Your IP is banned.");
-        }
+// Silent live-page synchronization requests must not generate their own
+// request-monitor / ML telemetry. Otherwise a refresh caused by a security
+// event would create another security-state change and could refresh forever.
+if ((string)($_SERVER['HTTP_X_FORTRESS_LIVE_REFRESH'] ?? '') === '1') {
+    if (!defined('FORTRESS_LIVE_REFRESH_REQUEST')) {
+        define('FORTRESS_LIVE_REFRESH_REQUEST', true);
+    }
+    if (!defined('FORTRESS_BACKGROUND_REQUEST')) {
+        define('FORTRESS_BACKGROUND_REQUEST', true);
     }
 }
 
-// Security headers
+// Load environment/application configuration before any security component
+// reads environment-backed settings such as ML_SERVICE_ENABLED/URL/TOKEN.
+// Pages that later require config.php use require_once, so this is loaded only once.
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/request_monitor.php';
+require_once __DIR__ . '/ml_threat.php';
+require_once __DIR__ . '/error_pages.php';
+
+header_remove('X-Powered-By');
+
+$ip = getRealIP();
+$whitelist = ['127.0.0.1', '::1'];
+$banFile = __DIR__ . '/../data/banned_ips.txt';
+
+if (!in_array($ip, $whitelist, true) && is_file($banFile)) {
+    $banned = file($banFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    if (in_array($ip, $banned, true)) {
+        audit_log('banned_ip_middleware_block source=flat_file');
+        fortress_render_security_error(403, 'banned_source');
+    }
+}
+
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-header("Referrer-Policy: no-referrer");
-header("Permissions-Policy: geolocation=(), microphone=()");
-header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; object-src 'none';");
+header('Referrer-Policy: no-referrer');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=(self)');
+header('Cross-Origin-Opener-Policy: same-origin');
+header('Cross-Origin-Resource-Policy: same-origin');
+header('X-Permitted-Cross-Domain-Policies: none');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
-function safe_redirect($url) {
-    if (strpos($url, '/') === 0) {
-        header("Location: $url");
+if (fortress_request_is_https()) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
+header(
+    "Content-Security-Policy: " .
+    "default-src 'self'; " .
+    "base-uri 'self'; " .
+    "form-action 'self'; " .
+    "frame-ancestors 'none'; " .
+    "script-src 'self'; " .
+    "style-src 'self' 'unsafe-inline'; " .
+    "img-src 'self' data: blob:; " .
+    "font-src 'self' data:; " .
+    "connect-src 'self'; " .
+    "media-src 'self' blob:; " .
+    "worker-src 'self' blob:; " .
+    "object-src 'none'; " .
+    "report-uri /csp_report.php;"
+);
+
+fortress_monitor_run();
+fortress_ml_evaluate_request();
+
+function safe_redirect(string $url): never
+{
+    // Only same-origin absolute paths are accepted. //evil.example is rejected.
+    if (
+        preg_match('#^/[A-Za-z0-9._~!$&\'()*+,;=:@%/?-]*$#', $url) === 1 &&
+        !str_starts_with($url, '//') &&
+        !preg_match('/[\r\n]/', $url)
+    ) {
+        header('Location: ' . $url);
         exit;
     }
-    http_response_code(400);
-    exit('Bad redirect');
+
+    audit_log('unsafe_redirect_blocked target_length=' . strlen($url));
+    fortress_render_security_error(400, 'unsafe_redirect_blocked');
 }

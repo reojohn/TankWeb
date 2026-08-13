@@ -1,112 +1,33 @@
 <?php
+
+declare(strict_types=1);
+
 require __DIR__ . '/../src/middleware.php';
-require_once __DIR__ . '/../src/session.php';
+require_once __DIR__ . '/../src/config.php';
+require_once __DIR__ . '/../src/auth.php';
+require_once __DIR__ . '/../src/fortress_metrics.php';
 
-if (session_status() === PHP_SESSION_NONE) session_start();
-
-// ✅ Check admin login with 2FA verification
-if (empty($_SESSION['uid']) || empty($_SESSION['admin_verified'])) {
-    http_response_code(403);
-    exit("Unauthorized: You must be fully verified as admin to view this page.");
-}
-
-// Path to log files
-$logPath = __DIR__ . '/../data/';
-
-// ✅ Function to safely read log files
-function read_log_file($logPath, $filename) {
-    $path = $logPath . $filename;
-    if (!file_exists($path)) return ["Log file not found: $filename"];
-    $lines = file($path, FILE_IGNORE_NEW_LINES);
-    return array_slice($lines, -500); // last 500 lines
-}
-
-// Read the logs
-$auditLog    = read_log_file($logPath, "audit.log");
-$honeypotLog = read_log_file($logPath, "honeypot_log.txt");
-$bannedLog   = read_log_file($logPath, "banned_ips.txt");
-
-// Function to highlight log content
-function parse_log_line($line) {
-    $line = htmlspecialchars($line, ENT_QUOTES, 'UTF-8');
-    $line = preg_replace('/ip=([\d:.]+)/', '<span style="color:#ff7b72;">ip=$1</span>', $line);
-    $line = preg_replace('/username_attempt=([\w]*)/', '<span style="color:#7bd1ff;">$1</span>', $line);
-    $line = preg_replace('/msg=([\w_]+)/', '<span style="color:#d6b3ff;">$1</span>', $line);
-    return $line;
-}
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+require_admin_auth();
+$userId = (int)($_SESSION['uid'] ?? 0);
+$ctx = fortress_build_security_context($pdo, $userId);
+extract($ctx, EXTR_SKIP);
+$activeNav = 'logs';
+$logRows = array_slice(array_reverse($auditLines), 0, 500);
+$honeypotRows = array_slice(array_reverse($honeypotLines), 0, 80);
+audit_log('security_logs_viewed uid=' . $userId);
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Admin Logs</title>
-<link rel="stylesheet" href="/css/dashboard.css">
-<link rel="stylesheet" href="/css/admin_logs.css">
-<!-- ... your existing CSS ... -->
-</head>
-<body>
+<!doctype html><html lang="en"><head>
+    <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
+    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>FortressAuth — Security Logs</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css"><link rel="stylesheet" href="/css/pjax.css">
+<script src="/js/fortress_pjax.js" defer></script>
+</head><body class="command-page"><div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div><main class="command-shell">
+<?php require __DIR__ . '/partials/command_header.php'; ?>
+<section class="page-hero compact-page-hero"><div><span class="eyebrow">SECURITY EVIDENCE</span><h1>Security Logs</h1><p>Search structured authentication, identity, network, request-threat, reconnaissance, CSRF, and session evidence. Passwords, QR values, cookies, authorization data, and security tokens are never rendered here.</p></div><div class="page-hero-icon"><i class="fa-solid fa-clipboard-list"></i></div></section>
+<section class="metric-grid"><article class="metric-card"><div class="metric-icon"><i class="fa-solid fa-clipboard-list"></i></div><div><span>Audit events</span><strong><?= $totalAuditEvents ?></strong><small>Current audit log entries</small></div></article><article class="metric-card"><div class="metric-icon danger"><i class="fa-solid fa-spider"></i></div><div><span>Honeypot events</span><strong><?= $totalHoneypotEvents ?></strong><small>Decoy interaction evidence</small></div></article><article class="metric-card"><div class="metric-icon danger"><i class="fa-solid fa-ban"></i></div><div><span>Active bans</span><strong><?= $activeBans ?></strong><small>Network restrictions</small></div></article><article class="metric-card"><div class="metric-icon success"><i class="fa-solid fa-clock"></i></div><div><span>Last meaningful event</span><strong class="small-metric-value"><?= e($lastEventRelative) ?></strong><small>Excludes passive page views</small></div></article></section>
+<article class="panel data-panel" id="audit-logs"><div class="panel-heading filter-heading"><div><span class="eyebrow">AUDIT TRAIL</span><h2>Structured Security Evidence</h2><p>Up to the 500 most recent audit entries are available in this view.</p></div><div class="table-tools"><label class="search-control"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search="auditTable" placeholder="Search logs..."></label><select data-table-category="auditTable"><option value="all">All categories</option><option value="authentication">Authentication</option><option value="identity">Identity</option><option value="network">Network</option><option value="threat">Threat</option><option value="session">Session</option><option value="system">System</option></select></div></div><div class="responsive-table-wrap log-table-wrap"><table class="security-table" data-table="auditTable"><thead><tr><th>Timestamp</th><th>Category</th><th>Event</th><th>Operator</th><th>Source IP</th><th>Outcome</th><th>Details</th></tr></thead><tbody><?php if(!$logRows): ?><tr><td colspan="7" class="table-empty">No audit evidence is available.</td></tr><?php else: foreach($logRows as $line): $category=fortress_event_category($line); $outcome=fortress_event_outcome($line); ?><tr data-search="<?= e(strtolower($category.' '.fortress_event_title($line).' '.fortress_log_user($line,$usernameRaw).' '.fortress_log_ip($line))) ?>" data-category="<?= e(strtolower($category)) ?>"><td><?= e(fortress_event_time($line,'Y-m-d H:i:s')) ?></td><td><?= e($category) ?></td><td><?= e(fortress_event_title($line)) ?></td><td><?= e(fortress_log_user($line,$usernameRaw)) ?></td><td><?= e(fortress_log_ip($line)) ?></td><td><span class="status-pill status-<?= strtolower($outcome) ?>"><?= e($outcome) ?></span></td><td><?= e(fortress_event_description($line)) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
+<section class="logs-secondary-grid"><article class="panel" id="honeypot-logs"><div class="panel-heading compact"><div><span class="eyebrow">DECOY DEFENSE</span><h2>Honeypot Evidence</h2></div><span class="panel-status"><i class="fa-solid fa-spider"></i><?= $totalHoneypotEvents ?> total</span></div><div class="honeypot-list"><?php if(!$honeypotRows): ?><div class="empty-state">No honeypot activity recorded.</div><?php else: foreach($honeypotRows as $line): ?><div><i class="fa-solid fa-bug"></i><span><strong><?= e(fortress_event_time($line,'Y-m-d H:i:s')) ?></strong><small><?= e(preg_replace('/^\[[^\]]+\]\s*/','',$line)) ?></small></span></div><?php endforeach; endif; ?></div></article><article class="panel"><div class="panel-heading compact"><div><span class="eyebrow">EVIDENCE COVERAGE</span><h2>Log Categories</h2></div></div><div class="category-summary"><?php $cats=['Authentication'=>0,'Identity'=>0,'Network'=>0,'Threat'=>0,'Session'=>0,'System'=>0]; foreach($auditLines as $line){$cat=fortress_event_category($line);$cats[$cat]=($cats[$cat]??0)+1;} foreach($cats as $cat=>$count): ?><div><span><?= e($cat) ?></span><strong><?= (int)$count ?></strong></div><?php endforeach; ?></div></article></section>
+<footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth audit evidence</span><span>Current log size: <?= $totalAuditEvents ?> events</span></footer>
 
-
-
-
-<div class="dashboard-card">
-    <a href="./dashboard.php" class="back-btn">← Back to Dashboard</a>
-
-    <div class="dashboard-grid">
-        <!-- Left: Audit Logs -->
-        <div class="left-column">
-            <div class="header-box">Audit Logs</div>
-            <div class="scroll-table">
-                <table id="audit-log-table">
-
-                    <tbody>
-                        <?php foreach($auditLog as $line): ?>
-                        <tr><td><?= parse_log_line($line) ?></td></tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Right: Honeypot Logs + Banned IPs -->
-        <div class="right-column">
-            <div class="header-box">Honeypot Logs</div>
-            <div class="scroll-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Timestamp & Info</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($honeypotLog as $line): ?>
-                        <tr><td><?= parse_log_line($line) ?></td></tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="header-box">Banned IPs</div>
-            <div class="scroll-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>IP & Info</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach($bannedLog as $line): ?>
-                        <tr><td><?= htmlspecialchars($line) ?></td></tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<script src="/js/auto_logout.js"></script>
-
-</body>
-</html>
+</div><!-- /.fortress-main-column -->
+</main><script src="/js/dashboard.js"></script><script src="/js/auto_logout.js"></script></body></html>

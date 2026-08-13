@@ -149,3 +149,38 @@ th {
     cursor: pointer;
     z-index: 1001;
 }
+
+html { scroll-behavior: smooth; }
+.header-box { scroll-margin-top: 24px; }
+.log-ip { color: #ff7b72; }
+.log-user { color: #7bd1ff; }
+.log-message { color: #d6b3ff; }
+
+/* Standalone security-logs shell so it remains styled with the new dashboard.css. */
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 32px 18px;
+    background:
+        radial-gradient(circle at 14% 0%, rgba(128, 52, 204, 0.19), transparent 30%),
+        radial-gradient(circle at 88% 12%, rgba(131, 53, 196, 0.12), transparent 26%),
+        linear-gradient(180deg, #0b0414 0%, #07020d 100%);
+    color: #fff;
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+    box-sizing: border-box;
+}
+
+.dashboard-card {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    padding: 28px;
+    border: 1px solid rgba(205,159,255,.14);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(25,10,42,.94), rgba(13,6,23,.96));
+    box-shadow: 0 24px 80px rgba(0,0,0,.34);
+}
+
+@media (max-width: 760px) {
+    .dashboard-grid { flex-direction: column; }
+    .dashboard-card { padding: 20px 14px; }
+}

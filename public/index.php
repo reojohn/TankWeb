@@ -1,18 +1,14 @@
-<?php 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../php-error.log'); 
+<?php
 
+declare(strict_types=1);
 
-// Enable full error reporting
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+require __DIR__ . '/../src/middleware.php';
 
-// Minimal redirect to login
-header('Location: login.php'); // remove starting slash if login.php is in the same folder
+$path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+if (!in_array($path, ['/', '/index.php'], true)) {
+    http_response_code(404);
+    exit('Not Found');
+}
+
+header('Location: /login.php');
 exit;
-?>
-

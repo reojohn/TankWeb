@@ -1,0 +1,86 @@
+FORTRESSAUTH HARDENING - CHANGED FILES PACKAGE
+=============================================
+
+Modified files: 33
+New files: 5
+Files to delete: 21
+
+[MODIFIED]
+.env.example
+Dockerfile
+README.md
+data/audit.log
+data/banned_ips.txt
+data/honeypot_log.txt
+php.ini
+public/.htaccess
+public/admin.php
+public/dashboard.php
+public/fortress_vault.php
+public/index.php
+public/login.php
+public/logout.php
+public/school_id_register.php
+public/school_id_register_finish.php
+public/school_id_reset.php
+public/school_id_reverify.php
+public/school_id_verify.php
+public/school_id_verify_finish.php
+public/user_management.php
+sql/init.sql
+sql/user_management.sql
+src/auth.php
+src/bruteforce.php
+src/config.php
+src/config.production.php
+src/honeypot.php
+src/logger.php
+src/middleware.php
+src/rate_limit.php
+src/session.php
+src/user_accounts.php
+
+[NEW]
+.dockerignore
+HARDENING_NOTES.md
+data/.gitkeep
+logs/errors.log
+sql/hardening.sql
+
+IMPORTANT:
+1. Back up your current project first.
+2. Copy this package over the root of your existing TankWeb-v2 folder and allow matching files to be replaced.
+3. Open DELETE_THESE_FILES.txt and remove every listed legacy/debug file.
+4. Rotate the old database password and configure the new credentials through environment variables.
+5. Run sql/hardening.sql once against the database before testing login.
+
+HYBRID ML THREAT DETECTION ADDITION - 2026-08-13
+=================================================
+
+[MODIFIED]
+.env.example
+.dockerignore
+README.md
+public/security_controls.php
+public/threats.php
+src/fortress_metrics.php
+src/middleware.php
+
+[NEW]
+ML_INTEGRATION.md
+docker-compose.yml
+src/ml_threat.php
+ml-service/app.py
+ml-service/Dockerfile
+ml-service/.dockerignore
+ml-service/requirements.txt
+ml-service/README.md
+ml-service/training/train_models.py
+ml-service/models/xgboost_threat_classifier.json
+ml-service/models/autoencoder.joblib
+ml-service/models/autoencoder_scaler.joblib
+ml-service/models/model_metadata.json
+ml-service/data/synthetic_security_dataset.csv
+ml-service/data/training_report.json
+
+ML behavior is advisory/non-blocking and fail-safe. Existing FortressAuth authentication and deterministic defenses remain independent of the ML service.

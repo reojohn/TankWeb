@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+logs/*
+data/*
+!data/.gitkeep
+*.log
+*.tmp
+*.bak
+
+# ML engine is a separate deployment/build context
+ml-service

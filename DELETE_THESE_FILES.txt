@@ -1,0 +1,27 @@
+FORTRESSAUTH HARDENING - FILES TO DELETE FROM YOUR EXISTING PROJECT
+===============================================================
+
+After copying the changed files into your existing TankWeb-v2 folder, delete these old files.
+They contain legacy MFA/WebAuthn/debug code that should not remain deployed.
+
+composer.json
+composer.lock
+public/admin_2fa.php
+public/hello.php
+public/images/flag.png_original
+public/js/public/js/webauthn_setup.js
+public/js/webauthn_check.js
+public/js/webauthn_setup.js
+public/mfa_setup.php
+public/phpinfo.php
+public/session_test.php
+public/test.php
+public/test_dashboard.php
+public/verify_2fa.php
+public/webauthn_check.php
+public/webauthn_register_finish.php
+public/webauthn_register_options.php
+public/webauthn_setup.php
+src/csrf.php
+src/mfa.php
+src/webauthn.php

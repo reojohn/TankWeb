@@ -1,60 +1,65 @@
 # FortressAuth
 
-Minimal hardened PHP login application for Red/Blue Team simulation.
+FortressAuth is a hardened PHP/PostgreSQL authentication lab designed for a defensive penetration-testing exercise.
 
-## Features
-- Exposes only /login and /dashboard
-- Prepared statements (PDO) to prevent SQLi
-- Password hashing with password_hash (bcrypt)
-- HTTP-only, secure cookies
-- Rate-limiting (simple file-based)
-- Audit logging (data/audit.log)
-- Flag stored outside webroot (data/flag.txt)
+## Authentication policy
 
-## Quick local test
-1. Clone repository and `cd FortressAuth`.
-2. Create `data/` and `public/templates/` folders as needed.
-3. Place your flag in `data/flag.txt`.
-4. Import `sql/init.sql` into your local MySQL and create app DB user.
-5. Set env vars locally or edit `src/config.php` for dev.
-6. Serve the app for local testing:
-   ```bash
-   cd public
-   php -S localhost:8080
-   # Visit http://localhost:8080/login.php
+**Password → Registered Personal/School ID QR → Protected Dashboard**
+
+The QR factor is enforced by the backend authorization guard. Legacy TOTP and WebAuthn authentication paths have been removed from the hardened build.
+
+## Security controls
+
+- PDO prepared statements with emulated prepares disabled
+- Argon2id password hashing when supported, secure fallback otherwise
+- Password + account/IP throttling
+- Personal ID account/IP throttling
+- CSRF protection on state-changing requests
+- Secure, HttpOnly, SameSite=Strict session cookies
+- Session ID rotation after authentication
+- 15-minute idle timeout and configurable absolute session lifetime
+- Optional user-agent session binding
+- Server-side session revocation with `session_version`
+- Account-disable checks on protected requests
+- CSP, frame protection, HSTS on HTTPS, no-store caching, and related headers
+- Audit logging with credential/token redaction
+- Database secrets loaded only from environment variables or a private `.env`
+- Runtime database role no longer performs schema changes
+- Synthetic crown-jewel flag page for the pentest exercise
+
+## Setup
+
+1. **Rotate the database password used by any older FortressAuth ZIP.** It appeared in previous source/Git history and must be considered exposed.
+2. Copy `.env.example` to `.env` for local development and fill in the new database credentials. `.env` is gitignored.
+3. Run `sql/hardening.sql` once using the PostgreSQL owner/migration account.
+4. Use a separate least-privilege PostgreSQL runtime user for the web application.
+5. Start locally from the project root:
+
+```bash
+php -S localhost:8082 -t public
+```
+
+For plain HTTP localhost only, set `COOKIE_SECURE=false` in the private `.env`. Keep it `true` in production.
+
+See `HARDENING_NOTES.md` for deployment and security details.
 
 
+## Hybrid ML threat detection
 
+FortressAuth now includes an optional, separate `ml-service/` that combines:
 
----
+- **XGBoost** behavioral attack classification
+- **Feed-forward autoencoder** anomaly detection
+- The existing **deterministic FortressAuth rule score**
 
-### `src/config.php`
-```php
-<?php
-// src/config.php
-// Load environment variables set on host (Render) or via shell for local dev.
+The ML layer is advisory and non-blocking. Authentication does not depend on it. The PHP application continues to operate normally if the ML service is disabled or unavailable. The model receives numeric behavioral metadata only and does not receive passwords, Personal ID QR contents, CSRF tokens, cookies, authorization headers, or session IDs.
 
-$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
-$DB_NAME = getenv('DB_NAME') ?: 'fortressauth';
-$DB_USER = getenv('DB_USER') ?: 'fortress_user';
-$DB_PASS = getenv('DB_PASS') ?: 'changeme';
-$FLAG_PATH = getenv('FLAG_PATH') ?: __DIR__ . '/../data/flag.txt';
+For the project demonstration, the bundled model was trained on **35,000 synthetic labeled training observations** and evaluated on a separate **10,500-row shifted synthetic hold-out set**. These are simulated project results, not production incident claims.
 
-// Cookie secure setting: in local dev you may set env COOKIE_SECURE=false
-$COOKIE_SECURE = (getenv('COOKIE_SECURE') === 'false') ? false : true;
+For local two-service Docker startup, configure `.env`, set a private `ML_SERVICE_TOKEN`, then run:
 
-$dsn = "mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4";
-$options = [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_EMULATE_PREPARES => false,
-];
+```bash
+docker compose up --build
+```
 
-try {
-    $pdo = new PDO($dsn, $DB_USER, $DB_PASS, $options);
-} catch (Exception $e) {
-    // Log the real error server-side
-    error_log("DB connection error: " . $e->getMessage());
-    // Generic message to the visitor
-    http_response_code(500);
-    exit('Internal server error');
-}
+The web app is exposed on `http://localhost:8080` in the included Compose configuration. See `ML_INTEGRATION.md` for model, test, and deployment details.

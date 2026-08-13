@@ -1,28 +1,28 @@
 <?php
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/security_policy.php';
+require_once __DIR__ . '/error_pages.php';
+
+$ip = function_exists('getRealIP') ? getRealIP() : (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 $logFile = __DIR__ . '/../data/honeypot_log.txt';
+$safeIp = (string)(getenv('HONEYPOT_SAFE_IP') ?: '127.0.0.1');
+$time = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:sP');
 
-// ➤ DEV MODE — your IP won’t get banned (change to your IP)
-$SAFE_IP = "127.0.0.1";  // update to your real IP if needed
+@file_put_contents($logFile, sprintf('[%s] visit ip=%s%s', $time, $ip, PHP_EOL), FILE_APPEND | LOCK_EX);
 
-// Log ANY visit
-file_put_contents($logFile, "[" . date("Y-m-d H:i:s") . "] Visit from IP: $ip\n", FILE_APPEND);
-
-// If POST request → someone is trying to login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    @file_put_contents($logFile, sprintf('[%s] login_attempt ip=%s%s', $time, $ip, PHP_EOL), FILE_APPEND | LOCK_EX);
+    audit_log('honeypot_triggered');
 
-    file_put_contents($logFile, "[" . date("Y-m-d H:i:s") . "] LOGIN ATTEMPT from $ip\n", FILE_APPEND);
-
-    // If not developer → BAN THEM
-    if ($ip !== $SAFE_IP) {
-        $banFile = __DIR__ . '/../data/banned_ips.txt';
-        file_put_contents($banFile, $ip . "\n", FILE_APPEND);
-
-        http_response_code(403);
-        exit("Access Denied (Honeypot Triggered)");
+    if ($ip !== $safeIp) {
+        if (isset($pdo) && $pdo instanceof PDO && function_exists('ban_ip')) {
+            ban_ip($pdo, $ip, (int)fortress_security_policy()['ip_ban_seconds']);
+        }
+        fortress_render_security_error(403, 'honeypot_triggered');
     }
 
-    // Developer testing → allow harmless redirect
-    header("Location: /admin.php?error=1");
+    header('Location: /admin.php?error=1');
     exit;
 }

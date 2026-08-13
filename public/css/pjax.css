@@ -1,0 +1,64 @@
+/* FortressAuth progressive navigation layer.
+   This keeps PHP/session/CSRF behavior server-side while removing full browser
+   reloads between protected pages and supported CRUD actions. */
+html.fortress-pjax-busy {
+  cursor: progress;
+}
+
+html.fortress-pjax-busy body {
+  cursor: progress;
+}
+
+html.fortress-pjax-busy .command-shell,
+html.fortress-pjax-busy .vault-shell {
+  pointer-events: none;
+}
+
+html.fortress-pjax-busy::after {
+  content: "";
+  position: fixed;
+  z-index: 99999;
+  top: 0;
+  left: 0;
+  width: 38%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(180,92,255,0), rgba(212,151,255,.95), rgba(97,247,189,.9), rgba(180,92,255,0));
+  box-shadow: 0 0 18px rgba(180,92,255,.5);
+  animation: fortress-pjax-progress .7s cubic-bezier(.22,.8,.28,1) infinite;
+  pointer-events: none;
+}
+
+@keyframes fortress-pjax-progress {
+  from { transform: translateX(-105vw); }
+  to { transform: translateX(265vw); }
+}
+
+.fortress-pjax-error {
+  position: fixed;
+  z-index: 100000;
+  right: 22px;
+  bottom: 22px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 13px 16px;
+  border: 1px solid rgba(255,108,147,.36);
+  border-radius: 14px;
+  color: #ffe8ef;
+  background: rgba(37,8,24,.96);
+  box-shadow: 0 18px 55px rgba(0,0,0,.42), 0 0 28px rgba(255,108,147,.1);
+  font: 700 12px/1.5 Inter, "Segoe UI", system-ui, sans-serif;
+  opacity: 0;
+  transform: translateY(10px) scale(.98);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.fortress-pjax-error.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.fortress-pjax-busy::after { animation: none; width: 100%; }
+  .fortress-pjax-error { transition: none; }
+}

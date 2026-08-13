@@ -1,65 +1,26 @@
+(() => {
+  // Match dashboard.php's 15-minute inactivity policy instead of the legacy 5-second timer.
+  const runtimePolicy = document.getElementById('fortress-security-runtime');
+  const configuredIdle = Number(runtimePolicy?.dataset.sessionIdleSeconds || 0);
+  const idleLimitSeconds = configuredIdle >= 300 ? configuredIdle : 15 * 60;
+  let lastActivity = Date.now();
+  let redirecting = false;
 
-let idleTime = 0;
-const idleLimit = 5; // seconds
+  const markActivity = () => {
+    lastActivity = Date.now();
+  };
 
-function resetIdle() {
-    idleTime = 0;
-}
+  ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart'].forEach((eventName) => {
+    window.addEventListener(eventName, markActivity, { passive: true });
+  });
 
-// Detect user activity
-window.onload = resetIdle;
-document.onmousemove = resetIdle;
-document.onkeypress = resetIdle;
-document.onclick = resetIdle;
-document.onscroll = resetIdle;
+  window.setInterval(() => {
+    if (redirecting) return;
 
-// Idle checker
-setInterval(function () {
-    idleTime++;
-
-    if (idleTime >= idleLimit) {
-        window.location.href = "logout.php";
+    const idleSeconds = (Date.now() - lastActivity) / 1000;
+    if (idleSeconds >= idleLimitSeconds) {
+      redirecting = true;
+      window.location.href = '/logout.php';
     }
-}, 1000); // runs every 1 second
-
-
-// Sidebar & Filters
-const sidebar = document.getElementById('sidebar');
-const auditTable = document.getElementById('audit-log-table');
-const filterIP = document.getElementById('filter-ip');
-const filterUser = document.getElementById('filter-user');
-const filterEvent = document.getElementById('filter-event');
-
-function toggleSidebar() {
-    if (sidebar.style.left === '0px') {
-        sidebar.style.left = '-250px';
-    } else {
-        sidebar.style.left = '0px';
-    }
-}
-
-function clearFilters() {
-    filterIP.value = '';
-    filterUser.value = '';
-    filterEvent.value = '';
-    applyFilters();
-}
-
-function applyFilters() {
-    const ipVal = filterIP.value.toLowerCase();
-    const userVal = filterUser.value.toLowerCase();
-    const eventVal = filterEvent.value.toLowerCase();
-
-    for (const row of auditTable.tBodies[0].rows) {
-        const text = row.cells[0].textContent.toLowerCase();
-        let show = true;
-        if (ipVal && !text.includes(ipVal)) show = false;
-        if (userVal && !text.includes(userVal)) show = false;
-        if (eventVal && !text.includes(eventVal)) show = false;
-        row.style.display = show ? '' : 'none';
-    }
-}
-
-filterIP.addEventListener('input', applyFilters);
-filterUser.addEventListener('input', applyFilters);
-filterEvent.addEventListener('input', applyFilters);
+  }, 1000);
+})();

@@ -1,0 +1,229 @@
+{
+  "project": "FortressAuth Hybrid Intelligent Threat Detection",
+  "dataset": {
+    "type": "synthetic/simulated course-project security telemetry",
+    "training_rows": 35000,
+    "holdout_rows": 10500,
+    "classes": [
+      "NORMAL",
+      "BRUTE_FORCE",
+      "CREDENTIAL_STUFFING",
+      "RECONNAISSANCE",
+      "WEB_ATTACK",
+      "MFA_ABUSE",
+      "SESSION_ABUSE"
+    ],
+    "features": [
+      "requests_1m",
+      "requests_5m",
+      "unique_paths_5m",
+      "post_ratio_5m",
+      "auth_endpoint_requests_5m",
+      "failed_logins_5m",
+      "failed_logins_15m",
+      "unique_usernames_15m",
+      "successful_logins_15m",
+      "qr_failures_15m",
+      "sensitive_path_probes_15m",
+      "suspicious_requests_15m",
+      "scanner_events_15m",
+      "csrf_failures_15m",
+      "method_anomalies_15m",
+      "auth_rejections_15m",
+      "ban_events_15m",
+      "avg_request_interval_5m",
+      "ua_changes_15m",
+      "off_hours"
+    ],
+    "note": "Synthetic data supports project demonstration and is not presented as production incident prevalence."
+  },
+  "xgboost": {
+    "accuracy": 0.968,
+    "macro_f1": 0.9679820945111929,
+    "classification_report": {
+      "NORMAL": {
+        "precision": 0.970873786407767,
+        "recall": 1.0,
+        "f1-score": 0.9852216748768473,
+        "support": 1500.0
+      },
+      "BRUTE_FORCE": {
+        "precision": 0.9205665024630542,
+        "recall": 0.9966666666666667,
+        "f1-score": 0.9571062740076824,
+        "support": 1500.0
+      },
+      "CREDENTIAL_STUFFING": {
+        "precision": 0.9963662790697675,
+        "recall": 0.914,
+        "f1-score": 0.9534075104311543,
+        "support": 1500.0
+      },
+      "RECONNAISSANCE": {
+        "precision": 0.9872824631860776,
+        "recall": 0.9833333333333333,
+        "f1-score": 0.9853039412157648,
+        "support": 1500.0
+      },
+      "WEB_ATTACK": {
+        "precision": 0.934597776324395,
+        "recall": 0.9526666666666667,
+        "f1-score": 0.9435457246616045,
+        "support": 1500.0
+      },
+      "MFA_ABUSE": {
+        "precision": 0.9993243243243243,
+        "recall": 0.986,
+        "f1-score": 0.9926174496644296,
+        "support": 1500.0
+      },
+      "SESSION_ABUSE": {
+        "precision": 0.9745179063360881,
+        "recall": 0.9433333333333334,
+        "f1-score": 0.9586720867208672,
+        "support": 1500.0
+      },
+      "accuracy": 0.968,
+      "macro avg": {
+        "precision": 0.9690755768730677,
+        "recall": 0.968,
+        "f1-score": 0.9679820945111929,
+        "support": 10500.0
+      },
+      "weighted avg": {
+        "precision": 0.9690755768730678,
+        "recall": 0.968,
+        "f1-score": 0.9679820945111929,
+        "support": 10500.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        1500,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1495,
+        5,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        129,
+        1371,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        0,
+        0,
+        1475,
+        19,
+        0,
+        1
+      ],
+      [
+        19,
+        0,
+        0,
+        16,
+        1429,
+        0,
+        36
+      ],
+      [
+        21,
+        0,
+        0,
+        0,
+        0,
+        1479,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        3,
+        81,
+        1,
+        1415
+      ]
+    ],
+    "top_feature_importance": [
+      [
+        "qr_failures_15m",
+        0.22748500108718872
+      ],
+      [
+        "unique_usernames_15m",
+        0.13099980354309082
+      ],
+      [
+        "csrf_failures_15m",
+        0.10292919725179672
+      ],
+      [
+        "avg_request_interval_5m",
+        0.09202264994382858
+      ],
+      [
+        "sensitive_path_probes_15m",
+        0.08985117077827454
+      ],
+      [
+        "failed_logins_5m",
+        0.08666903525590897
+      ],
+      [
+        "successful_logins_15m",
+        0.06424073129892349
+      ],
+      [
+        "suspicious_requests_15m",
+        0.05194352939724922
+      ],
+      [
+        "unique_paths_5m",
+        0.04453413933515549
+      ],
+      [
+        "failed_logins_15m",
+        0.04145337641239166
+      ]
+    ]
+  },
+  "autoencoder": {
+    "implementation": "scikit-learn MLPRegressor trained X->X as a compact feed-forward autoencoder",
+    "normal_error_p50": 0.23991161584854126,
+    "normal_error_p95": 0.7401251196861267,
+    "threshold_p99": 1.054922103881836,
+    "holdout_anomaly_recall": 1.0,
+    "holdout_normal_false_positive_rate": 0.01,
+    "mean_normalized_anomaly_score": 0.8708323836326599
+  },
+  "risk_fusion": {
+    "rule_weight": 0.35,
+    "xgboost_weight": 0.4,
+    "autoencoder_weight": 0.25,
+    "bands": {
+      "NORMAL": "0-29",
+      "WATCH": "30-49",
+      "SUSPICIOUS": "50-69",
+      "HIGH": "70-84",
+      "CRITICAL": "85-100"
+    }
+  }
+}
