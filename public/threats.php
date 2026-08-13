@@ -34,6 +34,7 @@ $threatCategories = [
     ['fa-gauge-high', 'Brute force', $bruteforce24h, 'Rate-limit triggers'],
     ['fa-spider', 'Honeypot', $honeypot24h, 'Honeypot events'],
     ['fa-ban', 'Banned-source hits', $bannedRequest24h, 'Blocked banned clients'],
+    ['fa-door-open', 'Forced Browsing', $forcedBrowsing24h, 'Unauthorized protected-page access'],
 ];
 
 audit_log('threat_center_viewed uid=' . $userId);
