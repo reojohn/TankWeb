@@ -3,6 +3,7 @@
 
   const state = window.FortressSecurityAlertsState || {
     cursor: null,
+    streamId: '',
     notifications: [],
     toastSeen: new Set(),
     historyLoaded: false,
@@ -27,7 +28,7 @@
   let notificationsEnabled = true;
   let readIds = new Set();
 
-  const NOTIFICATION_CACHE_VERSION = 1;
+  const NOTIFICATION_CACHE_VERSION = 2;
   const MAX_CACHED_NOTIFICATIONS = 40;
   const CACHE_HISTORY_REFRESH_MS = 15 * 60 * 1000;
 
@@ -97,10 +98,11 @@
       const hasCursor = cached.cursor !== null && cached.cursor !== undefined && cached.cursor !== '';
       const cursorValue = hasCursor ? Number(cached.cursor) : NaN;
       const cursor = Number.isFinite(cursorValue) && cursorValue >= 0 ? cursorValue : null;
+      const streamId = typeof cached.streamId === 'string' ? cached.streamId : '';
       const lastSyncAtValue = Number(cached.lastSyncAt || cached.savedAt || 0);
       const lastSyncAt = Number.isFinite(lastSyncAtValue) && lastSyncAtValue > 0 ? lastSyncAtValue : 0;
 
-      return { notifications, cursor, lastSyncAt };
+      return { notifications, cursor, streamId, lastSyncAt };
     } catch (_) {
       return null;
     }
@@ -113,6 +115,7 @@
         cursor: state.cursor !== null && state.cursor !== undefined && state.cursor !== '' && Number.isFinite(Number(state.cursor))
           ? Number(state.cursor)
           : null,
+        streamId: String(state.streamId || ''),
         notifications: state.notifications.slice(0, MAX_CACHED_NOTIFICATIONS),
         lastSyncAt: Number(state.lastSyncAt || 0),
         savedAt: Date.now(),
@@ -444,6 +447,7 @@
 
       const knownIds = new Set(state.notifications.map((item) => item.id));
       state.cursor = Number(payload.cursor || 0);
+      state.streamId = String(payload.stream_id || '');
       const events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
       mergeNotifications(events);
       state.lastSyncAt = Date.now();
@@ -480,7 +484,8 @@
 
     polling = true;
     try {
-      const response = await fetch(`/security_alert_feed.php?cursor=${encodeURIComponent(state.cursor)}`, {
+      const streamQuery = state.streamId ? `&stream=${encodeURIComponent(state.streamId)}` : '';
+      const response = await fetch(`/security_alert_feed.php?cursor=${encodeURIComponent(state.cursor)}${streamQuery}`, {
         method: 'GET',
         credentials: 'same-origin',
         cache: 'no-store',
@@ -492,12 +497,22 @@
       const payload = await response.json();
       if (!payload || payload.success !== true || destroyed || runGeneration !== generation) return;
 
+      const knownIds = new Set(state.notifications.map((item) => item.id));
       state.cursor = Number(payload.cursor || state.cursor || 0);
+      state.streamId = String(payload.stream_id || state.streamId || '');
       const events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
       if (events.length > 0) {
         mergeNotifications(events);
         renderPanel();
-        events.forEach(queueToast);
+
+        // A container restart can reset the server-side audit stream while the
+        // browser still has the previous cursor. The feed then returns recent
+        // history with reset=true. Only toast events that were not already in
+        // this browser's cache, avoiding a replay storm of old notifications.
+        const toastEvents = payload.reset === true
+          ? events.filter((item) => item.id && !knownIds.has(item.id) && !readIds.has(item.id))
+          : events;
+        toastEvents.forEach(queueToast);
       }
       state.lastSyncAt = Date.now();
       saveNotificationCache();
@@ -546,6 +561,7 @@
 
     if (ownerChanged) {
       state.cursor = null;
+      state.streamId = '';
       state.notifications = [];
       state.historyLoaded = false;
       state.lastSyncAt = 0;
@@ -557,6 +573,7 @@
     if (cachedState && (ownerChanged || state.notifications.length === 0)) {
       state.notifications = cachedState.notifications;
       state.cursor = cachedState.cursor;
+      state.streamId = cachedState.streamId;
       state.lastSyncAt = cachedState.lastSyncAt;
       // Cached items are already-known history. They should render instantly,
       // but they should not replay old toast popups after every page refresh.
@@ -621,7 +638,7 @@
 
     if (notificationsEnabled) {
       const cacheAge = Date.now() - Number(state.lastSyncAt || 0);
-      if (state.cursor === null || cacheAge > CACHE_HISTORY_REFRESH_MS) {
+      if (state.cursor === null || !state.streamId || cacheAge > CACHE_HISTORY_REFRESH_MS) {
         // The cached list is already on screen. This full history refresh is
         // background synchronization only; it never replaces the panel with a
         // loading state.

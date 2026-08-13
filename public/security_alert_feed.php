@@ -20,7 +20,34 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 $path = __DIR__ . '/../data/audit.log';
 $currentSize = is_file($path) ? (int)filesize($path) : 0;
 $cursorRaw = $_GET['cursor'] ?? null;
+$clientStreamId = trim((string)($_GET['stream'] ?? ''));
 $historyMode = isset($_GET['history']) && (string)$_GET['history'] === '1';
+
+function fortress_alert_stream_id(string $auditPath): string
+{
+    $marker = dirname($auditPath) . '/.alert_stream_id';
+    $existing = is_file($marker) ? trim((string)@file_get_contents($marker)) : '';
+    if (preg_match('/^[a-f0-9]{32}$/', $existing)) return $existing;
+
+    try {
+        $generated = bin2hex(random_bytes(16));
+    } catch (Throwable $e) {
+        $generated = hash('sha256', gethostname() . '|' . microtime(true) . '|' . getmypid());
+        $generated = substr($generated, 0, 32);
+    }
+
+    $handle = @fopen($marker, 'x');
+    if ($handle) {
+        @fwrite($handle, $generated);
+        @fclose($handle);
+        return $generated;
+    }
+
+    $existing = is_file($marker) ? trim((string)@file_get_contents($marker)) : '';
+    return preg_match('/^[a-f0-9]{32}$/', $existing) ? $existing : $generated;
+}
+
+$streamId = fortress_alert_stream_id($path);
 
 $priority = [
     'bruteforce_detected' => 100,
@@ -306,8 +333,10 @@ if ($historyMode) {
     echo json_encode([
         'success' => true,
         'cursor' => $currentSize,
+        'stream_id' => $streamId,
         'events' => $events,
         'history' => true,
+        'reset' => false,
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -315,19 +344,60 @@ if ($historyMode) {
 // A legacy first request still only establishes the cursor. The upgraded
 // notification client uses ?history=1 first, then resumes cursor polling.
 if ($cursorRaw === null || !ctype_digit((string)$cursorRaw)) {
-    echo json_encode(['success' => true, 'cursor' => $currentSize, 'events' => []], JSON_UNESCAPED_SLASHES);
+    echo json_encode([
+        'success' => true,
+        'cursor' => $currentSize,
+        'stream_id' => $streamId,
+        'events' => [],
+        'reset' => false,
+    ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 $cursor = max(0, (int)$cursorRaw);
-if ($cursor > $currentSize || !is_file($path)) {
-    echo json_encode(['success' => true, 'cursor' => $currentSize, 'events' => []], JSON_UNESCAPED_SLASHES);
+$streamChanged = $clientStreamId !== '' && !hash_equals($streamId, $clientStreamId);
+$cursorInvalid = $cursor > $currentSize;
+
+// Render and other container hosts can recreate the writable data directory on
+// a deploy/restart. A browser may still hold the cursor from the previous
+// container. When the log stream changes (or the cursor is now beyond EOF),
+// recover recent security history instead of silently dropping those events.
+if ($streamChanged || $cursorInvalid) {
+    $historyLines = fortress_tail_audit_lines($path, 320);
+    $events = fortress_build_notifications($historyLines, $priority, 24);
+
+    echo json_encode([
+        'success' => true,
+        'cursor' => $currentSize,
+        'stream_id' => $streamId,
+        'events' => $events,
+        'history' => true,
+        'reset' => true,
+        'reset_reason' => $streamChanged ? 'stream_changed' : 'cursor_invalid',
+    ], JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+if (!is_file($path)) {
+    echo json_encode([
+        'success' => true,
+        'cursor' => 0,
+        'stream_id' => $streamId,
+        'events' => [],
+        'reset' => false,
+    ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 $handle = @fopen($path, 'rb');
 if (!$handle) {
-    echo json_encode(['success' => true, 'cursor' => $currentSize, 'events' => []], JSON_UNESCAPED_SLASHES);
+    echo json_encode([
+        'success' => true,
+        'cursor' => $currentSize,
+        'stream_id' => $streamId,
+        'events' => [],
+        'reset' => false,
+    ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -347,6 +417,8 @@ $events = fortress_build_notifications($lines, $priority, 8);
 echo json_encode([
     'success' => true,
     'cursor' => max($newCursor, $currentSize),
+    'stream_id' => $streamId,
     'events' => $events,
     'history' => false,
+    'reset' => false,
 ], JSON_UNESCAPED_SLASHES);
