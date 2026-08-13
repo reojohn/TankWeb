@@ -278,16 +278,9 @@ function fortress_build_notifications(array $lines, array $priority, int $limit 
         $key = fortress_event_key($line);
         if (!isset($priority[$key])) continue;
 
-        // Ignore historical stale-background-poll artifacts. A logged-out tab
-        // can legitimately hit a protected feed once while the browser is
-        // discovering that its session has ended; that is not an intrusion.
-        if ($key === 'auth_rejected') {
-            $reason = strtolower(fortress_alert_field($line, 'reason'));
-            $uid = fortress_alert_field($line, 'uid');
-            if ($uid === '0' && in_array($reason, ['incomplete_primary_auth', 'missing_primary_session'], true)) {
-                continue;
-            }
-        }
+        // Background alert/live-state requests are already excluded at the
+        // authentication layer, so a remaining auth_rejected event represents
+        // an actual protected-resource access attempt and must reach admins.
 
         $rid = fortress_alert_field($line, 'rid');
         $groupKey = $rid !== '' ? $rid : hash('sha256', $line);
