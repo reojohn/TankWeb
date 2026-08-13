@@ -389,6 +389,10 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
     $suspiciousRequests24h = 0;
     $bruteforce24h = 0;
     $bannedRequest24h = 0;
+    $forcedBrowsing24h = 0;
+    // De-duplicate browser retries/prefetches so one forced-browsing incident
+    // does not inflate the category counter with multiple auth_rejected lines.
+    $forcedBrowsingLastSeen = [];
     $sqlAttack24h = 0;
     $xssAttack24h = 0;
     $pathAttack24h = 0;
@@ -469,6 +473,32 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
         }
         if (str_contains($line, 'bruteforce_detected')) $bruteforce24h++;
         if (str_contains($line, 'banned_ip_attempt') || str_contains($line, 'banned_ip_middleware_block')) $bannedRequest24h++;
+        // Count forced browsing as an incident, not as raw auth_rejected log lines.
+        // Browsers/proxies can retry or duplicate a navigation, producing two nearly
+        // identical auth_rejected entries for one user action. Collapse repeats from
+        // the same source/reason that arrive within two seconds.
+        if (
+            str_contains($line, 'auth_rejected')
+            && preg_match('/\buid=0\b/', $line) === 1
+            && (
+                str_contains($line, 'reason=incomplete_primary_auth')
+                || str_contains($line, 'reason=missing_primary_session')
+            )
+        ) {
+            $forcedIp = fortress_log_ip($line);
+            $forcedReason = str_contains($line, 'reason=incomplete_primary_auth')
+                ? 'incomplete_primary_auth'
+                : 'missing_primary_session';
+            $forcedKey = $forcedIp . '|' . $forcedReason;
+            $forcedTimestamp = $eventDate->getTimestamp();
+            $lastForcedTimestamp = (int)($forcedBrowsingLastSeen[$forcedKey] ?? 0);
+
+            if ($lastForcedTimestamp === 0 || ($forcedTimestamp - $lastForcedTimestamp) > 2) {
+                $forcedBrowsing24h++;
+            }
+
+            $forcedBrowsingLastSeen[$forcedKey] = $forcedTimestamp;
+        }
         if (str_contains($line, 'issues=') && str_contains($line, 'sql_attack')) $sqlAttack24h++;
         if (str_contains($line, 'issues=') && str_contains($line, 'xss_attack')) $xssAttack24h++;
         if (str_contains($line, 'issues=') && str_contains($line, 'path_traversal')) $pathAttack24h++;
@@ -611,6 +641,7 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
         'suspiciousRequests24h' => $suspiciousRequests24h,
         'bruteforce24h' => $bruteforce24h,
         'bannedRequest24h' => $bannedRequest24h,
+        'forcedBrowsing24h' => $forcedBrowsing24h,
         'sqlAttack24h' => $sqlAttack24h,
         'xssAttack24h' => $xssAttack24h,
         'pathAttack24h' => $pathAttack24h,
