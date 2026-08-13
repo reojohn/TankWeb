@@ -88,6 +88,189 @@ function fortress_log_safe_value(string $value, int $maxLength = 180): string
     return $value === '' ? '-' : $value;
 }
 
+
+
+/**
+ * Convert the existing audit message into structured fields for persistent
+ * database storage. The original raw audit line is still preserved verbatim.
+ */
+function fortress_audit_message_fields(string $message): array
+{
+    $message = trim($message);
+    if ($message === '') {
+        return ['event_key' => 'unknown_event', 'fields' => []];
+    }
+
+    $parts = preg_split('/\s+/', $message) ?: [];
+    $eventKey = (string)array_shift($parts);
+    $eventKey = preg_replace('/[^A-Za-z0-9_.:-]/', '', $eventKey) ?? '';
+    if ($eventKey === '') {
+        $eventKey = 'unknown_event';
+    }
+
+    $fields = [];
+    foreach ($parts as $part) {
+        if (!str_contains($part, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $part, 2);
+        $key = preg_replace('/[^A-Za-z0-9_.:-]/', '', trim($key)) ?? '';
+        if ($key === '') {
+            continue;
+        }
+        $fields[$key] = trim($value);
+    }
+
+    return ['event_key' => $eventKey, 'fields' => $fields];
+}
+
+function fortress_audit_severity(string $eventKey, array $fields): string
+{
+    $issues = strtolower((string)($fields['issues'] ?? ''));
+
+    if (
+        str_contains($issues, 'sql_attack') ||
+        str_contains($issues, 'shell_attack') ||
+        str_contains($issues, 'command') ||
+        in_array($eventKey, [
+            'bruteforce_detected', 'banned_ip_middleware_block',
+            'honeypot_triggered', 'honeypot_access',
+        ], true)
+    ) {
+        return 'HIGH';
+    }
+
+    if (
+        str_contains($issues, 'xss') ||
+        str_contains($issues, 'path_traversal') ||
+        in_array($eventKey, [
+            'malicious_input_detected', 'auth_rejected',
+            'reconnaissance_probe', 'sensitive_path_probe',
+            'scanner_user_agent_detected', 'http_method_abuse',
+            'oversized_request', 'csrf_rejected', 'csp_violation',
+            'login_locked_out',
+        ], true)
+    ) {
+        return 'WARNING';
+    }
+
+    return 'INFO';
+}
+
+function fortress_audit_outcome(string $eventKey): string
+{
+    if (
+        str_contains($eventKey, 'blocked') ||
+        str_contains($eventKey, 'rejected') ||
+        in_array($eventKey, [
+            'malicious_input_detected', 'auth_rejected', 'bruteforce_detected',
+            'banned_ip_middleware_block', 'reconnaissance_probe',
+            'sensitive_path_probe', 'scanner_user_agent_detected',
+            'http_method_abuse', 'oversized_request', 'csrf_rejected',
+            'csp_violation', 'login_locked_out', 'unsafe_redirect_blocked',
+        ], true)
+    ) {
+        return 'BLOCKED';
+    }
+
+    if (str_contains($eventKey, 'failed') || str_contains($eventKey, 'failure')) {
+        return 'REJECTED';
+    }
+
+    if (str_contains($eventKey, 'success') || str_contains($eventKey, 'passed')) {
+        return 'PASSED';
+    }
+
+    return 'RECORDED';
+}
+
+/**
+ * Best-effort persistent copy of an audit event in Supabase/PostgreSQL.
+ * A database failure must never interrupt authentication or security controls,
+ * so failures are sent only to PHP's error log while audit.log remains intact.
+ */
+function fortress_persist_security_event(string $safeMessage, string $rawEntry, string $time, string $ip, string $ua, string $rid): void
+{
+    global $pdo;
+
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        return;
+    }
+
+    try {
+        $parsed = fortress_audit_message_fields($safeMessage);
+        $eventKey = (string)$parsed['event_key'];
+        $fields = (array)$parsed['fields'];
+
+        $uid = null;
+        foreach (['uid', 'user_id', 'actor_uid'] as $uidKey) {
+            if (isset($fields[$uidKey]) && ctype_digit((string)$fields[$uidKey])) {
+                $uid = (int)$fields[$uidKey];
+                break;
+            }
+        }
+        if ($uid === null && isset($_SESSION['uid']) && is_numeric($_SESSION['uid'])) {
+            $uid = (int)$_SESSION['uid'];
+        }
+
+        $username = null;
+        foreach (['username', 'user', 'target'] as $usernameKey) {
+            if (!empty($fields[$usernameKey])) {
+                $username = substr((string)$fields[$usernameKey], 0, 160);
+                break;
+            }
+        }
+
+        $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+        $requestPath = $requestUri !== '' ? (string)(parse_url($requestUri, PHP_URL_PATH) ?: $requestUri) : null;
+        if (is_string($requestPath)) {
+            $requestPath = substr($requestPath, 0, 500);
+        }
+        $method = strtoupper(substr((string)($_SERVER['REQUEST_METHOD'] ?? ''), 0, 16));
+        $method = $method !== '' ? $method : null;
+
+        $issues = isset($fields['issues']) ? substr((string)$fields['issues'], 0, 1000) : null;
+        $severity = fortress_audit_severity($eventKey, $fields);
+        $outcome = fortress_audit_outcome($eventKey);
+
+        $metadata = $fields;
+        $metadata['request_id'] = $rid;
+        $metadata['user_agent'] = $ua;
+        $metadataJson = json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!is_string($metadataJson)) {
+            $metadataJson = '{}';
+        }
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO public.security_events (
+                occurred_at, event_key, source_ip, user_id, username,
+                request_path, http_method, issues, severity, outcome,
+                raw_line, metadata
+             ) VALUES (
+                :occurred_at, :event_key, :source_ip, :user_id, :username,
+                :request_path, :http_method, :issues, :severity, :outcome,
+                :raw_line, CAST(:metadata AS jsonb)
+             )'
+        );
+        $stmt->execute([
+            'occurred_at' => $time,
+            'event_key' => substr($eventKey, 0, 190),
+            'source_ip' => $ip !== '' ? substr($ip, 0, 64) : null,
+            'user_id' => $uid,
+            'username' => $username,
+            'request_path' => $requestPath,
+            'http_method' => $method,
+            'issues' => $issues,
+            'severity' => $severity,
+            'outcome' => $outcome,
+            'raw_line' => rtrim($rawEntry),
+            'metadata' => $metadataJson,
+        ]);
+    } catch (Throwable $e) {
+        error_log('FortressAuth security_events persistence failed: ' . $e->getMessage());
+    }
+}
+
 function audit_log(string $message): void
 {
     // A live synchronization GET only re-renders already-authorized UI.
@@ -116,4 +299,8 @@ function audit_log(string $message): void
 
     $entry = sprintf('[%s] rid=%s ip=%s ua=%s %s%s', $time, $rid, $ip, $ua, $safeMessage, PHP_EOL);
     @file_put_contents($file, $entry, FILE_APPEND | LOCK_EX);
+
+    // Keep the existing flat-file log as a fallback, while also persisting a
+    // durable copy in Supabase/PostgreSQL so Render restarts cannot erase it.
+    fortress_persist_security_event($safeMessage, $entry, $time, $ip, $ua, $rid);
 }

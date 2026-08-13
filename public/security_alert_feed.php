@@ -17,37 +17,14 @@ require_admin_auth();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-$path = __DIR__ . '/../data/audit.log';
-$currentSize = is_file($path) ? (int)filesize($path) : 0;
+$fallbackPath = __DIR__ . '/../data/audit.log';
 $cursorRaw = $_GET['cursor'] ?? null;
 $clientStreamId = trim((string)($_GET['stream'] ?? ''));
 $historyMode = isset($_GET['history']) && (string)$_GET['history'] === '1';
 
-function fortress_alert_stream_id(string $auditPath): string
-{
-    $marker = dirname($auditPath) . '/.alert_stream_id';
-    $existing = is_file($marker) ? trim((string)@file_get_contents($marker)) : '';
-    if (preg_match('/^[a-f0-9]{32}$/', $existing)) return $existing;
-
-    try {
-        $generated = bin2hex(random_bytes(16));
-    } catch (Throwable $e) {
-        $generated = hash('sha256', gethostname() . '|' . microtime(true) . '|' . getmypid());
-        $generated = substr($generated, 0, 32);
-    }
-
-    $handle = @fopen($marker, 'x');
-    if ($handle) {
-        @fwrite($handle, $generated);
-        @fclose($handle);
-        return $generated;
-    }
-
-    $existing = is_file($marker) ? trim((string)@file_get_contents($marker)) : '';
-    return preg_match('/^[a-f0-9]{32}$/', $existing) ? $existing : $generated;
-}
-
-$streamId = fortress_alert_stream_id($path);
+// Durable notification stream backed by PostgreSQL/Supabase. This stream ID
+// intentionally stays stable across Render restarts and deployments.
+$dbStreamId = 'security-events-v1';
 
 $priority = [
     'bruteforce_detected' => 100,
@@ -319,99 +296,216 @@ function fortress_build_notifications(array $lines, array $priority, int $limit 
     return $events;
 }
 
-if ($historyMode) {
-    $historyLines = fortress_tail_audit_lines($path, 320);
-    $events = fortress_build_notifications($historyLines, $priority, 24);
 
+/**
+ * Query the durable security-event stream. These helpers intentionally return
+ * raw audit lines so the existing alert title/description/category logic stays
+ * exactly the same while storage moves from audit.log to PostgreSQL.
+ */
+function fortress_alert_db_max_id(PDO $pdo): int
+{
+    try {
+        $value = $pdo->query('SELECT COALESCE(MAX(id), 0) FROM public.security_events')->fetchColumn();
+        return max(0, (int)$value);
+    } catch (Throwable $e) {
+        error_log('FortressAuth alert stream max-id read failed: ' . $e->getMessage());
+        return -1;
+    }
+}
+
+function fortress_alert_priority_placeholders(array $priority): array
+{
+    $keys = array_keys($priority);
+    $placeholders = [];
+    $params = [];
+    foreach ($keys as $index => $key) {
+        $name = ':k' . $index;
+        $placeholders[] = $name;
+        $params[$name] = $key;
+    }
+    return [$placeholders, $params];
+}
+
+function fortress_alert_db_history(PDO $pdo, array $priority, int $limit = 320): array
+{
+    try {
+        [$placeholders, $params] = fortress_alert_priority_placeholders($priority);
+        if (!$placeholders) return [];
+
+        $sql = 'SELECT id, raw_line
+                FROM public.security_events
+                WHERE event_key IN (' . implode(',', $placeholders) . ')
+                  AND raw_line IS NOT NULL
+                  AND BTRIM(raw_line) <> \'\'
+                ORDER BY id DESC
+                LIMIT ' . max(1, min(1000, $limit));
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!is_array($rows)) return [];
+
+        $lines = [];
+        foreach (array_reverse($rows) as $row) {
+            $line = trim((string)($row['raw_line'] ?? ''));
+            if ($line !== '') $lines[] = $line;
+        }
+        return $lines;
+    } catch (Throwable $e) {
+        error_log('FortressAuth alert history read failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+function fortress_alert_db_since(PDO $pdo, array $priority, int $cursor, int $limit = 160): array
+{
+    try {
+        [$placeholders, $params] = fortress_alert_priority_placeholders($priority);
+        if (!$placeholders) return ['rows' => [], 'max_id' => fortress_alert_db_max_id($pdo)];
+
+        $params[':cursor'] = max(0, $cursor);
+        $safeLimit = max(1, min(500, $limit));
+        $sql = 'SELECT id, raw_line
+                FROM public.security_events
+                WHERE id > :cursor
+                  AND event_key IN (' . implode(',', $placeholders) . ')
+                  AND raw_line IS NOT NULL
+                  AND BTRIM(raw_line) <> \'\'
+                ORDER BY id ASC
+                LIMIT ' . $safeLimit;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return [
+            'rows' => is_array($rows) ? $rows : [],
+            'max_id' => fortress_alert_db_max_id($pdo),
+            'limit' => $safeLimit,
+        ];
+    } catch (Throwable $e) {
+        error_log('FortressAuth alert incremental read failed: ' . $e->getMessage());
+        return ['rows' => [], 'max_id' => -1, 'limit' => max(1, $limit)];
+    }
+}
+
+function fortress_alert_file_fallback_payload(string $path, array $priority, bool $historyMode): array
+{
+    $currentSize = is_file($path) ? (int)filesize($path) : 0;
+    $lines = fortress_tail_audit_lines($path, $historyMode ? 320 : 160);
+    return [
+        'cursor' => $currentSize,
+        'stream_id' => 'audit-file-fallback-v1',
+        'events' => fortress_build_notifications($lines, $priority, $historyMode ? 24 : 8),
+    ];
+}
+
+$currentDbMax = fortress_alert_db_max_id($pdo);
+$dbAvailable = $currentDbMax >= 0;
+
+if ($historyMode) {
+    if ($dbAvailable) {
+        $historyLines = fortress_alert_db_history($pdo, $priority, 320);
+        $events = fortress_build_notifications($historyLines, $priority, 24);
+        echo json_encode([
+            'success' => true,
+            'cursor' => $currentDbMax,
+            'stream_id' => $dbStreamId,
+            'events' => $events,
+            'history' => true,
+            'reset' => false,
+            'source' => 'database',
+        ], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    $fallback = fortress_alert_file_fallback_payload($fallbackPath, $priority, true);
     echo json_encode([
         'success' => true,
-        'cursor' => $currentSize,
-        'stream_id' => $streamId,
-        'events' => $events,
+        'cursor' => $fallback['cursor'],
+        'stream_id' => $fallback['stream_id'],
+        'events' => $fallback['events'],
         'history' => true,
         'reset' => false,
+        'source' => 'audit_fallback',
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
-// A legacy first request still only establishes the cursor. The upgraded
-// notification client uses ?history=1 first, then resumes cursor polling.
+// The first request establishes a durable database event-id cursor.
 if ($cursorRaw === null || !ctype_digit((string)$cursorRaw)) {
     echo json_encode([
         'success' => true,
-        'cursor' => $currentSize,
-        'stream_id' => $streamId,
+        'cursor' => $dbAvailable ? $currentDbMax : (is_file($fallbackPath) ? (int)filesize($fallbackPath) : 0),
+        'stream_id' => $dbAvailable ? $dbStreamId : 'audit-file-fallback-v1',
         'events' => [],
         'reset' => false,
+        'source' => $dbAvailable ? 'database' : 'audit_fallback',
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 $cursor = max(0, (int)$cursorRaw);
-$streamChanged = $clientStreamId !== '' && !hash_equals($streamId, $clientStreamId);
-$cursorInvalid = $cursor > $currentSize;
 
-// Render and other container hosts can recreate the writable data directory on
-// a deploy/restart. A browser may still hold the cursor from the previous
-// container. When the log stream changes (or the cursor is now beyond EOF),
-// recover recent security history instead of silently dropping those events.
-if ($streamChanged || $cursorInvalid) {
-    $historyLines = fortress_tail_audit_lines($path, 320);
-    $events = fortress_build_notifications($historyLines, $priority, 24);
+if ($dbAvailable) {
+    // A browser upgraded from the old audit.log cursor has a different stream
+    // ID. Return durable recent history once so no security events disappear
+    // during the migration or after a Render container replacement.
+    $streamChanged = $clientStreamId !== '' && !hash_equals($dbStreamId, $clientStreamId);
+    $cursorInvalid = $cursor > $currentDbMax;
+    if ($streamChanged || $cursorInvalid) {
+        $historyLines = fortress_alert_db_history($pdo, $priority, 320);
+        $events = fortress_build_notifications($historyLines, $priority, 24);
+        echo json_encode([
+            'success' => true,
+            'cursor' => $currentDbMax,
+            'stream_id' => $dbStreamId,
+            'events' => $events,
+            'history' => true,
+            'reset' => true,
+            'reset_reason' => $streamChanged ? 'stream_changed' : 'cursor_invalid',
+            'source' => 'database',
+        ], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    $batch = fortress_alert_db_since($pdo, $priority, $cursor, 160);
+    $rows = $batch['rows'];
+    $lines = [];
+    $lastPriorityId = $cursor;
+    foreach ($rows as $row) {
+        $id = (int)($row['id'] ?? 0);
+        if ($id > $lastPriorityId) $lastPriorityId = $id;
+        $line = trim((string)($row['raw_line'] ?? ''));
+        if ($line !== '') $lines[] = $line;
+    }
+
+    $events = fortress_build_notifications($lines, $priority, 8);
+    // If the priority-event batch hit the limit, continue from its final ID on
+    // the next poll. Otherwise advance to MAX(id) so routine non-alert events
+    // do not get re-scanned forever.
+    $newCursor = count($rows) >= (int)$batch['limit']
+        ? $lastPriorityId
+        : max($cursor, (int)$batch['max_id']);
 
     echo json_encode([
         'success' => true,
-        'cursor' => $currentSize,
-        'stream_id' => $streamId,
+        'cursor' => $newCursor,
+        'stream_id' => $dbStreamId,
         'events' => $events,
-        'history' => true,
-        'reset' => true,
-        'reset_reason' => $streamChanged ? 'stream_changed' : 'cursor_invalid',
-    ], JSON_UNESCAPED_SLASHES);
-    exit;
-}
-
-if (!is_file($path)) {
-    echo json_encode([
-        'success' => true,
-        'cursor' => 0,
-        'stream_id' => $streamId,
-        'events' => [],
+        'history' => false,
         'reset' => false,
+        'source' => 'database',
     ], JSON_UNESCAPED_SLASHES);
     exit;
 }
 
-$handle = @fopen($path, 'rb');
-if (!$handle) {
-    echo json_encode([
-        'success' => true,
-        'cursor' => $currentSize,
-        'stream_id' => $streamId,
-        'events' => [],
-        'reset' => false,
-    ], JSON_UNESCAPED_SLASHES);
-    exit;
-}
-
-@fseek($handle, $cursor);
-$lines = [];
-while (!feof($handle) && count($lines) < 160) {
-    $line = fgets($handle);
-    if ($line === false) break;
-    $line = trim($line);
-    if ($line !== '') $lines[] = $line;
-}
-$newCursor = (int)ftell($handle);
-fclose($handle);
-
-$events = fortress_build_notifications($lines, $priority, 8);
-
+// Database read failures fall back to the legacy file stream. This fallback is
+// intentionally best-effort; normal deployed operation uses security_events.
+$fallback = fortress_alert_file_fallback_payload($fallbackPath, $priority, false);
 echo json_encode([
     'success' => true,
-    'cursor' => max($newCursor, $currentSize),
-    'stream_id' => $streamId,
-    'events' => $events,
+    'cursor' => $fallback['cursor'],
+    'stream_id' => $fallback['stream_id'],
+    'events' => $fallback['events'],
     'history' => false,
-    'reset' => false,
+    'reset' => $clientStreamId !== '' && $clientStreamId !== $fallback['stream_id'],
+    'source' => 'audit_fallback',
 ], JSON_UNESCAPED_SLASHES);

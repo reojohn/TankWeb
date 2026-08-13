@@ -15,6 +15,88 @@ function fortress_read_lines(string $path): array
     return is_array($lines) ? $lines : [];
 }
 
+/**
+ * Read audit evidence from durable PostgreSQL storage and merge it with the
+ * local audit.log fallback. Exact duplicate entries are removed because the
+ * logger intentionally dual-writes the same event to both destinations.
+ *
+ * The database query is capped to the most recent 10,000 events so dashboard
+ * rendering remains bounded even after long-running deployments. All 24-hour
+ * metrics and recent timelines therefore remain fully covered.
+ */
+function fortress_read_persistent_audit_lines(PDO $pdo, string $fallbackPath): array
+{
+    $fileLines = fortress_read_lines($fallbackPath);
+    $databaseLines = [];
+
+    try {
+        $stmt = $pdo->query(
+            "SELECT raw_line
+             FROM (
+                 SELECT id, occurred_at, raw_line
+                 FROM public.security_events
+                 WHERE raw_line IS NOT NULL AND BTRIM(raw_line) <> ''
+                 ORDER BY occurred_at DESC, id DESC
+                 LIMIT 10000
+             ) AS recent_events
+             ORDER BY occurred_at ASC, id ASC"
+        );
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                $line = trim((string)$row);
+                if ($line !== '') {
+                    $databaseLines[] = $line;
+                }
+            }
+        }
+    } catch (Throwable $e) {
+        // During rollout, local development, or a temporary DB outage, keep
+        // the existing flat-file behavior instead of breaking dashboards.
+        error_log('FortressAuth security_events read failed: ' . $e->getMessage());
+    }
+
+    if (!$databaseLines) {
+        return $fileLines;
+    }
+
+    // Merge legacy/local-only lines with durable events without double-counting
+    // the entries that audit_log() wrote to both destinations.
+    $merged = [];
+    $seen = [];
+    foreach (array_merge($fileLines, $databaseLines) as $line) {
+        $line = trim((string)$line);
+        if ($line === '') {
+            continue;
+        }
+        $fingerprint = hash('sha256', $line);
+        if (isset($seen[$fingerprint])) {
+            continue;
+        }
+        $seen[$fingerprint] = true;
+        $merged[] = $line;
+    }
+
+    // Keep the same oldest-to-newest ordering audit.log historically used.
+    usort($merged, static function (string $a, string $b): int {
+        $aDate = fortress_event_datetime($a);
+        $bDate = fortress_event_datetime($b);
+        if ($aDate && $bDate) {
+            $cmp = $aDate->getTimestamp() <=> $bDate->getTimestamp();
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+        } elseif ($aDate) {
+            return -1;
+        } elseif ($bDate) {
+            return 1;
+        }
+        return strcmp($a, $b);
+    });
+
+    return $merged;
+}
+
 function fortress_event_datetime(string $line): ?DateTimeImmutable
 {
     if (!preg_match('/^\[([^\]]+)\]/', $line, $matches)) {
@@ -351,7 +433,7 @@ function fortress_format_date_value(?string $value, string $fallback = 'Not reco
 function fortress_build_security_context(PDO $pdo, int $userId): array
 {
     $dataPath = __DIR__ . '/../data/';
-    $auditLines = fortress_read_lines($dataPath . 'audit.log');
+    $auditLines = fortress_read_persistent_audit_lines($pdo, $dataPath . 'audit.log');
     $honeypotLines = fortress_read_lines($dataPath . 'honeypot_log.txt');
 
     $policyField = fortress_optional_2fa_policy_available($pdo)
