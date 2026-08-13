@@ -49,3 +49,4 @@ composer.phar
 
 # Ignore any generated .env with secrets
 .env.*.local
+data/audit.log
