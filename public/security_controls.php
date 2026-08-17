@@ -11,8 +11,33 @@ require_once __DIR__ . '/../src/security_policy.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
+
+// Security Controls renders aggregate evidence, not raw audit history. Pull the
+// compact counters directly from PostgreSQL and only fall back to the legacy
+// context builder if structured history is temporarily unavailable.
+$metricState = fortress_security_metrics_24h_db($pdo);
+if (is_array($metricState)) {
+    $failedAttempts24h = (int)($metricState['failed_passwords'] ?? 0);
+    $successfulPassword24h = (int)($metricState['successful_passwords'] ?? 0);
+    $schoolIdSuccess24h = (int)($metricState['school_id_success'] ?? 0);
+    $schoolIdFailures24h = (int)($metricState['school_id_failures'] ?? 0);
+    $suspiciousRequests24h = (int)($metricState['suspicious_requests'] ?? 0);
+    $bruteforce24h = (int)($metricState['brute_force'] ?? 0);
+    $totalAuditEvents = max(0, (int)($metricState['total_audit_events'] ?? 0));
+    try {
+        $activeBans = (int)$pdo->query("SELECT COUNT(*) FROM banned_ips WHERE banned_until > NOW()")->fetchColumn();
+    } catch (Throwable $e) {
+        $activeBans = 0;
+    }
+    $threatPoints = $failedAttempts24h + ($suspiciousRequests24h * 2) + ($activeBans * 3) + ($schoolIdFailures24h * 2);
+    $threatLevel = $threatPoints >= 8 ? 'ELEVATED' : ($threatPoints >= 3 ? 'WATCH' : 'LOW');
+} else {
+    $ctx = fortress_build_security_context($pdo, $userId);
+    extract($ctx, EXTR_SKIP);
+}
+
 $activeNav = 'controls';
 $policy = fortress_security_policy();
 $reconDefenseEnabled = fortress_recon_enabled();

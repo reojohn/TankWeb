@@ -212,16 +212,20 @@ function fortress_ml_request_log_path(): string
  */
 function fortress_ml_predictions_db_available(): bool
 {
-    static $available = false;
-    static $checkedAt = 0;
+    static $available = null;
+    if (is_bool($available)) return $available;
 
-    if ($checkedAt > 0 && $checkedAt >= time() - 30) return $available;
-    $checkedAt = time();
+    $sessionKey = 'fortress_ml_predictions_table_available_v1';
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $cached = $_SESSION[$sessionKey] ?? null;
+        if (is_array($cached) && (int)($cached['expires_at'] ?? 0) >= time()) {
+            return $available = !empty($cached['available']);
+        }
+    }
 
     global $pdo;
     if (!isset($pdo) || !($pdo instanceof PDO)) {
-        $available = false;
-        return false;
+        return $available = false;
     }
 
     try {
@@ -229,6 +233,10 @@ function fortress_ml_predictions_db_available(): bool
         $available = (string)$stmt->fetchColumn() !== '';
     } catch (Throwable $e) {
         $available = false;
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION[$sessionKey] = ['available' => $available, 'expires_at' => time() + 60];
     }
     return $available;
 }
@@ -564,10 +572,17 @@ function fortress_ml_queue_db_available(): bool
     static $available = null;
     if (is_bool($available)) return $available;
 
+    $sessionKey = 'fortress_ml_queue_table_available_v1';
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $cached = $_SESSION[$sessionKey] ?? null;
+        if (is_array($cached) && (int)($cached['expires_at'] ?? 0) >= time()) {
+            return $available = !empty($cached['available']);
+        }
+    }
+
     global $pdo;
     if (!isset($pdo) || !($pdo instanceof PDO)) {
-        $available = false;
-        return false;
+        return $available = false;
     }
 
     try {
@@ -575,6 +590,10 @@ function fortress_ml_queue_db_available(): bool
         $available = (string)$stmt->fetchColumn() !== '';
     } catch (Throwable $e) {
         $available = false;
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION[$sessionKey] = ['available' => $available, 'expires_at' => time() + 60];
     }
     return $available;
 }

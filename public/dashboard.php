@@ -16,7 +16,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['include_charts' => true]);
 extract($ctx, EXTR_SKIP);
 
 $username = e($usernameRaw);

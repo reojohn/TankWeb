@@ -10,7 +10,7 @@ require_once __DIR__ . '/../src/fortress_metrics.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
 $activeNav = 'ai';
 

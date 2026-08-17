@@ -12,7 +12,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['include_charts' => true]);
 extract($ctx, EXTR_SKIP);
 $activeNav = 'analytics';
 
@@ -34,27 +34,51 @@ for ($i = 6; $i >= 0; $i--) {
 $categoryCounts = ['Authentication'=>0,'Identity'=>0,'Network'=>0,'Threat'=>0,'Session'=>0,'System'=>0];
 $outcomeCounts = ['PASSED'=>0,'REJECTED'=>0,'BLOCKED'=>0,'RECORDED'=>0,'CLOSED'=>0];
 $cutoff30d = new DateTimeImmutable('-30 days');
+$dbAnalytics = fortress_analytics_30d_db($pdo);
 
-foreach ($auditLines as $line) {
-    $dt = fortress_event_datetime($line);
-    if (!$dt) continue;
-
-    $dayKey = $dt->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d');
-    if (array_key_exists($dayKey, $dailyPassed)) {
-        $outcome = fortress_event_outcome($line);
-        if ($outcome === 'PASSED') $dailyPassed[$dayKey]++;
-        elseif ($outcome === 'BLOCKED') $dailyBlocked[$dayKey]++;
-        elseif ($outcome === 'REJECTED') $dailyRejected[$dayKey]++;
+if (is_array($dbAnalytics)) {
+    foreach ((array)($dbAnalytics['daily'] ?? []) as $row) {
+        $dayKey = (string)($row['day_key'] ?? '');
+        $outcome = (string)($row['outcome_key'] ?? 'RECORDED');
+        $count = (int)($row['event_count'] ?? 0);
+        if (!array_key_exists($dayKey, $dailyPassed)) continue;
+        if ($outcome === 'PASSED') $dailyPassed[$dayKey] += $count;
+        elseif ($outcome === 'BLOCKED') $dailyBlocked[$dayKey] += $count;
+        elseif ($outcome === 'REJECTED') $dailyRejected[$dayKey] += $count;
     }
 
-    if ($dt >= $cutoff30d) {
-        $category = fortress_event_category($line);
+    foreach ((array)($dbAnalytics['summary'] ?? []) as $row) {
+        $category = (string)($row['category_key'] ?? 'System');
+        $outcome = (string)($row['outcome_key'] ?? 'RECORDED');
+        $count = (int)($row['event_count'] ?? 0);
         if (!isset($categoryCounts[$category])) $categoryCounts[$category] = 0;
-        $categoryCounts[$category]++;
-
-        $outcome = fortress_event_outcome($line);
+        $categoryCounts[$category] += $count;
         if (!isset($outcomeCounts[$outcome])) $outcomeCounts[$outcome] = 0;
-        $outcomeCounts[$outcome]++;
+        $outcomeCounts[$outcome] += $count;
+    }
+} else {
+    // Database outage fallback: preserve the previous raw-line reconstruction.
+    foreach ($auditLines as $line) {
+        $dt = fortress_event_datetime($line);
+        if (!$dt) continue;
+
+        $dayKey = $dt->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d');
+        if (array_key_exists($dayKey, $dailyPassed)) {
+            $outcome = fortress_event_outcome($line);
+            if ($outcome === 'PASSED') $dailyPassed[$dayKey]++;
+            elseif ($outcome === 'BLOCKED') $dailyBlocked[$dayKey]++;
+            elseif ($outcome === 'REJECTED') $dailyRejected[$dayKey]++;
+        }
+
+        if ($dt >= $cutoff30d) {
+            $category = fortress_event_category($line);
+            if (!isset($categoryCounts[$category])) $categoryCounts[$category] = 0;
+            $categoryCounts[$category]++;
+
+            $outcome = fortress_event_outcome($line);
+            if (!isset($outcomeCounts[$outcome])) $outcomeCounts[$outcome] = 0;
+            $outcomeCounts[$outcome]++;
+        }
     }
 }
 

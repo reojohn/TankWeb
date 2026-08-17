@@ -371,24 +371,47 @@ function fortress_alert_db_since(PDO $pdo, array $priority, int $cursor, int $li
 {
     try {
         [$placeholders, $params] = fortress_alert_priority_placeholders($priority);
-        if (!$placeholders) return ['rows' => [], 'max_id' => fortress_alert_db_max_id($pdo)];
+        if (!$placeholders) return ['rows' => [], 'max_id' => fortress_alert_db_max_id($pdo), 'limit' => max(1, $limit)];
 
         $params[':cursor'] = max(0, $cursor);
         $safeLimit = max(1, min(500, $limit));
-        $sql = 'SELECT id, raw_line
-                FROM public.security_events
-                WHERE id > :cursor
-                  AND event_key IN (' . implode(',', $placeholders) . ')
-                  AND raw_line IS NOT NULL
-                  AND BTRIM(raw_line) <> \'\'
-                ORDER BY id ASC
-                LIMIT ' . $safeLimit;
+        $sql = 'WITH max_state AS (
+                    SELECT COALESCE(MAX(id), 0)::bigint AS max_id
+                    FROM public.security_events
+                ), batch AS (
+                    SELECT id, raw_line
+                    FROM public.security_events
+                    WHERE id > :cursor
+                      AND event_key IN (' . implode(',', $placeholders) . ')
+                      AND raw_line IS NOT NULL
+                      AND BTRIM(raw_line) <> \'\'
+                    ORDER BY id ASC
+                    LIMIT ' . $safeLimit . '
+                )
+                SELECT batch.id, batch.raw_line, max_state.max_id
+                FROM max_state
+                LEFT JOIN batch ON TRUE
+                ORDER BY batch.id ASC NULLS LAST';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $resultRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!is_array($resultRows) || !$resultRows) {
+            return ['rows' => [], 'max_id' => 0, 'limit' => $safeLimit];
+        }
+
+        $maxId = (int)($resultRows[0]['max_id'] ?? 0);
+        $rows = [];
+        foreach ($resultRows as $row) {
+            if ($row['id'] === null) continue;
+            $rows[] = [
+                'id' => (int)$row['id'],
+                'raw_line' => (string)($row['raw_line'] ?? ''),
+            ];
+        }
+
         return [
-            'rows' => is_array($rows) ? $rows : [],
-            'max_id' => fortress_alert_db_max_id($pdo),
+            'rows' => $rows,
+            'max_id' => $maxId,
             'limit' => $safeLimit,
         ];
     } catch (Throwable $e) {
@@ -408,11 +431,12 @@ function fortress_alert_file_fallback_payload(string $path, array $priority, boo
     ];
 }
 
-$currentDbMax = fortress_alert_db_max_id($pdo);
-$dbAvailable = $currentDbMax >= 0;
-
+// History/initialization requests need an explicit stream high-water mark.
+// Ordinary incremental polling skips that preliminary query and gets both the
+// new alert rows and MAX(id) from fortress_alert_db_since() in one round trip.
 if ($historyMode) {
-    if ($dbAvailable) {
+    $currentDbMax = fortress_alert_db_max_id($pdo);
+    if ($currentDbMax >= 0) {
         $historyLines = fortress_alert_db_history($pdo, $priority, 320);
         $events = fortress_build_notifications($historyLines, $priority, 24);
         echo json_encode([
@@ -442,6 +466,8 @@ if ($historyMode) {
 
 // The first request establishes a durable database event-id cursor.
 if ($cursorRaw === null || !ctype_digit((string)$cursorRaw)) {
+    $currentDbMax = fortress_alert_db_max_id($pdo);
+    $dbAvailable = $currentDbMax >= 0;
     echo json_encode([
         'success' => true,
         'cursor' => $dbAvailable ? $currentDbMax : (is_file($fallbackPath) ? (int)filesize($fallbackPath) : 0),
@@ -454,14 +480,10 @@ if ($cursorRaw === null || !ctype_digit((string)$cursorRaw)) {
 }
 
 $cursor = max(0, (int)$cursorRaw);
-
-if ($dbAvailable) {
-    // A browser upgraded from the old audit.log cursor has a different stream
-    // ID. Return durable recent history once so no security events disappear
-    // during the migration or after a Render container replacement.
-    $streamChanged = $clientStreamId !== '' && !hash_equals($dbStreamId, $clientStreamId);
-    $cursorInvalid = $cursor > $currentDbMax;
-    if ($streamChanged || $cursorInvalid) {
+$streamChanged = $clientStreamId !== '' && !hash_equals($dbStreamId, $clientStreamId);
+if ($streamChanged) {
+    $currentDbMax = fortress_alert_db_max_id($pdo);
+    if ($currentDbMax >= 0) {
         $historyLines = fortress_alert_db_history($pdo, $priority, 320);
         $events = fortress_build_notifications($historyLines, $priority, 24);
         echo json_encode([
@@ -471,14 +493,33 @@ if ($dbAvailable) {
             'events' => $events,
             'history' => true,
             'reset' => true,
-            'reset_reason' => $streamChanged ? 'stream_changed' : 'cursor_invalid',
+            'reset_reason' => 'stream_changed',
+            'source' => 'database',
+        ], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+}
+
+$batch = fortress_alert_db_since($pdo, $priority, $cursor, 160);
+$currentDbMax = (int)($batch['max_id'] ?? -1);
+if ($currentDbMax >= 0) {
+    if ($cursor > $currentDbMax) {
+        $historyLines = fortress_alert_db_history($pdo, $priority, 320);
+        $events = fortress_build_notifications($historyLines, $priority, 24);
+        echo json_encode([
+            'success' => true,
+            'cursor' => $currentDbMax,
+            'stream_id' => $dbStreamId,
+            'events' => $events,
+            'history' => true,
+            'reset' => true,
+            'reset_reason' => 'cursor_invalid',
             'source' => 'database',
         ], JSON_UNESCAPED_SLASHES);
         exit;
     }
 
-    $batch = fortress_alert_db_since($pdo, $priority, $cursor, 160);
-    $rows = $batch['rows'];
+    $rows = (array)($batch['rows'] ?? []);
     $lines = [];
     $lastPriorityId = $cursor;
     foreach ($rows as $row) {
@@ -489,12 +530,9 @@ if ($dbAvailable) {
     }
 
     $events = fortress_build_notifications($lines, $priority, 8);
-    // If the priority-event batch hit the limit, continue from its final ID on
-    // the next poll. Otherwise advance to MAX(id) so routine non-alert events
-    // do not get re-scanned forever.
-    $newCursor = count($rows) >= (int)$batch['limit']
+    $newCursor = count($rows) >= (int)($batch['limit'] ?? 160)
         ? $lastPriorityId
-        : max($cursor, (int)$batch['max_id']);
+        : max($cursor, $currentDbMax);
 
     echo json_encode([
         'success' => true,

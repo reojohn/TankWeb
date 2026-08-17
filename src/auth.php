@@ -227,13 +227,21 @@ function require_admin_auth(): void
     // mandatory School ID QR requirement rather than locking administrators out.
     $optional2faPolicyAvailable = fortress_optional_2fa_policy_available($pdo);
 
-    $fields = ['is_active', 'school_id_qr_enabled'];
+    $fields = ['username', 'is_active', 'school_id_qr_enabled'];
     $hasRolePolicy = fortress_role_policy_available($pdo);
     if ($hasRolePolicy) {
         $fields[] = 'role';
     }
     if ($optional2faPolicyAvailable) {
         $fields[] = 'school_id_2fa_required';
+    }
+    $hasSecondFactorType = fortress_second_factor_type_available($pdo);
+    if ($hasSecondFactorType) {
+        $fields[] = 'second_factor_type';
+    }
+    $hasSchoolIdUpdatedAt = fortress_column_exists($pdo, 'school_id_qr_updated_at');
+    if ($hasSchoolIdUpdatedAt) {
+        $fields[] = 'school_id_qr_updated_at';
     }
     $hasSessionVersion = fortress_session_version_available($pdo);
     if ($hasSessionVersion) {
@@ -252,6 +260,12 @@ function require_admin_auth(): void
     if (!$account || !(bool)$account['is_active']) {
         fortress_auth_fail('account_disabled_or_missing');
     }
+
+    // Make the already-authoritative account row available to the rest of
+    // this request. Dashboard metric builders can reuse it instead of issuing
+    // a second users-table query after require_admin_auth() succeeds.
+    $GLOBALS['FORTRESS_AUTH_ACCOUNT'] = $account;
+    $GLOBALS['FORTRESS_AUTH_ACCOUNT_UID'] = $uid;
 
     $_SESSION['role'] = $hasRolePolicy
         ? fortress_normalize_role($account['role'] ?? 'admin')

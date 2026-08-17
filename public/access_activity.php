@@ -11,12 +11,61 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
 $activeNav = 'activity';
 
-$authHistory = array_values(array_filter($auditLines, 'fortress_is_auth_event'));
-$authHistory = array_slice(array_reverse($authHistory), 0, 160);
+$metricState = fortress_security_metrics_24h_db($pdo);
+$chartState = fortress_security_hourly_chart_db($pdo);
+if (is_array($metricState) && is_array($chartState)) {
+    $failedAttempts24h = (int)($metricState['failed_passwords'] ?? 0);
+    $successfulPassword24h = (int)($metricState['successful_passwords'] ?? 0);
+    $schoolIdSuccess24h = (int)($metricState['school_id_success'] ?? 0);
+    $schoolIdFailures24h = (int)($metricState['school_id_failures'] ?? 0);
+    $totalLoginAttempts24h = $failedAttempts24h + $successfulPassword24h;
+    $clientIp = getRealIP();
+
+    $hourNow = new DateTimeImmutable('now');
+    $hourKeys = [];
+    $chartSuccessMap = $chartFailedMap = $chartSchoolMap = $chartBlockedMap = [];
+    for ($i = 23; $i >= 0; $i--) {
+        $key = $hourNow->modify('-' . $i . ' hours')->format('Y-m-d H');
+        $hourKeys[] = $key;
+        $chartSuccessMap[$key] = 0;
+        $chartFailedMap[$key] = 0;
+        $chartSchoolMap[$key] = 0;
+        $chartBlockedMap[$key] = 0;
+    }
+    foreach ($chartState as $row) {
+        $key = (string)($row['hour_key'] ?? '');
+        if (!array_key_exists($key, $chartSuccessMap)) continue;
+        $chartSuccessMap[$key] = (int)($row['password_success'] ?? 0);
+        $chartFailedMap[$key] = (int)($row['password_failed'] ?? 0);
+        $chartSchoolMap[$key] = (int)($row['school_success'] ?? 0);
+        $chartBlockedMap[$key] = (int)($row['blocked'] ?? 0);
+    }
+    $chartLabels = array_map(static fn(string $key): string => substr($key, 11, 2) . ':00', $hourKeys);
+    $chartSuccess = array_values($chartSuccessMap);
+    $chartFailed = array_values($chartFailedMap);
+    $chartSchool = array_values($chartSchoolMap);
+    $chartBlocked = array_values($chartBlockedMap);
+    $auditLines = [];
+} else {
+    $ctx = fortress_build_security_context($pdo, $userId, ['include_charts' => true]);
+    extract($ctx, EXTR_SKIP);
+}
+
+$authEventKeys = [
+    'password_factor_success', 'password_factor_failed', 'school_id_qr_success',
+    'school_id_qr_failed', 'school_id_qr_locked', 'school_id_2fa_not_required', 'login_success', 'logout',
+];
+$dbAuthHistory = fortress_recent_security_event_lines($pdo, $authEventKeys, 160);
+if (is_array($dbAuthHistory)) {
+    $authHistory = $dbAuthHistory;
+} else {
+    $authHistory = array_values(array_filter($auditLines, 'fortress_is_auth_event'));
+    $authHistory = array_slice(array_reverse($authHistory), 0, 160);
+}
 $successful24h = $successfulPassword24h;
 $rejected24h = $failedAttempts24h + $schoolIdFailures24h;
 

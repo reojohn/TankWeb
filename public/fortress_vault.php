@@ -18,7 +18,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 $usernameRaw = trim((string)($ctx['usernameRaw'] ?? 'admin')) ?: 'admin';
 
 if (empty($_SESSION['fortress_vault_breach_id'])) {

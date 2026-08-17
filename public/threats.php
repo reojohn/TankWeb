@@ -10,14 +10,19 @@ require_once __DIR__ . '/../src/fortress_metrics.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 $userId = (int)($_SESSION['uid'] ?? 0);
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['include_all_time_threats' => true, 'include_top_threat_sources' => true]);
 extract($ctx, EXTR_SKIP);
 $activeNav = 'threats';
 
 
 $threatNeedles = ['ml_assisted_block','ml_assisted_strike','ml_threat_prediction','malicious_input_detected','shell_attack_detected','request_threat_detected','csp_violation_reported','scanner_user_agent_detected','sensitive_path_probe','reconnaissance_probe','csrf_validation_failed','http_method_blocked','http_method_anomaly','endpoint_method_rejected','oversized_request_detected','oversized_uri_detected','banned_ip_attempt','banned_ip_middleware_block','bruteforce_detected','ip_banned','school_id_qr_failed','school_id_qr_locked','school_id_qr_rate_limited','password_factor_failed','auth_rejected','honeypot_triggered'];
-$threatHistory = array_values(array_filter($auditLines, static fn(string $line): bool => fortress_line_has_any($line, $threatNeedles)));
-$threatHistory = array_slice(array_reverse($threatHistory), 0, 120);
+$dbThreatHistory = fortress_recent_security_event_lines($pdo, $threatNeedles, 120);
+if (is_array($dbThreatHistory)) {
+    $threatHistory = $dbThreatHistory;
+} else {
+    $threatHistory = array_values(array_filter($auditLines, static fn(string $line): bool => fortress_line_has_any($line, $threatNeedles)));
+    $threatHistory = array_slice(array_reverse($threatHistory), 0, 120);
+}
 
 $allTime = is_array($threatCategoryAllTime ?? null) ? $threatCategoryAllTime : [];
 $threatCategories = [

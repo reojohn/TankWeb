@@ -145,7 +145,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     if (!in_array($scope, $allowedScopes, true)) $scope = 'full';
     $eventLimit = max(10, min(100, $eventLimit));
 
-    $ctx = fortress_build_security_context($pdo, $userId);
+    $ctx = fortress_build_security_context($pdo, $userId, ['audit_limit' => 10000]);
     $users = fortress_fetch_users($pdo);
     $auditLines = is_array($ctx['auditLines'] ?? null) ? $ctx['auditLines'] : fortress_read_lines(__DIR__ . '/../data/audit.log');
     $defenseLayers = is_array($ctx['defenseLayers'] ?? null) ? $ctx['defenseLayers'] : [];

@@ -20,10 +20,24 @@ $schemaReady = fortress_ensure_user_management_schema($pdo)
     && fortress_optional_2fa_policy_available($pdo);
 $generatedQrReady = fortress_second_factor_type_available($pdo);
 $roleReady = fortress_role_policy_available($pdo);
-$currentRole = fortress_user_role($pdo, $userId);
+$currentRole = fortress_normalize_role($_SESSION['role'] ?? 'admin');
 $isSuperAdmin = $currentRole === 'superadmin';
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
+$personalIdHistoryKeys = [
+    'school_id_qr_registered', 'school_id_qr_success', 'school_id_qr_failed', 'school_id_qr_locked',
+    'school_id_qr_rate_limited', 'school_id_qr_reset', 'school_id_reverification_started',
+];
+$dbPersonalIdHistory = fortress_recent_security_event_lines($pdo, $personalIdHistoryKeys, 20);
+if (is_array($dbPersonalIdHistory)) {
+    $schoolHistory = $dbPersonalIdHistory;
+} else {
+    $schoolHistory = array_values(array_filter(
+        fortress_read_last_lines(__DIR__ . '/../data/audit.log', 800),
+        static fn(string $line): bool => fortress_line_has_any($line, $personalIdHistoryKeys)
+    ));
+    $schoolHistory = array_slice(array_reverse($schoolHistory), 0, 20);
+}
 $activeNav = 'operator';
 $csrfToken = generate_csrf_token();
 
@@ -44,6 +58,62 @@ $personalIdUpdatedDisplay = fortress_format_date_value($personalIdUpdatedAt, 'No
 $personalIdVerifiedDisplay = $personalIdRequired
     ? ($personalIdVerifiedAt > 0 ? date('Y-m-d H:i:s', $personalIdVerifiedAt) : 'Not verified in this session')
     : 'Not required by account policy';
+
+// The Current Operator page intentionally uses the lightweight security context
+// for faster navigation. Personal-ID status still needs three small metrics that
+// are not part of that minimal context, so fetch only those values here instead
+// of rebuilding the full dashboard/audit context.
+$schoolIdSuccess24h = 0;
+$schoolIdFailures24h = 0;
+$lastSchoolIdRelative = 'No successful scan recorded';
+
+try {
+    $personalIdMetricStmt = $pdo->query(
+        "SELECT
+            COUNT(*) FILTER (
+                WHERE event_key = 'school_id_qr_success'
+                  AND occurred_at >= NOW() - INTERVAL '24 hours'
+            )::int AS success_24h,
+            COUNT(*) FILTER (
+                WHERE event_key IN ('school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited')
+                  AND occurred_at >= NOW() - INTERVAL '24 hours'
+            )::int AS failures_24h,
+            MAX(occurred_at) FILTER (
+                WHERE event_key = 'school_id_qr_success'
+            ) AS last_success_at
+         FROM public.security_events
+         WHERE event_key IN (
+            'school_id_qr_success',
+            'school_id_qr_failed',
+            'school_id_qr_locked',
+            'school_id_qr_rate_limited'
+         )"
+    );
+    $personalIdMetricRow = $personalIdMetricStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $schoolIdSuccess24h = (int)($personalIdMetricRow['success_24h'] ?? 0);
+    $schoolIdFailures24h = (int)($personalIdMetricRow['failures_24h'] ?? 0);
+
+    $lastSchoolIdAt = trim((string)($personalIdMetricRow['last_success_at'] ?? ''));
+    if ($lastSchoolIdAt !== '') {
+        try {
+            $lastSchoolIdRelative = fortress_relative_time(new DateTimeImmutable($lastSchoolIdAt));
+        } catch (Throwable $e) {
+            $lastSchoolIdRelative = 'Recorded';
+        }
+    }
+} catch (Throwable $e) {
+    error_log('FortressAuth Personal ID status metrics query failed: ' . $e->getMessage());
+
+    // Keep the page warning-free if the database is temporarily unavailable.
+    // The already-loaded recent Personal-ID history gives us a safe fallback for
+    // the last-success label without invoking the old expensive global context.
+    foreach ($schoolHistory as $historyLine) {
+        if (str_contains((string)$historyLine, 'school_id_qr_success')) {
+            $lastSchoolIdRelative = fortress_relative_time(fortress_event_datetime((string)$historyLine));
+            break;
+        }
+    }
+}
 
 function fortress_clean_full_name(string $value): string
 {
@@ -625,16 +695,20 @@ $deleteBlockedAsLastActive = $deleteUser && (bool)$deleteUser['is_active'] && (
     || (fortress_normalize_role($deleteUser['role'] ?? 'superadmin') === 'superadmin' && fortress_active_superadmin_count($pdo) <= 1)
 );
 
-$managementAuditLines = array_values(array_filter(
-    fortress_read_lines(__DIR__ . '/../data/audit.log'),
-    static fn(string $line): bool => fortress_line_has_any($line, [
-        'security_report_generated', 'user_management_access', 'user_account_created', 'user_account_updated',
-        'user_account_enabled', 'user_account_disabled', 'user_password_reset',
-        'user_password_changed_during_edit', 'user_personal_id_reset', 'user_account_deleted', 'login_disabled_account',
-        'user_2fa_enabled', 'user_2fa_disabled', 'user_2fa_replaced', 'user_role_changed', 'user_profile_viewed', 'user_management_denied', 'current_user_security_policy_changed',
-    ])
-));
-$managementAuditLines = array_slice(array_reverse($managementAuditLines), 0, 12);
+$managementEventKeys = [
+    'security_report_generated', 'user_management_access', 'user_account_created', 'user_account_updated',
+    'user_account_enabled', 'user_account_disabled', 'user_password_reset',
+    'user_password_changed_during_edit', 'user_personal_id_reset', 'user_account_deleted', 'login_disabled_account',
+    'user_2fa_enabled', 'user_2fa_disabled', 'user_2fa_replaced', 'user_role_changed', 'user_profile_viewed', 'user_management_denied', 'current_user_security_policy_changed',
+];
+$managementAuditLines = fortress_recent_security_event_lines($pdo, $managementEventKeys, 12);
+if (!is_array($managementAuditLines)) {
+    $managementAuditLines = array_values(array_filter(
+        fortress_read_last_lines(__DIR__ . '/../data/audit.log', 800),
+        static fn(string $line): bool => fortress_line_has_any($line, $managementEventKeys)
+    ));
+    $managementAuditLines = array_slice(array_reverse($managementAuditLines), 0, 12);
+}
 
 audit_log('user_management_access uid=' . $userId);
 ?>

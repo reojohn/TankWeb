@@ -33,16 +33,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$ctx = fortress_build_security_context($pdo, $userId);
+$ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
 $activeNav = 'blocked';
 $csrfToken = generate_csrf_token();
 $banReasons = [];
+$allBans = [];
+$bannedRequest24h = 0;
+$clientIp = getRealIP();
 try {
-    $reasonStmt = $pdo->query("SELECT DISTINCT ON (source_ip) source_ip, event_key, occurred_at\n                              FROM public.security_events\n                              WHERE source_ip IS NOT NULL\n                                AND event_key IN ('automated_recon_block','ml_assisted_block','bruteforce_detected','honeypot_triggered')\n                              ORDER BY source_ip, occurred_at DESC, id DESC");
-    foreach (($reasonStmt->fetchAll(PDO::FETCH_ASSOC) ?: []) as $reasonRow) {
-        $reasonIp = (string)($reasonRow['source_ip'] ?? '');
-        $reasonKey = (string)($reasonRow['event_key'] ?? '');
+    // Read the ban rows and each ban's latest originating defense in one query.
+    // The lateral lookup uses the existing source_ip/time index and avoids a
+    // DISTINCT scan across every historical source in security_events.
+    $banStmt = $pdo->query(
+        "SELECT b.ip, b.banned_until, latest.event_key AS latest_event_key
+         FROM banned_ips b
+         LEFT JOIN LATERAL (
+             SELECT se.event_key
+             FROM public.security_events se
+             WHERE se.source_ip = b.ip
+               AND se.event_key IN ('automated_recon_block','ml_assisted_block','bruteforce_detected','honeypot_triggered')
+             ORDER BY se.occurred_at DESC, se.id DESC
+             LIMIT 1
+         ) latest ON TRUE
+         ORDER BY b.banned_until DESC
+         LIMIT 500"
+    );
+    $allBans = $banStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    foreach ($allBans as $banRow) {
+        $reasonIp = (string)($banRow['ip'] ?? '');
+        $reasonKey = (string)($banRow['latest_event_key'] ?? '');
         if ($reasonIp === '') continue;
         $banReasons[$reasonIp] = match ($reasonKey) {
             'automated_recon_block' => 'Automated reconnaissance defense',
@@ -52,8 +72,20 @@ try {
             default => 'Security policy',
         };
     }
+
+    $bannedRequest24h = (int)$pdo->query(
+        "SELECT COUNT(*)
+         FROM public.security_events
+         WHERE occurred_at >= NOW() - INTERVAL '24 hours'
+           AND event_key IN ('banned_ip_attempt','banned_ip_middleware_block')"
+    )->fetchColumn();
 } catch (Throwable $e) {
-    error_log('FortressAuth ban reason lookup failed: ' . $e->getMessage());
+    error_log('FortressAuth ban workspace lookup failed: ' . $e->getMessage());
+    try {
+        $allBans = $pdo->query('SELECT ip, banned_until FROM banned_ips ORDER BY banned_until DESC LIMIT 500')->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (Throwable $ignored) {
+        $allBans = [];
+    }
 }
 $activeRows = [];
 $expiredRows = [];

@@ -4,44 +4,80 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/logger.php';
 
+function fortress_user_schema_capabilities(PDO $pdo): array
+{
+    static $requestCache = [];
+    $objectKey = spl_object_id($pdo);
+    if (isset($requestCache[$objectKey])) {
+        return $requestCache[$objectKey];
+    }
+
+    $sessionKey = 'fortress_users_schema_capabilities_v1';
+    $now = time();
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $cached = $_SESSION[$sessionKey] ?? null;
+        if (
+            is_array($cached)
+            && (int)($cached['expires_at'] ?? 0) >= $now
+            && is_array($cached['columns'] ?? null)
+        ) {
+            return $requestCache[$objectKey] = $cached['columns'];
+        }
+    }
+
+    $columns = [];
+    try {
+        // One compact schema lookup replaces several information_schema round
+        // trips that previously ran on every protected page navigation.
+        $stmt = $pdo->query(
+            "SELECT column_name
+             FROM information_schema.columns
+             WHERE table_schema = 'public'
+               AND table_name = 'users'"
+        );
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $column) {
+            $column = trim((string)$column);
+            if ($column !== '') {
+                $columns[$column] = true;
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('FortressAuth users schema capability lookup failed.');
+    }
+
+    $requestCache[$objectKey] = $columns;
+    if (session_status() === PHP_SESSION_ACTIVE && $columns) {
+        // Schema shape changes only during a migration. A short session cache
+        // keeps normal navigation fast while still self-refreshing soon after
+        // any deliberate schema change.
+        $_SESSION[$sessionKey] = [
+            'expires_at' => $now + 60,
+            'columns' => $columns,
+        ];
+    }
+
+    return $columns;
+}
+
 function fortress_column_exists(PDO $pdo, string $column): bool
 {
     if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $column)) {
         return false;
     }
 
-    try {
-        $stmt = $pdo->prepare(
-            "SELECT EXISTS (
-                SELECT 1 FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND table_name = 'users'
-                  AND column_name = ?
-            )"
-        );
-        $stmt->execute([$column]);
-        return (bool)$stmt->fetchColumn();
-    } catch (Throwable $e) {
-        error_log('FortressAuth schema check failed for users.' . $column);
-        return false;
-    }
+    $columns = fortress_user_schema_capabilities($pdo);
+    return !empty($columns[$column]);
 }
 
 function fortress_user_management_columns_available(PDO $pdo): bool
 {
-    try {
-        $stmt = $pdo->query(
-            "SELECT COUNT(*)
-             FROM information_schema.columns
-             WHERE table_schema = 'public'
-               AND table_name = 'users'
-               AND column_name IN ('full_name', 'is_active', 'last_login_at', 'updated_at')"
-        );
-        return (int)$stmt->fetchColumn() === 4;
-    } catch (Throwable $e) {
-        error_log('FortressAuth user-management schema check failed.');
-        return false;
+    $columns = fortress_user_schema_capabilities($pdo);
+    foreach (['full_name', 'is_active', 'last_login_at', 'updated_at'] as $column) {
+        if (empty($columns[$column])) {
+            return false;
+        }
     }
+    return true;
 }
 
 function fortress_ensure_user_management_schema(PDO $pdo): bool

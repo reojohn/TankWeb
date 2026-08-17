@@ -138,36 +138,24 @@ $revisionParts = [
     'ml-history=' . fortress_live_file_token($dataDir . '/ml/predictions.jsonl'),
 ];
 
-// Include active database bans because Blocked IPs and threat pressure can
-// change when a ban expires even if no new audit line is written.
+// Include active bans and durable ML stream position in one database round
+// trip. These values are display-revision metadata only; actual ban enforcement
+// still happens independently in middleware before protected logic executes.
 try {
-    $banState = $pdo->query(
-        "SELECT COUNT(*)::int AS active_count,
-                COALESCE(MAX(EXTRACT(EPOCH FROM banned_until))::bigint, 0) AS latest_until
-         FROM banned_ips
-         WHERE banned_until > NOW()"
+    $dbState = $pdo->query(
+        "SELECT
+            (SELECT COUNT(*)::int FROM banned_ips WHERE banned_until > NOW()) AS active_ban_count,
+            (SELECT COALESCE(MAX(EXTRACT(EPOCH FROM banned_until))::bigint, 0) FROM banned_ips WHERE banned_until > NOW()) AS latest_ban_until,
+            (SELECT COALESCE(MAX(id), 0)::bigint FROM public.ml_predictions) AS latest_prediction_id"
     )->fetch(PDO::FETCH_ASSOC) ?: [];
+
     $revisionParts[] = 'db-bans='
-        . (string)($banState['active_count'] ?? 0)
+        . (string)($dbState['active_ban_count'] ?? 0)
         . ':'
-        . (string)($banState['latest_until'] ?? 0);
+        . (string)($dbState['latest_ban_until'] ?? 0);
+    $revisionParts[] = 'db-ml=' . (string)($dbState['latest_prediction_id'] ?? 0);
 } catch (Throwable $e) {
     $revisionParts[] = 'db-bans=unavailable';
-}
-
-// Durable ML history can survive a Render restart even when the local JSON
-// fallback starts empty. Include the database stream position in the revision
-// so AI Defense refreshes when a persisted analysis is added.
-try {
-    $mlState = $pdo->query(
-        "SELECT COUNT(*)::int AS prediction_count, COALESCE(MAX(id), 0)::bigint AS latest_id
-         FROM public.ml_predictions"
-    )->fetch(PDO::FETCH_ASSOC) ?: [];
-    $revisionParts[] = 'db-ml='
-        . (string)($mlState['prediction_count'] ?? 0)
-        . ':'
-        . (string)($mlState['latest_id'] ?? 0);
-} catch (Throwable $e) {
     $revisionParts[] = 'db-ml=unavailable';
 }
 
