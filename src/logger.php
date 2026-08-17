@@ -134,6 +134,7 @@ function fortress_audit_severity(string $eventKey, array $fields): string
         str_contains($issues, 'command') ||
         in_array($eventKey, [
             'bruteforce_detected', 'banned_ip_middleware_block', 'ml_assisted_block',
+            'automated_recon_block', 'automated_recon_blocked_source_attempt',
             'honeypot_triggered', 'honeypot_access',
         ], true)
     ) {
@@ -145,7 +146,7 @@ function fortress_audit_severity(string $eventKey, array $fields): string
         str_contains($issues, 'path_traversal') ||
         in_array($eventKey, [
             'malicious_input_detected', 'auth_rejected', 'ml_assisted_strike',
-            'reconnaissance_probe', 'sensitive_path_probe',
+            'automated_recon_detected', 'reconnaissance_probe', 'sensitive_path_probe',
             'scanner_user_agent_detected', 'http_method_abuse',
             'oversized_request', 'csrf_rejected', 'csp_violation',
             'login_locked_out',
@@ -164,6 +165,7 @@ function fortress_audit_outcome(string $eventKey): string
         str_contains($eventKey, 'rejected') ||
         in_array($eventKey, [
             'malicious_input_detected', 'auth_rejected', 'ml_assisted_block', 'bruteforce_detected',
+            'automated_recon_block', 'automated_recon_blocked_source_attempt',
             'banned_ip_middleware_block', 'reconnaissance_probe',
             'sensitive_path_probe', 'scanner_user_agent_detected',
             'http_method_abuse', 'oversized_request', 'csrf_rejected',
@@ -314,7 +316,8 @@ function audit_log(string $message): void
             'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected',
             'csrf_validation_failed', 'csrf_rejected', 'auth_rejected',
             'bruteforce_detected', 'honeypot_triggered', 'honeypot_access',
-            'csp_violation', 'ip_banned', 'banned_ip_attempt'
+            'csp_violation', 'ip_banned', 'banned_ip_attempt',
+            'automated_recon_detected', 'automated_recon_block', 'automated_recon_blocked_source_attempt'
         ];
         if (
             in_array($mlEventKey, $mlExplicitTriggers, true) ||

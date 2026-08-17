@@ -125,7 +125,15 @@ function detect_suspicious_ua($ua) {
         'curl',
         'wget',
         'fuzzer',
+        'ffuf',
+        'fuzz faster u fool',
+        'gobuster',
+        'feroxbuster',
+        'dirsearch',
         'dirbuster',
+        'wfuzz',
+        'nuclei',
+        'wapiti',
         'scanner',
     ];
 

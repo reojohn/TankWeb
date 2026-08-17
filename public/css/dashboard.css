@@ -6752,6 +6752,8 @@ input[type="reset"]:not(:disabled):active,
 }
 
 .fortress-notification-close {
+  position: relative;
+  z-index: 3;
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
@@ -6763,6 +6765,11 @@ input[type="reset"]:not(:disabled):active,
   color: #aa98b8;
   cursor: pointer;
   transition: .18s ease;
+}
+
+
+.fortress-notification-close > i {
+  pointer-events: none;
 }
 
 .fortress-notification-close:hover {
@@ -7191,7 +7198,7 @@ input[type="reset"]:not(:disabled):active,
     max-height: calc(100dvh - 255px);
   }
 
-  body.fortress-notification-open {
+  body.fortress-notification-panel-open {
     overflow: hidden;
   }
 

@@ -4399,3 +4399,281 @@ a.primary-action:focus-visible {
     height: 80px;
   }
 }
+
+
+/* =========================================================
+   FORTRESS AUTH LOGIN ART
+   ========================================================= */
+
+.auth-login .brand-panel {
+  position: relative;
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 3, 20, 0.08) 0%,
+      rgba(11, 4, 28, 0.12) 28%,
+      rgba(15, 5, 35, 0.32) 62%,
+      rgba(7, 2, 18, 0.76) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(60, 18, 108, 0.12) 0%,
+      rgba(25, 7, 50, 0.04) 52%,
+      rgba(10, 3, 24, 0.28) 100%
+    ),
+    url("/images/fortress.png?v=20260817b") center 43% / cover no-repeat !important;
+}
+
+
+/* Keep the artwork during the credential-processing animation */
+.auth-login .auth-shell.is-submitting .brand-panel {
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      rgba(181, 103, 255, 0.14),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 3, 20, 0.14) 0%,
+      rgba(15, 5, 35, 0.38) 55%,
+      rgba(7, 2, 18, 0.82) 100%
+    ),
+    url("/images/fortress.png?v=20260817b") center 43% / cover no-repeat !important;
+}
+
+
+/* Existing effects should remain subtle */
+.auth-login .brand-glow {
+  opacity: 0.16 !important;
+}
+
+.auth-login .login-scan-grid {
+  pointer-events: none;
+}
+
+
+/* Text stays readable over the artwork */
+.auth-login .brand-header,
+.auth-login .security-stack,
+.auth-login .brand-footer {
+  position: relative;
+  z-index: 2;
+}
+
+
+/* Make information cards translucent instead of covering the artwork */
+.auth-login .security-item {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(25, 10, 48, 0.80),
+      rgba(11, 4, 26, 0.72)
+    ) !important;
+
+  border-color: rgba(205, 151, 255, 0.18) !important;
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+
+/* Logo container */
+.auth-login .brand-mark {
+  background: rgba(12, 4, 28, 0.58) !important;
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+
+  border-color: rgba(202, 144, 255, 0.18) !important;
+}
+
+
+/* Improve text visibility */
+.auth-login .brand-copy,
+.auth-login .security-item,
+.auth-login .brand-footer {
+  text-shadow:
+    0 2px 7px rgba(0, 0, 0, 0.88);
+}
+
+
+/* Keep the original diagonal decorative layer */
+.auth-login .brand-panel::after {
+  z-index: 1;
+}
+
+
+/* Credential scanning animation stays above everything */
+.auth-login .login-verification-stage {
+  z-index: 6;
+}
+
+
+/* Laptop positioning */
+@media (min-width: 901px) and (max-height: 800px) {
+  .auth-login .brand-panel {
+    background-position:
+      center,
+      center,
+      center 46% !important;
+  }
+}
+
+/* =========================================================
+   FINAL LOGIN CARD GLASSMORPHISM FIX
+   ---------------------------------------------------------
+   Only affects the three left-side overview cards.
+   Keeps the fortress artwork + characters visible through
+   the cards while adding a clean frosted-glass surface.
+   The FortressAuth logo box is intentionally NOT changed.
+   ========================================================= */
+
+.auth-login .security-stack .security-item {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+
+  /* Very transparent purple glass */
+  background:
+    linear-gradient(
+      135deg,
+      rgba(43, 19, 72, 0.20) 0%,
+      rgba(24, 8, 44, 0.11) 52%,
+      rgba(10, 3, 24, 0.07) 100%
+    ) !important;
+
+  border: 1px solid rgba(220, 181, 255, 0.22) !important;
+
+  /* Light frosted-glass blur: enough to feel glassy,
+     but low enough that the characters remain visible. */
+  backdrop-filter: blur(3px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(3px) saturate(1.08) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(181, 103, 255, 0.035),
+    0 10px 28px rgba(0, 0, 0, 0.10) !important;
+
+  transition:
+    transform .30s cubic-bezier(.16, .84, .32, 1),
+    background .30s ease,
+    border-color .30s ease,
+    box-shadow .30s ease,
+    backdrop-filter .30s ease;
+}
+
+/* Soft glass highlight inside each card. */
+.auth-login .security-stack .security-item::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1 !important;
+
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(255, 255, 255, 0.09),
+      transparent 34%
+    ),
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.035) 0%,
+      transparent 36%,
+      transparent 100%
+    ) !important;
+}
+
+/* Keep actual card content above the glass highlight. */
+.auth-login .security-stack .security-item > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Existing animated sheen, kept subtle. */
+.auth-login .security-stack .security-item::after {
+  z-index: 1;
+  background: linear-gradient(
+    105deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.055) 47%,
+    transparent 72%
+  ) !important;
+}
+
+/* Glassy hover without turning the cards opaque. */
+.auth-login .security-stack .security-item:hover {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(59, 25, 96, 0.28) 0%,
+      rgba(29, 10, 53, 0.16) 55%,
+      rgba(12, 4, 27, 0.10) 100%
+    ) !important;
+
+  border-color: rgba(222, 176, 255, 0.36) !important;
+
+  backdrop-filter: blur(3.5px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(3.5px) saturate(1.12) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(181, 103, 255, 0.05),
+    0 14px 34px rgba(0, 0, 0, 0.14),
+    0 0 26px rgba(181, 103, 255, 0.045) !important;
+}
+
+/* Titles stay crisp over the artwork. */
+.auth-login .security-stack .security-item strong {
+  color: #fbf7ff !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 1),
+    0 2px 7px rgba(0, 0, 0, 0.82),
+    0 0 12px rgba(21, 6, 39, 0.40);
+}
+
+/* Descriptions remain readable while keeping the card see-through. */
+.auth-login .security-stack .security-item div > span {
+  color: rgba(245, 237, 251, 0.94) !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 1),
+    0 2px 6px rgba(0, 0, 0, 0.84);
+}
+
+/* Small icon tile gets its own lighter glass treatment. */
+.auth-login .security-stack .security-icon {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(156, 88, 225, 0.18),
+      rgba(73, 30, 118, 0.09)
+    ) !important;
+
+  border: 1px solid rgba(224, 190, 255, 0.22) !important;
+
+  backdrop-filter: blur(2px) saturate(1.10) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(1.10) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 6px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+.auth-login .security-stack .security-item:hover .security-icon {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(173, 101, 240, 0.24),
+      rgba(80, 31, 128, 0.12)
+    ) !important;
+
+  border-color: rgba(229, 196, 255, 0.30) !important;
+}

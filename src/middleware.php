@@ -24,6 +24,7 @@ require_once __DIR__ . '/request_monitor.php';
 require_once __DIR__ . '/ml_threat.php';
 require_once __DIR__ . '/error_pages.php';
 require_once __DIR__ . '/bruteforce.php';
+require_once __DIR__ . '/recon_defense.php';
 
 header_remove('X-Powered-By');
 
@@ -77,6 +78,11 @@ header(
     "object-src 'none'; " .
     "report-uri /csp_report.php;"
 );
+
+// Deterministic fuzzer/recon defense runs independently of the ML service.
+// It records only compact local rolling counters for normal requests and
+// persists a ban only after corroborated automated reconnaissance behavior.
+fortress_recon_observe_request();
 
 // Capture telemetry and register the ML replay shutdown hook before the
 // deterministic monitor runs. This preserves even requests that the monitor

@@ -51,15 +51,9 @@ function fortress_report_epoch_time(mixed $value, string $fallback = 'Not record
 /** @return array<int,array<string,mixed>> */
 function fortress_report_prediction_history(int $limit = 25): array
 {
-    $path = fortress_ml_data_dir() . '/predictions.jsonl';
-    if (!is_file($path)) return [];
-    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if (!is_array($lines)) return [];
-
     $rows = [];
-    foreach (array_reverse($lines) as $line) {
-        $decoded = json_decode($line, true);
-        if (!is_array($decoded) || !is_array($decoded['result'] ?? null)) continue;
+    foreach (fortress_ml_prediction_history(max(1, $limit)) as $decoded) {
+        if (!is_array($decoded['result'] ?? null)) continue;
         $result = $decoded['result'];
         $rows[] = [
             'Time' => fortress_report_epoch_time($decoded['ts'] ?? 0),
@@ -74,7 +68,6 @@ function fortress_report_prediction_history(int $limit = 25): array
             'Enforcement Action' => fortress_report_label((string)($result['enforcement_action'] ?? 'OBSERVE')),
             'Indicators' => implode('; ', array_map('strval', is_array($result['indicators'] ?? null) ? $result['indicators'] : [])),
         ];
-        if (count($rows) >= max(1, $limit)) break;
     }
     return $rows;
 }

@@ -63,3 +63,9 @@ docker compose up --build
 ```
 
 The web app is exposed on `http://localhost:8080` in the included Compose configuration. See `ML_INTEGRATION.md` for model, test, and deployment details.
+
+
+### Deterministic automated reconnaissance defense
+
+FortressAuth includes a rule-based fuzzer/scanner defense that works independently of the ML service. It tracks compact per-IP rolling request/probe counters, recognizes high-signal scanner User-Agents such as FFUF, Gobuster, Feroxbuster, Dirsearch, Wfuzz, Nuclei, Nikto, sqlmap, and Acunetix, and temporarily bans sources that cross corroborated reconnaissance thresholds. Ordinary browser request bursts alone do not trigger a ban. Configure the optional `RECON_*` variables in `.env.example` or the deployment environment.
+

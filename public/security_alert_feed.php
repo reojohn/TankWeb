@@ -27,6 +27,7 @@ $historyMode = isset($_GET['history']) && (string)$_GET['history'] === '1';
 $dbStreamId = 'security-events-v1';
 
 $priority = [
+    'automated_recon_block' => 112,
     'ml_assisted_block' => 110,
     'ml_assisted_strike' => 104,
     'bruteforce_detected' => 100,
@@ -46,6 +47,8 @@ $priority = [
     'school_id_qr_failed' => 80,
     'password_factor_failed' => 78,
     'login_disabled_account' => 76,
+    'automated_recon_detected' => 91,
+    'automated_recon_blocked_source_attempt' => 86,
     'reconnaissance_probe' => 70,
     'csp_violation_reported' => 68,
     'http_method_anomaly' => 66,
@@ -82,6 +85,9 @@ function fortress_alert_field(string $line, string $name): string
 
 function fortress_alert_title(string $line): string
 {
+    if (str_contains($line, 'automated_recon_blocked_source_attempt')) return 'Reconnaissance Source Blocked Again';
+    if (str_contains($line, 'automated_recon_block')) return 'Automated Reconnaissance Source Blocked';
+    if (str_contains($line, 'automated_recon_detected')) return 'Automated Reconnaissance Detected';
     if (str_contains($line, 'ml_assisted_block')) return 'AI-Assisted Defense Blocked a Threat';
     if (str_contains($line, 'ml_assisted_strike')) return 'AI-Assisted Threat Strike Recorded';
     if (str_contains($line, 'bruteforce_detected')) return 'Brute Force Detected';
@@ -131,6 +137,7 @@ function fortress_alert_title(string $line): string
 function fortress_notification_severity(string $key): string
 {
     if (in_array($key, [
+        'automated_recon_block', 'automated_recon_blocked_source_attempt',
         'ml_assisted_block', 'bruteforce_detected', 'honeypot_triggered', 'ip_banned', 'request_threat_detected',
         'malicious_input_detected', 'shell_attack_detected', 'csrf_validation_failed',
         'scanner_user_agent_detected', 'sensitive_path_probe', 'http_method_blocked',
@@ -142,7 +149,7 @@ function fortress_notification_severity(string $key): string
     }
 
     if (in_array($key, [
-        'ml_assisted_strike', 'csp_violation_reported', 'http_method_anomaly', 'endpoint_method_rejected',
+        'automated_recon_detected', 'ml_assisted_strike', 'csp_violation_reported', 'http_method_anomaly', 'endpoint_method_rejected',
         'oversized_request_detected', 'oversized_uri_detected', 'user_account_disabled',
         'user_account_deleted', 'user_password_reset', 'user_personal_id_reset',
         'user_2fa_disabled', 'current_user_security_policy_changed',
@@ -162,7 +169,7 @@ function fortress_notification_severity(string $key): string
 
 function fortress_notification_target(string $key): string
 {
-    if (in_array($key, ['ml_assisted_block', 'ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], true)) {
+    if (in_array($key, ['automated_recon_block', 'automated_recon_blocked_source_attempt', 'ml_assisted_block', 'ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], true)) {
         return '/blocked_ips.php';
     }
 
@@ -188,7 +195,7 @@ function fortress_notification_target(string $key): string
     }
 
     if (in_array($key, [
-        'bruteforce_detected', 'honeypot_triggered', 'request_threat_detected',
+        'automated_recon_detected', 'bruteforce_detected', 'honeypot_triggered', 'request_threat_detected',
         'malicious_input_detected', 'shell_attack_detected', 'csrf_validation_failed',
         'scanner_user_agent_detected', 'sensitive_path_probe', 'reconnaissance_probe',
         'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected',

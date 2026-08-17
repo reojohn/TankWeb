@@ -1,0 +1,23 @@
+FORTRESSAUTH PERSISTENT HISTORY UPGRADE
+=====================================
+
+1. Open Supabase -> SQL Editor -> New query.
+2. Paste and run: sql/persistent_security_history.sql
+3. Confirm the final SELECT returns all three table names:
+   - security_events
+   - ml_predictions
+   - ml_analysis_queue
+4. OPTIONAL but recommended on your current local copy: run:
+   php tools/backfill_ml_predictions.php
+   This copies existing data/ml/predictions.jsonl history into Supabase before Render deployment.
+5. Deploy/restart the TankWeb service with the included PHP files.
+6. No Supabase Storage bucket is required. PDF/PPTX/XLSX reports remain generated on demand.
+
+WHAT CHANGED
+------------
+- Security events have an included migration if the table was missing.
+- Completed LIVE and QUEUED_REPLAY ML assessments are permanently saved in public.ml_predictions.
+- AI Defense reads prediction history from Supabase first, with local JSON fallback.
+- PDF/PPTX/XLSX reports read the same durable ML history.
+- Local prediction JSON files remain only as fallback/compatibility storage.
+- ml_analysis_queue remains temporary retry state and is NOT used as permanent model history.

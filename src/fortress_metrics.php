@@ -156,6 +156,9 @@ function fortress_line_has_any(string $line, array $needles): bool
 function fortress_event_key(string $line): string
 {
     $keys = [
+        'automated_recon_blocked_source_attempt',
+        'automated_recon_block',
+        'automated_recon_detected',
         'ml_assisted_block',
         'ml_assisted_strike',
         'ml_threat_prediction',
@@ -432,6 +435,7 @@ function fortress_log_user(string $line, string $fallback = 'admin'): string
 function fortress_is_meaningful_event(string $line): bool
 {
     return fortress_line_has_any($line, [
+        'automated_recon_block', 'automated_recon_detected', 'automated_recon_blocked_source_attempt',
         'ml_assisted_block', 'ml_assisted_strike', 'ml_threat_prediction',
         'school_id_qr_reset', 'school_id_reverification_started', 'school_id_qr_registered',
         'school_id_qr_success', 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
@@ -515,7 +519,7 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
                 ) AS shell_payload,
                 COUNT(*) FILTER (WHERE event_key = 'csrf_validation_failed') AS csrf_rejection,
                 COUNT(*) FILTER (WHERE event_key = 'csp_violation_reported') AS csp_violations,
-                COUNT(*) FILTER (WHERE event_key IN ('sensitive_path_probe', 'reconnaissance_probe')) AS recon_probes,
+                COUNT(*) FILTER (WHERE event_key IN ('sensitive_path_probe', 'reconnaissance_probe', 'automated_recon_detected', 'automated_recon_block')) AS recon_probes,
                 COUNT(*) FILTER (WHERE event_key = 'scanner_user_agent_detected') AS scanner_fingerprints,
                 COUNT(*) FILTER (WHERE event_key IN ('http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected')) AS http_method_abuse,
                 COUNT(*) FILTER (WHERE event_key IN ('oversized_request_detected', 'oversized_uri_detected')) AS oversized_requests,

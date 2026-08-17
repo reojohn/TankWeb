@@ -205,6 +205,179 @@ function fortress_ml_request_log_path(): string
     return fortress_ml_data_dir() . '/request_telemetry.jsonl';
 }
 
+/**
+ * Check whether durable ML prediction history is installed in PostgreSQL.
+ * The result is cached briefly, but a missing/transient table is rechecked so
+ * applying the migration does not require a PHP process restart.
+ */
+function fortress_ml_predictions_db_available(): bool
+{
+    static $available = false;
+    static $checkedAt = 0;
+
+    if ($checkedAt > 0 && $checkedAt >= time() - 30) return $available;
+    $checkedAt = time();
+
+    global $pdo;
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        $available = false;
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->query("SELECT to_regclass('public.ml_predictions')");
+        $available = (string)$stmt->fetchColumn() !== '';
+    } catch (Throwable $e) {
+        $available = false;
+    }
+    return $available;
+}
+
+function fortress_ml_prediction_fingerprint(array $record): string
+{
+    $encoded = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    return hash('sha256', is_string($encoded) ? $encoded : serialize($record));
+}
+
+function fortress_ml_decode_json_value(mixed $value): array
+{
+    if (is_array($value)) return $value;
+    if (!is_string($value) || trim($value) === '') return [];
+    $decoded = json_decode($value, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+/** Persist one complete ML assessment without making enforcement depend on DB. */
+function fortress_ml_persist_prediction(array $record): bool
+{
+    global $pdo;
+    if (!fortress_ml_predictions_db_available() || !isset($pdo) || !($pdo instanceof PDO)) return false;
+
+    $result = is_array($record['result'] ?? null) ? $record['result'] : [];
+    $features = is_array($record['features'] ?? null) ? $record['features'] : [];
+    $queue = is_array($record['queue'] ?? null) ? $record['queue'] : [];
+    $ts = max(1, (int)($record['ts'] ?? time()));
+
+    $recordJson = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $featuresJson = json_encode($features, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $resultJson = json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $queueJson = json_encode($queue, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($recordJson) || !is_string($featuresJson) || !is_string($resultJson) || !is_string($queueJson)) return false;
+
+    try {
+        $stmt = $pdo->prepare(
+            "INSERT INTO public.ml_predictions (
+                record_fingerprint, analyzed_at, source_ip, model_name, analysis_mode,
+                classification, confidence, anomaly_score, rule_score, xgboost_risk,
+                risk_score, severity, enforcement_mode, enforcement_action, automatic_block,
+                queue_delay_seconds, features, result, queue_metadata, record
+             ) VALUES (
+                :fingerprint, :analyzed_at, :source_ip, :model_name, :analysis_mode,
+                :classification, :confidence, :anomaly_score, :rule_score, :xgboost_risk,
+                :risk_score, :severity, :enforcement_mode, :enforcement_action, :automatic_block,
+                :queue_delay_seconds, CAST(:features AS jsonb), CAST(:result AS jsonb),
+                CAST(:queue_metadata AS jsonb), CAST(:record AS jsonb)
+             )
+             ON CONFLICT (record_fingerprint) DO NOTHING"
+        );
+        $stmt->execute([
+            'fingerprint' => fortress_ml_prediction_fingerprint($record),
+            'analyzed_at' => gmdate('Y-m-d H:i:s+00:00', $ts),
+            'source_ip' => substr((string)($record['ip'] ?? 'unknown'), 0, 64),
+            'model_name' => substr((string)($result['model'] ?? 'FortressAuth Hybrid ML'), 0, 120),
+            'analysis_mode' => substr(strtoupper((string)($result['analysis_mode'] ?? 'LIVE')), 0, 32),
+            'classification' => substr(strtoupper((string)($result['classification'] ?? 'UNKNOWN')), 0, 64),
+            'confidence' => is_numeric($result['confidence'] ?? null) ? (float)$result['confidence'] : null,
+            'anomaly_score' => is_numeric($result['anomaly_score'] ?? null) ? (float)$result['anomaly_score'] : null,
+            'rule_score' => is_numeric($result['rule_score'] ?? null) ? (float)$result['rule_score'] : null,
+            'xgboost_risk' => is_numeric($result['xgboost_risk'] ?? null) ? (float)$result['xgboost_risk'] : null,
+            'risk_score' => is_numeric($result['risk_score'] ?? null) ? (float)$result['risk_score'] : null,
+            'severity' => substr(strtoupper((string)($result['severity'] ?? 'UNKNOWN')), 0, 32),
+            'enforcement_mode' => substr(strtoupper((string)($result['enforcement_mode'] ?? 'ADVISORY')), 0, 32),
+            'enforcement_action' => substr(strtoupper((string)($result['enforcement_action'] ?? 'OBSERVE')), 0, 32),
+            // PDO::Statement::execute(array) binds array values as strings. A PHP
+            // false becomes an empty string, which PostgreSQL rejects for a BOOLEAN
+            // column (invalid input syntax for type boolean: ""). Send canonical
+            // PostgreSQL boolean text instead so NORMAL/EXEMPT analyses persist too.
+            'automatic_block' => !empty($result['automatic_block']) ? 'true' : 'false',
+            'queue_delay_seconds' => max(0, (int)($result['queue_delay_seconds'] ?? 0)),
+            'features' => $featuresJson,
+            'result' => $resultJson,
+            'queue_metadata' => $queueJson,
+            'record' => $recordJson,
+        ]);
+        return true;
+    } catch (Throwable $e) {
+        error_log('FortressAuth ml_predictions persistence failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Dual-write prediction history: PostgreSQL is durable; local JSON remains a
+ * bounded compatibility/fallback source for local development and DB outages.
+ */
+function fortress_ml_store_prediction_record(array $record): void
+{
+    @file_put_contents(
+        fortress_ml_data_dir() . '/latest_prediction.json',
+        json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+        LOCK_EX
+    );
+    @file_put_contents(
+        fortress_ml_data_dir() . '/predictions.jsonl',
+        json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL,
+        FILE_APPEND | LOCK_EX
+    );
+    fortress_ml_persist_prediction($record);
+}
+
+/** @return array<int,array<string,mixed>> */
+function fortress_ml_prediction_history(int $limit = 25): array
+{
+    $limit = max(1, min(500, $limit));
+    $rows = [];
+    $seen = [];
+
+    global $pdo;
+    if (fortress_ml_predictions_db_available() && isset($pdo) && $pdo instanceof PDO) {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT record, record_fingerprint
+                 FROM public.ml_predictions
+                 ORDER BY analyzed_at DESC, id DESC
+                 LIMIT :lim"
+            );
+            $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $dbRow) {
+                $record = fortress_ml_decode_json_value($dbRow['record'] ?? null);
+                if (!$record || !is_array($record['result'] ?? null)) continue;
+                $fp = (string)($dbRow['record_fingerprint'] ?? fortress_ml_prediction_fingerprint($record));
+                $seen[$fp] = true;
+                $rows[] = $record;
+            }
+        } catch (Throwable $e) {
+            error_log('FortressAuth ml_predictions read failed: ' . $e->getMessage());
+        }
+    }
+
+    // Merge recent local-only records in case the database was unavailable for
+    // a prediction. Duplicates are removed by the same record fingerprint.
+    $path = fortress_ml_data_dir() . '/predictions.jsonl';
+    foreach (array_reverse(fortress_ml_tail_lines($path, min(1500, $limit * 4))) as $line) {
+        $record = json_decode($line, true);
+        if (!is_array($record) || !is_array($record['result'] ?? null)) continue;
+        $fp = fortress_ml_prediction_fingerprint($record);
+        if (isset($seen[$fp])) continue;
+        $seen[$fp] = true;
+        $rows[] = $record;
+    }
+
+    usort($rows, static fn(array $a, array $b): int => (int)($b['ts'] ?? 0) <=> (int)($a['ts'] ?? 0));
+    return array_slice($rows, 0, $limit);
+}
+
 function fortress_ml_safe_path(): string
 {
     $uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
@@ -733,8 +906,7 @@ function fortress_ml_store_queued_prediction(string $ip, array $features, array 
             'reason' => $reason,
         ],
     ];
-    @file_put_contents(fortress_ml_data_dir() . '/latest_prediction.json', json_encode($record, JSON_PRETTY_PRINT), LOCK_EX);
-    @file_put_contents(fortress_ml_data_dir() . '/predictions.jsonl', json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+    fortress_ml_store_prediction_record($record);
 
     audit_log(
         'ml_queue_replayed class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
@@ -1043,8 +1215,7 @@ function fortress_ml_evaluate_request(): void
         'features' => $features,
         'result' => $result,
     ];
-    @file_put_contents(fortress_ml_data_dir() . '/latest_prediction.json', json_encode($record, JSON_PRETTY_PRINT), LOCK_EX);
-    @file_put_contents(fortress_ml_data_dir() . '/predictions.jsonl', json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+    fortress_ml_store_prediction_record($record);
 
     $minLogRisk = (float)(getenv('ML_MIN_LOG_RISK') ?: 30);
     if ((float)$result['risk_score'] >= $minLogRisk || (string)($result['classification'] ?? 'NORMAL') !== 'NORMAL') {
@@ -1100,6 +1271,11 @@ function fortress_ml_evaluate_request(): void
 
 function fortress_ml_latest_prediction(): ?array
 {
+    $history = fortress_ml_prediction_history(1);
+    if (isset($history[0]) && is_array($history[0])) return $history[0];
+
+    // Compatibility fallback for an older/local installation that has only the
+    // latest snapshot file and no predictions.jsonl history yet.
     $path = fortress_ml_data_dir() . '/latest_prediction.json';
     if (!is_file($path)) return null;
     $decoded = json_decode((string)@file_get_contents($path), true);

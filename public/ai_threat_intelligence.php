@@ -76,14 +76,7 @@ $featureLabels = [
     'off_hours' => 'Off-hours activity',
 ];
 
-$predictionHistory = [];
-$predictionPath = fortress_ml_data_dir() . '/predictions.jsonl';
-foreach (array_reverse(fortress_ml_tail_lines($predictionPath, 30)) as $line) {
-    $row = json_decode($line, true);
-    if (!is_array($row) || !is_array($row['result'] ?? null)) continue;
-    $predictionHistory[] = $row;
-    if (count($predictionHistory) >= 20) break;
-}
+$predictionHistory = fortress_ml_prediction_history(20);
 
 
 $aiBehaviorLabel = ucwords(strtolower(str_replace('_', ' ', $mlClass)));
@@ -594,7 +587,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <span class="fortress-defense-board-state <?= $mlEnabled ? 'active' : 'waiting' ?>"><i class="fa-solid fa-circle"></i><?= $mlEnabled ? 'STREAMING' : 'STANDBY' ?></span>
             </div>
             <div class="fortress-defense-board-main">
-                <div class="fortress-defense-board-avatar"><img src="/images/ai4.png" alt="Telemetry defense agent"></div>
+                <div class="fortress-defense-board-avatar"><img src="/images/ai8.png" alt="Telemetry defense agent"></div>
                 <div class="fortress-defense-board-copy">
                     <h3>Telemetry Monitor</h3>
                     <p>Builds the non-sensitive numerical request and authentication window consumed by the ML service.</p>
@@ -636,16 +629,16 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <span class="fortress-defense-board-state enforced"><i class="fa-solid fa-shield"></i>PROTECTED</span>
             </div>
             <div class="fortress-defense-board-main">
-                <div class="fortress-defense-board-avatar"><img src="/images/ai8.png" alt="FortressAuth shield defense agent"></div>
+                <div class="fortress-defense-board-avatar"><img src="/images/ai4.png" alt="FortressAuth shield defense agent"></div>
                 <div class="fortress-defense-board-copy">
                     <h3>FortressAuth Shield</h3>
-                    <p>Keeps authentication, sessions, rate limits, and deterministic controls independent from ML availability.</p>
-                    <div class="fortress-defense-board-tags"><span>Fail-safe</span><span>Authentication independent</span></div>
+                    <p>Keeps authentication, sessions, rate limits, and deterministic controls independent from ML availability while allowing guarded ML-assisted enforcement when corroborating evidence meets policy thresholds.</p>
+                    <div class="fortress-defense-board-tags"><span>Fail-safe</span><span>Guarded enforcement</span></div>
                 </div>
             </div>
             <div class="fortress-defense-board-metrics">
-                <div><span>ML blocking</span><strong>OFF</strong></div>
-                <div><span>Auth dependency</span><strong>NONE</strong></div>
+                <div><span>Enforcement mode</span><strong><?= $mlAssistedEnabled ? 'HYBRID' : 'DETERMINISTIC' ?></strong></div>
+                <div><span>ML autonomy</span><strong><?= $mlAssistedEnabled ? 'GUARDED' : 'ADVISORY' ?></strong></div>
                 <div><span>ML failure</span><strong>RULES CONTINUE</strong></div>
             </div>
             <div class="fortress-defense-board-foot"><span>Authoritative protection boundary</span><i class="fa-solid fa-lock"></i></div>

@@ -155,6 +155,22 @@ try {
     $revisionParts[] = 'db-bans=unavailable';
 }
 
+// Durable ML history can survive a Render restart even when the local JSON
+// fallback starts empty. Include the database stream position in the revision
+// so AI Defense refreshes when a persisted analysis is added.
+try {
+    $mlState = $pdo->query(
+        "SELECT COUNT(*)::int AS prediction_count, COALESCE(MAX(id), 0)::bigint AS latest_id
+         FROM public.ml_predictions"
+    )->fetch(PDO::FETCH_ASSOC) ?: [];
+    $revisionParts[] = 'db-ml='
+        . (string)($mlState['prediction_count'] ?? 0)
+        . ':'
+        . (string)($mlState['latest_id'] ?? 0);
+} catch (Throwable $e) {
+    $revisionParts[] = 'db-ml=unavailable';
+}
+
 $revision = substr(hash('sha256', implode('|', $revisionParts)), 0, 24);
 
 echo json_encode([

@@ -327,7 +327,7 @@
     panel.setAttribute('aria-hidden', 'false');
     backdrop?.removeAttribute('hidden');
     requestAnimationFrame(() => panel.classList.add('is-open'));
-    document.body.classList.add('fortress-notification-open');
+    document.body.classList.add('fortress-notification-panel-open');
     updateBellState();
   };
 
@@ -343,7 +343,7 @@
       }, 180);
     }
     if (backdrop) backdrop.hidden = true;
-    document.body.classList.remove('fortress-notification-open');
+    document.body.classList.remove('fortress-notification-panel-open');
     updateBellState();
   };
 
@@ -543,7 +543,7 @@
     panelOpen = false;
     activeToast?.remove();
     activeToast = null;
-    document.body.classList.remove('fortress-notification-open');
+    document.body.classList.remove('fortress-notification-panel-open');
   };
 
   const init = () => {
@@ -594,6 +594,7 @@
     document.querySelectorAll('[data-notification-close]').forEach((button) => {
       button.addEventListener('click', (event) => {
         event.preventDefault();
+        event.stopPropagation();
         closePanel();
       });
     });

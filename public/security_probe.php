@@ -21,6 +21,14 @@ if (!in_array(strtolower($probePath), $benignMissing, true)) {
         ' path=' . fortress_log_safe_value($probePath) .
         ' uid=' . (int)($_SESSION['uid'] ?? 0)
     );
+
+    // Count the probe in the deterministic fuzzer defense. The request is
+    // still returned as a generic 404 until the rolling reconnaissance
+    // threshold is crossed; then the source receives a temporary 403 ban.
+    $sensitiveProbe = function_exists('fortress_monitor_sensitive_path')
+        ? fortress_monitor_sensitive_path($probePath) !== null
+        : false;
+    fortress_recon_register_probe($probePath, $sensitiveProbe);
 }
 
 fortress_render_security_error(404, 'resource_not_disclosed');

@@ -36,6 +36,20 @@ function fortress_security_policy(): array
         'ip_ban_seconds' => fortress_policy_int('IP_BAN_DURATION', 900, 60),
         'request_body_monitor_bytes' => fortress_policy_int('REQUEST_BODY_MONITOR_BYTES', 1048576, 1024),
         'request_uri_monitor_length' => fortress_policy_int('REQUEST_URI_MONITOR_LENGTH', 2048, 256),
+
+        // Deterministic automated-reconnaissance / fuzzer defense. These
+        // thresholds require path-probe or explicit scanner evidence so normal
+        // browser asset loading does not become a network ban by itself.
+        'recon_probe_limit' => fortress_policy_int('RECON_PROBE_LIMIT', 8, 3),
+        'recon_sensitive_probe_limit' => fortress_policy_int('RECON_SENSITIVE_PROBE_LIMIT', 4, 2),
+        'recon_request_limit' => fortress_policy_int('RECON_REQUEST_LIMIT', 25, 10),
+        'recon_unique_path_limit' => fortress_policy_int('RECON_UNIQUE_PATH_LIMIT', 15, 6),
+        'recon_automation_probe_limit' => fortress_policy_int('RECON_AUTOMATION_PROBE_LIMIT', 5, 2),
+        'recon_tool_probe_limit' => fortress_policy_int('RECON_TOOL_PROBE_LIMIT', 3, 1),
+        'recon_tool_request_limit' => fortress_policy_int('RECON_TOOL_REQUEST_LIMIT', 12, 5),
+        'recon_tool_unique_path_limit' => fortress_policy_int('RECON_TOOL_UNIQUE_PATH_LIMIT', 8, 4),
+        'recon_ban_seconds' => fortress_policy_int('RECON_BAN_SECONDS', 900, 60),
+
         'alert_poll_seconds' => fortress_policy_int('SECURITY_ALERT_POLL_SECONDS', 4, 2),
         // Tiny revision check only. Full page content is fetched only when
         // meaningful security state actually changes.
