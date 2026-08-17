@@ -19,22 +19,23 @@ $threatNeedles = ['ml_threat_prediction','malicious_input_detected','shell_attac
 $threatHistory = array_values(array_filter($auditLines, static fn(string $line): bool => fortress_line_has_any($line, $threatNeedles)));
 $threatHistory = array_slice(array_reverse($threatHistory), 0, 120);
 
+$allTime = is_array($threatCategoryAllTime ?? null) ? $threatCategoryAllTime : [];
 $threatCategories = [
-    ['fa-key', 'Password rejection', $failedAttempts24h, 'First-factor failures'],
-    ['fa-id-card', 'Personal ID rejection', $schoolIdFailures24h, 'Possession-factor failures'],
-    ['fa-database', 'SQL injection', $sqlAttack24h, 'SQL-pattern detections'],
-    ['fa-code', 'XSS / traversal', $xssAttack24h + $pathAttack24h, 'Input-pattern detections'],
-    ['fa-terminal', 'Shell payload', $shellAttack24h, 'Command-pattern detections'],
-    ['fa-shield-halved', 'CSRF rejection', $csrfAttack24h, 'Invalid anti-CSRF requests'],
-    ['fa-shield', 'CSP violations', $cspViolation24h, 'Browser-blocked content violations'],
-    ['fa-magnifying-glass', 'Recon / 404 probes', $reconProbe24h, 'Sensitive and unknown path probes'],
-    ['fa-robot', 'Scanner fingerprints', $scanner24h, 'Known scanner-style user agents'],
-    ['fa-code-branch', 'HTTP method abuse', $methodAnomaly24h, 'Blocked or anomalous methods'],
-    ['fa-file-circle-exclamation', 'Oversized requests', $oversizedRequest24h, 'Abnormal URI/body sizes'],
-    ['fa-gauge-high', 'Brute force', $bruteforce24h, 'Rate-limit triggers'],
-    ['fa-spider', 'Honeypot', $honeypot24h, 'Honeypot events'],
-    ['fa-ban', 'Banned-source hits', $bannedRequest24h, 'Blocked banned clients'],
-    ['fa-door-open', 'Forced Browsing', $forcedBrowsing24h, 'Unauthorized protected-page access'],
+    ['fa-key', 'Password rejection', (int)($allTime['passwordRejection'] ?? 0), 'All-time first-factor failures'],
+    ['fa-id-card', 'Personal ID rejection', (int)($allTime['personalIdRejection'] ?? 0), 'All-time possession-factor failures'],
+    ['fa-database', 'SQL injection', (int)($allTime['sqlInjection'] ?? 0), 'Persistent SQL-pattern detections'],
+    ['fa-code', 'XSS / traversal', (int)($allTime['xssTraversal'] ?? 0), 'Persistent input-pattern detections'],
+    ['fa-terminal', 'Shell payload', (int)($allTime['shellPayload'] ?? 0), 'Persistent command-pattern detections'],
+    ['fa-shield-halved', 'CSRF rejection', (int)($allTime['csrfRejection'] ?? 0), 'Persistent anti-CSRF rejections'],
+    ['fa-shield', 'CSP violations', (int)($allTime['cspViolations'] ?? 0), 'Persistent browser CSP reports'],
+    ['fa-magnifying-glass', 'Recon / 404 probes', (int)($allTime['reconProbes'] ?? 0), 'Persistent path-probe detections'],
+    ['fa-robot', 'Scanner fingerprints', (int)($allTime['scannerFingerprints'] ?? 0), 'Persistent scanner-style user agents'],
+    ['fa-code-branch', 'HTTP method abuse', (int)($allTime['httpMethodAbuse'] ?? 0), 'Persistent blocked/anomalous methods'],
+    ['fa-file-circle-exclamation', 'Oversized requests', (int)($allTime['oversizedRequests'] ?? 0), 'Persistent abnormal request sizes'],
+    ['fa-gauge-high', 'Brute force', (int)($allTime['bruteForce'] ?? 0), 'Persistent rate-limit triggers'],
+    ['fa-spider', 'Honeypot', (int)($allTime['honeypot'] ?? 0), 'Persistent honeypot events'],
+    ['fa-ban', 'Banned-source hits', (int)($allTime['bannedSourceHits'] ?? 0), 'Persistent blocked banned clients'],
+    ['fa-door-open', 'Forced Browsing', (int)($allTime['forcedBrowsing'] ?? 0), 'Persistent unauthorized page access'],
 ];
 
 audit_log('threat_center_viewed uid=' . $userId);
@@ -54,7 +55,7 @@ audit_log('threat_center_viewed uid=' . $userId);
 </section>
 
 
-<article class="panel request-defense-panel"><div class="panel-heading"><div><span class="eyebrow">THREAT CATEGORIES</span><h2>Detected Security Pressure</h2><p>24-hour categories are derived from centralized request telemetry, authentication controls, audit evidence, and honeypot activity.</p></div></div><div class="attack-grid threat-category-grid"><?php foreach($threatCategories as $item): ?><div class="attack-card"><span class="attack-icon"><i class="fa-solid <?= e($item[0]) ?>"></i></span><div><strong class="metric-number" data-count="<?= (int)$item[2] ?>"><?= (int)$item[2] ?></strong><span><?= e($item[1]) ?></span><small><?= e($item[3]) ?></small></div></div><?php endforeach; ?></div></article>
+<article class="panel request-defense-panel"><div class="panel-heading"><div><span class="eyebrow">THREAT CATEGORIES</span><h2>Detected Security Pressure</h2><p>All-time category totals are read from persistent Supabase security evidence, while the live threat pressure and source intelligence above remain rolling 24-hour metrics.</p></div></div><div class="attack-grid threat-category-grid"><?php foreach($threatCategories as $item): ?><div class="attack-card"><span class="attack-icon"><i class="fa-solid <?= e($item[0]) ?>"></i></span><div><strong class="metric-number" data-count="<?= (int)$item[2] ?>"><?= (int)$item[2] ?></strong><span><?= e($item[1]) ?></span><small><?= e($item[3]) ?></small></div></div><?php endforeach; ?></div></article>
 
 <article class="panel data-panel"><div class="panel-heading filter-heading"><div><span class="eyebrow">THREAT TIMELINE</span><h2>Detected Threat Events</h2><p>Security events that contributed to monitoring or blocking decisions.</p></div><div class="table-tools"><label class="search-control"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search="threatHistory" placeholder="Search threats..."></label><select data-table-category="threatHistory"><option value="all">All categories</option><option value="authentication">Authentication</option><option value="identity">Identity</option><option value="network">Network</option><option value="threat">Threat</option></select></div></div><div class="responsive-table-wrap"><table class="security-table" data-table="threatHistory"><thead><tr><th>Timestamp</th><th>Source IP</th><th>Category</th><th>Detection</th><th>Outcome</th><th>Explanation</th></tr></thead><tbody><?php if(!$threatHistory): ?><tr><td colspan="6" class="table-empty">No threat events have been recorded.</td></tr><?php else: foreach($threatHistory as $line): $category=fortress_event_category($line); $outcome=fortress_event_outcome($line); ?><tr data-search="<?= e(strtolower(fortress_event_title($line).' '.fortress_log_ip($line).' '.$category)) ?>" data-category="<?= e(strtolower($category)) ?>"><td><?= e(fortress_event_time($line,'Y-m-d H:i:s')) ?></td><td><?= e(fortress_log_ip($line)) ?></td><td><?= e($category) ?></td><td><?= e(fortress_event_title($line)) ?></td><td><span class="status-pill status-<?= strtolower($outcome) ?>"><?= e($outcome) ?></span></td><td><?= e(fortress_event_description($line)) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
 <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth intrusion monitoring</span><span>Last threat: <?= e($lastThreatRelative) ?></span></footer>

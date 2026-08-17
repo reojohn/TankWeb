@@ -430,11 +430,212 @@ function fortress_format_date_value(?string $value, string $fallback = 'Not reco
     }
 }
 
+
+/**
+ * Return persistent, all-time threat-category totals.
+ *
+ * These totals intentionally do not use the rolling 24-hour cutoff used by
+ * live threat pressure, source rankings, and charts. The primary source is
+ * public.security_events in Supabase/PostgreSQL so the category cards survive
+ * Render spin-downs, restarts, and redeployments. If the database is
+ * temporarily unavailable, the function falls back to the merged audit lines.
+ */
+function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, array $honeypotLines): array
+{
+    $totals = [
+        'passwordRejection' => 0,
+        'personalIdRejection' => 0,
+        'sqlInjection' => 0,
+        'xssTraversal' => 0,
+        'shellPayload' => 0,
+        'csrfRejection' => 0,
+        'cspViolations' => 0,
+        'reconProbes' => 0,
+        'scannerFingerprints' => 0,
+        'httpMethodAbuse' => 0,
+        'oversizedRequests' => 0,
+        'bruteForce' => 0,
+        'honeypot' => 0,
+        'bannedSourceHits' => 0,
+        'forcedBrowsing' => 0,
+    ];
+
+    try {
+        $stmt = $pdo->query(
+            "SELECT
+                COUNT(*) FILTER (WHERE event_key = 'password_factor_failed') AS password_rejection,
+                COUNT(*) FILTER (WHERE event_key IN ('school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited')) AS personal_id_rejection,
+                COUNT(*) FILTER (
+                    WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%sql_attack%')
+                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%sqli%')
+                ) AS sql_injection,
+                COUNT(*) FILTER (
+                    WHERE (event_key = 'malicious_input_detected' AND (COALESCE(issues, '') ILIKE '%xss_attack%' OR COALESCE(issues, '') ILIKE '%path_traversal%'))
+                       OR (event_key = 'request_threat_detected' AND (COALESCE(raw_line, '') ILIKE '%xss%' OR COALESCE(raw_line, '') ILIKE '%path%'))
+                ) AS xss_traversal,
+                COUNT(*) FILTER (
+                    WHERE event_key = 'shell_attack_detected'
+                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%shell%')
+                ) AS shell_payload,
+                COUNT(*) FILTER (WHERE event_key = 'csrf_validation_failed') AS csrf_rejection,
+                COUNT(*) FILTER (WHERE event_key = 'csp_violation_reported') AS csp_violations,
+                COUNT(*) FILTER (WHERE event_key IN ('sensitive_path_probe', 'reconnaissance_probe')) AS recon_probes,
+                COUNT(*) FILTER (WHERE event_key = 'scanner_user_agent_detected') AS scanner_fingerprints,
+                COUNT(*) FILTER (WHERE event_key IN ('http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected')) AS http_method_abuse,
+                COUNT(*) FILTER (WHERE event_key IN ('oversized_request_detected', 'oversized_uri_detected')) AS oversized_requests,
+                COUNT(*) FILTER (WHERE event_key = 'bruteforce_detected') AS brute_force,
+                COUNT(*) FILTER (WHERE event_key = 'honeypot_triggered') AS honeypot,
+                COUNT(*) FILTER (WHERE event_key IN ('banned_ip_attempt', 'banned_ip_middleware_block')) AS banned_source_hits
+             FROM public.security_events"
+        );
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            throw new RuntimeException('Threat-category aggregate query returned no row.');
+        }
+
+        $totals['passwordRejection'] = (int)($row['password_rejection'] ?? 0);
+        $totals['personalIdRejection'] = (int)($row['personal_id_rejection'] ?? 0);
+        $totals['sqlInjection'] = (int)($row['sql_injection'] ?? 0);
+        $totals['xssTraversal'] = (int)($row['xss_traversal'] ?? 0);
+        $totals['shellPayload'] = (int)($row['shell_payload'] ?? 0);
+        $totals['csrfRejection'] = (int)($row['csrf_rejection'] ?? 0);
+        $totals['cspViolations'] = (int)($row['csp_violations'] ?? 0);
+        $totals['reconProbes'] = (int)($row['recon_probes'] ?? 0);
+        $totals['scannerFingerprints'] = (int)($row['scanner_fingerprints'] ?? 0);
+        $totals['httpMethodAbuse'] = (int)($row['http_method_abuse'] ?? 0);
+        $totals['oversizedRequests'] = (int)($row['oversized_requests'] ?? 0);
+        $totals['bruteForce'] = (int)($row['brute_force'] ?? 0);
+        $totals['honeypot'] = (int)($row['honeypot'] ?? 0);
+        $totals['bannedSourceHits'] = (int)($row['banned_source_hits'] ?? 0);
+
+        // Forced browsing is incident-based rather than raw-line based. Collapse
+        // browser/proxy retries from the same source/reason within two seconds.
+        $forcedStmt = $pdo->query(
+            "SELECT id, occurred_at, source_ip, raw_line, metadata
+             FROM public.security_events
+             WHERE event_key = 'auth_rejected'
+               AND (
+                    COALESCE(raw_line, '') LIKE '%uid=0%'
+                    OR COALESCE(metadata->>'uid', '') = '0'
+               )
+               AND (
+                    COALESCE(raw_line, '') LIKE '%reason=incomplete_primary_auth%'
+                    OR COALESCE(raw_line, '') LIKE '%reason=missing_primary_session%'
+                    OR COALESCE(metadata->>'reason', '') IN ('incomplete_primary_auth', 'missing_primary_session')
+               )
+             ORDER BY occurred_at ASC, id ASC"
+        );
+        $forcedRows = $forcedStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $lastSeen = [];
+        foreach ($forcedRows as $forcedRow) {
+            $line = (string)($forcedRow['raw_line'] ?? '');
+            $metadata = [];
+            $rawMetadata = $forcedRow['metadata'] ?? null;
+            if (is_string($rawMetadata) && $rawMetadata !== '') {
+                $decoded = json_decode($rawMetadata, true);
+                if (is_array($decoded)) $metadata = $decoded;
+            } elseif (is_array($rawMetadata)) {
+                $metadata = $rawMetadata;
+            }
+
+            $reason = (string)($metadata['reason'] ?? '');
+            if ($reason === '') {
+                if (str_contains($line, 'reason=incomplete_primary_auth')) {
+                    $reason = 'incomplete_primary_auth';
+                } elseif (str_contains($line, 'reason=missing_primary_session')) {
+                    $reason = 'missing_primary_session';
+                }
+            }
+            if (!in_array($reason, ['incomplete_primary_auth', 'missing_primary_session'], true)) {
+                continue;
+            }
+
+            $ip = trim((string)($forcedRow['source_ip'] ?? ''));
+            if ($ip === '') {
+                $ip = fortress_log_ip($line);
+            }
+            $key = $ip . '|' . $reason;
+
+            try {
+                $timestamp = (new DateTimeImmutable((string)$forcedRow['occurred_at']))->getTimestamp();
+            } catch (Throwable $e) {
+                $dt = fortress_event_datetime($line);
+                if (!$dt) continue;
+                $timestamp = $dt->getTimestamp();
+            }
+
+            $previous = (int)($lastSeen[$key] ?? 0);
+            if ($previous === 0 || ($timestamp - $previous) > 2) {
+                $totals['forcedBrowsing']++;
+            }
+            $lastSeen[$key] = $timestamp;
+        }
+
+        return $totals;
+    } catch (Throwable $e) {
+        // Keep the Threats page usable during a temporary database outage.
+        error_log('FortressAuth all-time threat-category query failed: ' . $e->getMessage());
+    }
+
+    // Flat-file fallback. This path preserves the previous behavior if the
+    // database is unavailable, while still calculating totals without 24h cutoff.
+    $forcedLastSeen = [];
+    $auditHoneypotCount = 0;
+
+    foreach ($auditLines as $line) {
+        if (str_contains($line, 'password_factor_failed')) $totals['passwordRejection']++;
+        if (fortress_line_has_any($line, ['school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'])) $totals['personalIdRejection']++;
+
+        if (
+            (str_contains($line, 'malicious_input_detected') && str_contains($line, 'issues=') && str_contains($line, 'sql_attack'))
+            || (str_contains($line, 'request_threat_detected') && str_contains($line, 'sqli'))
+        ) $totals['sqlInjection']++;
+
+        if (
+            (str_contains($line, 'malicious_input_detected') && str_contains($line, 'issues=') && (str_contains($line, 'xss_attack') || str_contains($line, 'path_traversal')))
+            || (str_contains($line, 'request_threat_detected') && (str_contains($line, 'xss') || str_contains($line, 'path')))
+        ) $totals['xssTraversal']++;
+
+        if (str_contains($line, 'shell_attack_detected') || (str_contains($line, 'request_threat_detected') && str_contains($line, 'shell'))) $totals['shellPayload']++;
+        if (str_contains($line, 'csrf_validation_failed')) $totals['csrfRejection']++;
+        if (str_contains($line, 'csp_violation_reported')) $totals['cspViolations']++;
+        if (fortress_line_has_any($line, ['sensitive_path_probe', 'reconnaissance_probe'])) $totals['reconProbes']++;
+        if (str_contains($line, 'scanner_user_agent_detected')) $totals['scannerFingerprints']++;
+        if (fortress_line_has_any($line, ['http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected'])) $totals['httpMethodAbuse']++;
+        if (fortress_line_has_any($line, ['oversized_request_detected', 'oversized_uri_detected'])) $totals['oversizedRequests']++;
+        if (str_contains($line, 'bruteforce_detected')) $totals['bruteForce']++;
+        if (str_contains($line, 'banned_ip_attempt') || str_contains($line, 'banned_ip_middleware_block')) $totals['bannedSourceHits']++;
+        if (str_contains($line, 'honeypot_triggered')) $auditHoneypotCount++;
+
+        if (
+            str_contains($line, 'auth_rejected')
+            && preg_match('/\buid=0\b/', $line) === 1
+            && (str_contains($line, 'reason=incomplete_primary_auth') || str_contains($line, 'reason=missing_primary_session'))
+        ) {
+            $dt = fortress_event_datetime($line);
+            if ($dt) {
+                $reason = str_contains($line, 'reason=incomplete_primary_auth') ? 'incomplete_primary_auth' : 'missing_primary_session';
+                $key = fortress_log_ip($line) . '|' . $reason;
+                $timestamp = $dt->getTimestamp();
+                $previous = (int)($forcedLastSeen[$key] ?? 0);
+                if ($previous === 0 || ($timestamp - $previous) > 2) {
+                    $totals['forcedBrowsing']++;
+                }
+                $forcedLastSeen[$key] = $timestamp;
+            }
+        }
+    }
+
+    $totals['honeypot'] = max($auditHoneypotCount, count($honeypotLines));
+    return $totals;
+}
+
 function fortress_build_security_context(PDO $pdo, int $userId): array
 {
     $dataPath = __DIR__ . '/../data/';
     $auditLines = fortress_read_persistent_audit_lines($pdo, $dataPath . 'audit.log');
     $honeypotLines = fortress_read_lines($dataPath . 'honeypot_log.txt');
+    $threatCategoryAllTime = fortress_all_time_threat_category_totals($pdo, $auditLines, $honeypotLines);
 
     $policyField = fortress_optional_2fa_policy_available($pdo)
         ? 'school_id_2fa_required'
@@ -716,6 +917,7 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
         'honeypotLines' => $honeypotLines,
         'totalAuditEvents' => count($auditLines),
         'totalHoneypotEvents' => count($honeypotLines),
+        'threatCategoryAllTime' => $threatCategoryAllTime,
         'failedAttempts24h' => $failedAttempts24h,
         'successfulPassword24h' => $successfulPassword24h,
         'schoolIdSuccess24h' => $schoolIdSuccess24h,
