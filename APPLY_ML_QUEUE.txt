@@ -1,0 +1,56 @@
+FortressAuth — Deferred ML Analysis Queue
+========================================
+
+WHAT THIS ADDS
+--------------
+1. If the remote ML service is asleep/unavailable, FortressAuth saves the missed
+   behavioral telemetry snapshot instead of losing the ML analysis opportunity.
+2. Deterministic defenses still act immediately on the original request.
+3. Security events logged later in the request (for example failed login or
+   malicious login handling) are captured at shutdown and can also be queued.
+4. After a later live /predict succeeds, FortressAuth replays a small bounded
+   number of queued snapshots through XGBoost + Autoencoder.
+5. Queued replays are retrospective only. They do not retroactively block the
+   request that already finished.
+6. AI Defense shows pending queue count and identifies QUEUED REPLAY results.
+
+REQUIRED DATABASE STEP
+----------------------
+Run this ONCE in Supabase -> SQL Editor using the schema owner/migration account:
+
+    sql/ml_analysis_queue.sql
+
+The code has a local-file fallback if the table is missing, but the database queue
+is recommended on Render so queued analyses survive restarts/redeploys.
+
+RENDER ENVIRONMENT
+------------------
+Add/confirm these on the FortressAuth PHP service:
+
+    ML_QUEUE_ENABLED=true
+    ML_QUEUE_REPLAY_LIMIT=2
+    ML_QUEUE_RETRY_SECONDS=30
+    ML_QUEUE_MAX_PENDING=100
+    ML_QUEUE_MAX_AGE_SECONDS=21600
+
+Keep your existing ML_SERVICE_URL, ML_SERVICE_TOKEN, ML_TIMEOUT_MS, and
+ML_ASSISTED_* settings unchanged.
+
+TEST
+----
+1. Let fortressauth-ml sleep or temporarily make it unavailable.
+2. Perform a controlled security test against FortressAuth.
+3. AI Defense should report one or more pending ML queue snapshots.
+4. Wake the ML service (or wait for it to recover).
+5. Trigger a normal protected-page request after the PHP failure backoff expires.
+6. fortressauth-ml logs should show POST /predict 200 for the live request and
+   additional POST /predict 200 requests for queued replay(s).
+7. AI Defense should show QUEUED REPLAY when a saved snapshot becomes the latest
+   analysis, including how many seconds the analysis was delayed.
+
+IMPORTANT
+---------
+Queued analysis is not claimed as real-time ML defense. The rule engine,
+authentication controls, rate limits, session controls, and other deterministic
+protections handle the original request immediately. The queue preserves ML
+classification/anomaly analysis for later evidence and reporting.

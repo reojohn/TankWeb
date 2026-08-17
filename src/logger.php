@@ -297,6 +297,37 @@ function audit_log(string $message): void
     $ua = substr($ua, 0, 200);
     $rid = fortress_request_id();
 
+    // Mark deterministic security evidence for the ML shutdown replay hook.
+    // This is request-local only; no secret/request body is copied into memory.
+    // ML-generated audit events are excluded to prevent a replay feedback loop.
+    $parsedForMl = fortress_audit_message_fields($safeMessage);
+    $mlEventKey = (string)($parsedForMl['event_key'] ?? '');
+    if ($mlEventKey !== '' && !str_starts_with($mlEventKey, 'ml_')) {
+        $mlFields = (array)($parsedForMl['fields'] ?? []);
+        $mlSeverity = fortress_audit_severity($mlEventKey, $mlFields);
+        $mlOutcome = fortress_audit_outcome($mlEventKey);
+        $mlExplicitTriggers = [
+            'login_failed', 'password_factor_failed', 'school_id_qr_failed',
+            'school_id_qr_locked', 'school_id_qr_rate_limited',
+            'request_threat_detected', 'malicious_input_detected',
+            'sensitive_path_probe', 'scanner_user_agent_detected',
+            'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected',
+            'csrf_validation_failed', 'csrf_rejected', 'auth_rejected',
+            'bruteforce_detected', 'honeypot_triggered', 'honeypot_access',
+            'csp_violation', 'ip_banned', 'banned_ip_attempt'
+        ];
+        if (
+            in_array($mlEventKey, $mlExplicitTriggers, true) ||
+            $mlSeverity !== 'INFO' ||
+            in_array($mlOutcome, ['BLOCKED', 'REJECTED'], true)
+        ) {
+            $GLOBALS['FORTRESS_ML_SECURITY_EVENT_SEEN'] = [
+                'event_key' => $mlEventKey,
+                'ts' => time(),
+            ];
+        }
+    }
+
     $entry = sprintf('[%s] rid=%s ip=%s ua=%s %s%s', $time, $rid, $ip, $ua, $safeMessage, PHP_EOL);
     @file_put_contents($file, $entry, FILE_APPEND | LOCK_EX);
 

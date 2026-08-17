@@ -23,6 +23,9 @@ $mlServiceState = is_array($mlServiceStatus)
 $mlServiceHttpCode = is_array($mlServiceStatus) ? (int)($mlServiceStatus['http_code'] ?? 0) : 0;
 $mlServiceLatencyMs = is_array($mlServiceStatus) ? (int)($mlServiceStatus['latency_ms'] ?? 0) : 0;
 $mlServiceDisplay = !$mlEnabled ? 'DISABLED' : ($mlServiceConnected ? 'CONNECTED' : $mlServiceState);
+$mlQueueStatus = fortress_ml_queue_status();
+$mlQueuePending = (int)($mlQueueStatus['pending'] ?? 0);
+$mlQueueCompleted24h = (int)($mlQueueStatus['completed_24h'] ?? 0);
 $mlLatest = fortress_ml_latest_prediction();
 $mlResult = is_array($mlLatest['result'] ?? null) ? $mlLatest['result'] : null;
 $mlFeatures = is_array($mlLatest['features'] ?? null) ? $mlLatest['features'] : [];
@@ -36,6 +39,8 @@ $mlConfidence = $mlResult ? ((float)($mlResult['confidence'] ?? 0) * 100.0) : 0.
 $mlAnomaly = $mlResult ? ((float)($mlResult['anomaly_score'] ?? 0) * 100.0) : 0.0;
 $mlRuleScore = $mlResult ? (float)($mlResult['rule_score'] ?? 0) : 0.0;
 $mlXgbRisk = $mlResult ? (float)($mlResult['xgboost_risk'] ?? 0) : 0.0;
+$mlAnalysisMode = $mlResult ? strtoupper((string)($mlResult['analysis_mode'] ?? 'LIVE')) : 'NONE';
+$mlQueueDelaySeconds = $mlResult ? (int)($mlResult['queue_delay_seconds'] ?? 0) : 0;
 $mlIndicators = $mlResult && is_array($mlResult['indicators'] ?? null) ? $mlResult['indicators'] : [];
 $mlSourceIp = is_array($mlLatest) ? (string)($mlLatest['ip'] ?? 'No source yet') : 'No source yet';
 $mlPredictionTs = is_array($mlLatest) ? (int)($mlLatest['ts'] ?? 0) : 0;
@@ -139,6 +144,12 @@ if (!$mlEnabled) {
         ];
     }
 } else {
+    if ($mlAnalysisMode === 'QUEUED_REPLAY') {
+        $aiConversationMessages[] = sprintf(
+            'This result is a queued replay of security telemetry preserved while the ML service was unavailable. The original request was handled in real time by FortressAuth deterministic defenses, and the ML analysis completed %d seconds later after the model service recovered.',
+            $mlQueueDelaySeconds
+        );
+    }
     $aiConversationMessages[] = sprintf(
         'Hello. I reviewed the latest FortressAuth security activity from source %s. My current assessment is %s, with a hybrid risk score of %.1f out of 100.',
         $mlSourceIp,
@@ -338,6 +349,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <span><i class="fa-solid fa-network-wired"></i> Source: <code><?= e($mlSourceIp) ?></code></span>
         <span><i class="fa-solid fa-clock"></i> Last analysis: <?= e($mlPredictionTime) ?></span>
         <span><i class="fa-solid fa-shield"></i> AI-assisted enforcement: <?= $mlAssistedEnabled ? 'ON' : 'OFF' ?> · Action: <?= e(str_replace('_', ' ', $mlEnforcementAction)) ?></span>
+        <span><i class="fa-solid fa-list-check"></i> ML queue: <?= $mlQueuePending ?> pending<?php if ($mlQueueCompleted24h > 0): ?> · <?= $mlQueueCompleted24h ?> replayed / 24h<?php endif; ?></span>
+        <?php if ($mlAnalysisMode === 'QUEUED_REPLAY'): ?><span><i class="fa-solid fa-clock-rotate-left"></i> Analysis: QUEUED REPLAY · <?= $mlQueueDelaySeconds ?>s delayed</span><?php endif; ?>
     </div>
     <?php if ($mlIndicators): ?>
         <div class="ai-indicator-list">
@@ -346,7 +359,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <?php elseif (!$mlEnabled): ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is currently disabled. Set <code>ML_SERVICE_ENABLED=true</code>, configure the private service URL/token, and start the ML service. Existing defenses continue working normally.</div>
     <?php elseif (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])): ?>
-        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest prediction connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active while FortressAuth retries after the configured backoff.</div>
+        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest prediction connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active<?php if ($mlQueuePending > 0): ?> and <?= $mlQueuePending ?> ML analysis snapshot<?= $mlQueuePending === 1 ? ' is' : 's are' ?> safely queued for replay<?php endif; ?> while FortressAuth retries after the configured backoff.</div>
     <?php else: ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is enabled. Use the system normally or run controlled security tests to populate the behavioral window and generate the first analysis.</div>
     <?php endif; ?>
@@ -369,7 +382,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="fortress-ai-analyst-copy">
                 <div class="fortress-ai-analyst-badges">
                     <span class="success"><i class="fa-solid fa-circle-check"></i> LIVE SECURITY ANALYST</span>
-                    <span><i class="fa-solid fa-satellite-dish"></i> <?= $mlEnabled ? 'ML ENGINE ONLINE' : 'ML ENGINE OFFLINE' ?></span>
+                    <span><i class="fa-solid fa-satellite-dish"></i> <?= $mlServiceConnected ? 'ML ENGINE CONNECTED' : ($mlEnabled ? 'ML ENGINE RETRYING' : 'ML ENGINE OFFLINE') ?></span>
                 </div>
 
                 <h2>FortressAuth AI Analyst</h2>

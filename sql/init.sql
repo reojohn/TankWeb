@@ -40,6 +40,31 @@ CREATE TABLE IF NOT EXISTS public.banned_ips (
 CREATE INDEX IF NOT EXISTS idx_banned_ips_until
     ON public.banned_ips (banned_until);
 
+-- Deferred ML-analysis queue. Deterministic defenses still act immediately;
+-- this table preserves telemetry for XGBoost/Autoencoder replay if the remote
+-- ML service is temporarily asleep or unavailable.
+CREATE TABLE IF NOT EXISTS public.ml_analysis_queue (
+    id BIGSERIAL PRIMARY KEY,
+    fingerprint VARCHAR(64) UNIQUE NOT NULL,
+    source_ip VARCHAR(64) NOT NULL,
+    payload JSONB NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'processing', 'completed', 'discarded')),
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    last_error_state VARCHAR(64) NULL,
+    queued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ NULL,
+    result JSONB NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ml_analysis_queue_pending
+    ON public.ml_analysis_queue (status, available_at, queued_at);
+
+CREATE INDEX IF NOT EXISTS idx_ml_analysis_queue_source
+    ON public.ml_analysis_queue (source_ip, queued_at DESC);
+
 -- Create the first password hash with PHP, preferably using the helper logic in
 -- src/auth.php (Argon2id when supported), then insert it manually:
 -- INSERT INTO public.users (username, full_name, password_hash)

@@ -78,6 +78,10 @@ header(
     "report-uri /csp_report.php;"
 );
 
+// Capture telemetry and register the ML replay shutdown hook before the
+// deterministic monitor runs. This preserves even requests that the monitor
+// terminates immediately (for example, dangerous HTTP methods).
+fortress_ml_prepare_request_capture();
 fortress_monitor_run();
 fortress_ml_evaluate_request();
 
