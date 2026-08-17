@@ -60,3 +60,6 @@ COMMIT;
 -- CONNECT/USAGE plus SELECT/INSERT/UPDATE/DELETE on required application tables,
 -- but NOT CREATE, ALTER, DROP, role-management, or database-owner privileges.
 -- Apply future schema changes with the owner/migration role only.
+
+-- Administrator-issued QR second-factor type. Existing accounts stay Personal ID based.
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS second_factor_type VARCHAR(32) NOT NULL DEFAULT 'personal_id';

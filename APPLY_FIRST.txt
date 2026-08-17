@@ -1,0 +1,76 @@
+FortressAuth — Administrator-Issued QR 2FA Update
+=================================================
+
+This package contains ONLY the files changed for the new QR-based 2FA option.
+It does not contain your .env, database password, runtime logs, or the rest of the project.
+
+WHAT THIS ADDS
+--------------
+1. Existing Password Only login remains supported.
+2. Existing Password + Personal ID QR login remains supported.
+3. New Password + FortressAuth-issued QR login is added.
+4. The main administrator can create an account, enable QR-based 2FA, select
+   "FortressAuth-issued QR", and FortressAuth generates a one-time QR handoff.
+5. Only a password hash of the generated QR credential is stored in PostgreSQL.
+6. The raw QR is shown once to the administrator for Download / Print / handoff.
+7. An administrator can regenerate another account's issued QR. The old QR stops
+   matching as soon as the replacement hash is saved.
+8. For safety, the currently signed-in administrator cannot regenerate their own
+   issued QR. Another active administrator must do it.
+
+INSTALL
+-------
+1. Back up your current TankWeb-v2 folder.
+2. Copy the folders/files in this package into TankWeb-v2 and allow matching files
+   to be replaced.
+3. In Supabase -> SQL Editor, run this file ONCE:
+
+      sql/generated_qr_2fa.sql
+
+   Existing accounts default to Personal ID, so their current login flow is kept.
+4. Hard-refresh FortressAuth (Ctrl+Shift+R).
+
+TEST — EXISTING FLOWS
+---------------------
+A. Password-only account:
+   Password -> Dashboard
+
+B. Existing Personal ID account:
+   Password -> Personal ID QR scan -> Dashboard
+
+TEST — NEW ISSUED QR FLOW
+-------------------------
+1. Log in as the main administrator.
+2. Open Current Operator -> User Management.
+3. Create a TEMPORARY test administrator.
+4. Enable "Require QR-based 2FA".
+5. Select "FortressAuth-issued QR".
+6. Save the account.
+7. A ONE-TIME QR handoff appears. Download or print it before leaving/reloading.
+8. Open an Incognito/private browser and log in as the new test account.
+9. After the password is accepted, scan the downloaded/generated QR.
+10. The account should reach the Dashboard.
+
+TEST — REGENERATION / REVOCATION
+--------------------------------
+1. From the main administrator, edit the test account.
+2. Keep "FortressAuth-issued QR" selected.
+3. Check "Issue a new QR on save".
+4. Save and download the new one-time QR.
+5. The OLD QR should now fail verification.
+6. The NEW QR should pass verification.
+
+PUSH AFTER LOCAL TESTING
+------------------------
+git add .
+git status
+git commit -m "Add administrator-issued QR 2FA"
+git push origin main
+
+NOTES
+-----
+- Do not share the raw generated QR credential publicly. Treat the QR image as a
+  possession credential.
+- If an issued QR is lost, copied, or exposed, regenerate it from User Management.
+- The database column added by the migration is:
+    second_factor_type = personal_id | generated_qr

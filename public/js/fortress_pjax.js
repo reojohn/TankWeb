@@ -164,6 +164,7 @@
       await initExistingOrLoadedModule('/js/security_live_refresh.js', () => window.FortressLiveRefresh);
 
       if (normalizePath(pathname) === '/user_management.php') {
+        await ensureScript('/js/qrcode.min.js');
         await initExistingOrLoadedModule('/js/user_management.js', () => window.FortressUserManagement);
       }
       if (normalizePath(pathname) === '/ai_threat_intelligence.php') {

@@ -21,6 +21,9 @@ $score = isset($protectionScore) ? (int)$protectionScore : 100;
 $defenseActive = isset($activeDefenseCount) ? (int)$activeDefenseCount : 8;
 $defenseTotal = isset($defenseLayers) && is_array($defenseLayers) ? count($defenseLayers) : 8;
 $operatorLabel = isset($usernameRaw) && trim((string)$usernameRaw) !== '' ? (string)$usernameRaw : 'admin';
+$operatorRoleRaw = strtolower(trim((string)($userRole ?? ($_SESSION['role'] ?? 'superadmin'))));
+$operatorRole = $operatorRoleRaw === 'admin' ? 'admin' : 'superadmin';
+$operatorRoleLabel = $operatorRole === 'superadmin' ? 'SUPER ADMIN' : 'ADMIN';
 $currentUri = e($_SERVER['REQUEST_URI'] ?? '/dashboard.php');
 $notificationOwner = (int)($_SESSION['uid'] ?? 0);
 ?>
@@ -75,7 +78,7 @@ $notificationOwner = (int)($_SESSION['uid'] ?? 0);
             <strong><?= e($operatorLabel) ?></strong>
             <em class="operator-manage-hint"><i class="fa-solid fa-users-gear"></i> Users <span>+</span> <i class="fa-solid fa-id-card"></i> ID <span>+</span> <i class="fa-solid fa-file-export"></i> Reports</em>
         </span>
-        <span class="sidebar-operator-badge">ADMIN</span>
+        <span class="sidebar-operator-badge <?= $operatorRole === 'superadmin' ? 'superadmin' : '' ?>"><?= e($operatorRoleLabel) ?></span>
     </a>
 
     <nav class="command-nav" aria-label="FortressAuth navigation">

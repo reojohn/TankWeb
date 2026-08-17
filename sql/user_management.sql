@@ -12,3 +12,6 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS school_id_qr_updated_at TIMEST
 UPDATE public.users
 SET full_name = username
 WHERE full_name IS NULL OR BTRIM(full_name) = '';
+
+-- Administrator-issued QR second-factor type. Existing accounts stay Personal ID based.
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS second_factor_type VARCHAR(32) NOT NULL DEFAULT 'personal_id';

@@ -20,8 +20,12 @@ if (
 
 $userId = (int) $_SESSION['pending_user_id'];
 
+$factorTypeField = fortress_second_factor_type_available($pdo)
+    ? "COALESCE(second_factor_type, 'personal_id') AS second_factor_type"
+    : "'personal_id' AS second_factor_type";
+
 $stmt = $pdo->prepare(
-    'SELECT username,
+    'SELECT username, ' . $factorTypeField . ',
             school_id_qr_enabled,
             school_id_qr_hash
      FROM public.users
@@ -49,6 +53,16 @@ if (empty($_SESSION['school_id_verify_started_at'])) {
     $_SESSION['school_id_verify_started_at'] = time();
 }
 
+$factorType = fortress_second_factor_type_value($user);
+$usesGeneratedQr = $factorType === 'generated_qr';
+$factorLabel = $usesGeneratedQr ? 'issued QR credential' : 'Personal ID';
+$factorTitle = $usesGeneratedQr ? 'Verify your issued QR' : 'Verify your Personal ID';
+$factorScannerTitle = $usesGeneratedQr ? 'Issued QR scanner' : 'Personal ID scanner';
+$factorButtonLabel = $usesGeneratedQr ? 'Start issued QR scanner' : 'Start Personal ID scanner';
+$factorHelp = $usesGeneratedQr
+    ? 'Hold the administrator-issued QR inside the frame and keep it steady until verification completes.'
+    : 'Hold the QR code on your Personal ID inside the frame and keep the card steady until verification completes.';
+
 $csrfToken = generate_csrf_token();
 ?>
 <!DOCTYPE html>
@@ -60,11 +74,11 @@ $csrfToken = generate_csrf_token();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-    <title>FortressAuth — Verify Personal ID</title>
+    <title>FortressAuth — Verify QR Credential</title>
     <link rel="stylesheet" href="/css/login.css">
 </head>
 
-<body class="auth-page auth-qr-page">
+<body class="auth-page auth-qr-page" data-second-factor="<?= e($factorType) ?>">
 <main class="verify-shell" id="verification-card">
     <section class="verify-side">
         <div class="verify-brand">
@@ -77,8 +91,8 @@ $csrfToken = generate_csrf_token();
 
         <div class="verify-copy">
             <span class="step-pill">STEP 2 OF 2</span>
-            <h2>Verify your Personal ID</h2>
-            <p>Complete the second authentication step by scanning the QR code on your registered physical Personal ID.</p>
+            <h2><?= e($factorTitle) ?></h2>
+            <p><?= $usesGeneratedQr ? 'Complete the second authentication step by scanning the QR credential issued to this account by an administrator.' : 'Complete the second authentication step by scanning the QR code on your registered physical Personal ID.' ?></p>
         </div>
 
         <div class="auth-progress" aria-label="Authentication progress">
@@ -94,7 +108,7 @@ $csrfToken = generate_csrf_token();
             <div class="progress-item active">
                 <span class="progress-number" aria-hidden="true">2</span>
                 <div class="progress-copy">
-                    <strong>Personal ID</strong>
+                    <strong><?= $usesGeneratedQr ? 'Issued QR' : 'Personal ID' ?></strong>
                     <span>Awaiting scan</span>
                 </div>
             </div>
@@ -104,7 +118,7 @@ $csrfToken = generate_csrf_token();
             <span class="security-icon small" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.8-2.8 8.2-7 10-4.2-1.8-7-5.2-7-10V6l7-3z"/><path d="M9.2 12.1l1.8 1.8 3.9-4"/></svg>
             </span>
-            <p>The scanned value is verified against the protected credential registered to this account.</p>
+            <p>The scanned value is matched against the protected QR credential registered to this account.</p>
         </div>
     </section>
 
@@ -112,19 +126,19 @@ $csrfToken = generate_csrf_token();
         <div class="scanner-panel-head">
             <div>
                 <span class="panel-kicker">LIVE VERIFICATION</span>
-                <h3>Personal ID scanner</h3>
+                <h3><?= e($factorScannerTitle) ?></h3>
             </div>
             <span class="camera-state" id="camera-state"><i></i> Camera off</span>
         </div>
 
         <div class="scanner-stage" id="scanner-stage">
-            <div id="reader" class="qr-reader" aria-label="Personal ID QR camera preview"></div>
+            <div id="reader" class="qr-reader" aria-label="QR credential camera preview"></div>
             <div class="scanner-placeholder" id="scanner-placeholder" aria-hidden="true">
                 <div class="qr-symbol">
                     <span></span><span></span><span></span><span></span>
                 </div>
                 <strong>Camera ready</strong>
-                <span>Start the scanner to begin verification</span>
+                <span>Start the scanner and present <?= $usesGeneratedQr ? 'the issued QR' : 'your Personal ID' ?></span>
             </div>
             <div class="scan-overlay" aria-hidden="true">
                 <i class="corner tl"></i>
@@ -146,10 +160,10 @@ $csrfToken = generate_csrf_token();
 
         <button type="button" id="start-scanner" class="primary-action scanner-action">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 011-1h3"/><path d="M16 4h3a1 1 0 011 1v3"/><path d="M20 16v3a1 1 0 01-1 1h-3"/><path d="M8 20H5a1 1 0 01-1-1v-3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
-            <span>Start Personal ID scanner</span>
+            <span><?= e($factorButtonLabel) ?></span>
         </button>
 
-        <p class="scanner-help">Hold the QR code inside the frame and keep the card steady until verification completes.</p>
+        <p class="scanner-help"><?= e($factorHelp) ?></p>
     </section>
 </main>
 

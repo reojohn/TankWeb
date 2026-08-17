@@ -160,6 +160,8 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $totalUsers = count($users);
     $activeUsers = count(array_filter($users, static fn(array $u): bool => (bool)($u['is_active'] ?? false)));
     $personalIdUsers = count(array_filter($users, static fn(array $u): bool => (bool)($u['school_id_2fa_required'] ?? true)));
+    $superAdminUsers = count(array_filter($users, static fn(array $u): bool => fortress_normalize_role($u['role'] ?? 'superadmin') === 'superadmin'));
+    $adminUsers = $totalUsers - $superAdminUsers;
     $generatedAt = new DateTimeImmutable('now');
     $operator = trim((string)($ctx['usernameRaw'] ?? 'admin')) ?: 'admin';
     $scopeLabels = [
@@ -184,7 +186,9 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         ['Protection status', (string)($ctx['protectionLabel'] ?? 'Unknown')],
         ['Threat level', (string)($ctx['threatLevel'] ?? 'Unknown')],
         ['Defense layers', (int)($ctx['activeDefenseCount'] ?? 0) . '/' . max(1, count($defenseLayers)) . ' operational'],
-        ['Registered administrators', (string)$totalUsers],
+        ['Registered operators', (string)$totalUsers],
+        ['Super administrators', (string)$superAdminUsers],
+        ['Administrators', (string)$adminUsers],
         ['Active administrators', (string)$activeUsers],
         ['Personal ID 2FA accounts', (string)$personalIdUsers],
         ['Active IP bans', (string)(int)($ctx['activeBans'] ?? 0)],
@@ -207,6 +211,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         $administrators[] = [
             'Display Name' => trim((string)($user['full_name'] ?? '')) ?: (string)($user['username'] ?? 'Unknown'),
             'Username' => (string)($user['username'] ?? 'Unknown'),
+            'Role' => fortress_normalize_role($user['role'] ?? 'superadmin') === 'superadmin' ? 'Super Admin' : 'Admin',
             'Account Status' => (bool)($user['is_active'] ?? false) ? 'Active' : 'Inactive',
             'Authentication Policy' => $requires2fa ? 'Password + Personal ID QR' : 'Password only',
             'Personal ID' => $requires2fa ? ($personalIdEnrolled ? 'Enrolled' : 'Enrollment required') : 'Not required',
@@ -810,7 +815,7 @@ function fortress_report_pdf(array $report): string
         } else {
             foreach ($report['administrators'] as $index => $row) {
                 $addLine(($index + 1) . '. ' . (string)$row['Display Name'] . ' (' . (string)$row['Username'] . ')', 9.7, true, 7, 14);
-                $addWrapped('Status: ' . $row['Account Status'] . ' | Policy: ' . $row['Authentication Policy'] . ' | Personal ID: ' . $row['Personal ID'], 88, 8.4, false, 12);
+                $addWrapped('Role: ' . $row['Role'] . ' | Status: ' . $row['Account Status'] . ' | Policy: ' . $row['Authentication Policy'] . ' | Personal ID: ' . $row['Personal ID'], 88, 8.4, false, 12);
                 $addWrapped('Last login: ' . $row['Last Login'] . ' | Updated: ' . $row['Updated'], 88, 8.3, false, 12);
             }
         }
@@ -1192,7 +1197,7 @@ function fortress_report_xlsx(array $report): string
     }
 
     if (in_array($meta['scope'], ['full', 'identity'], true)) {
-        $addAssocSheet($sheets, 'Administrators', $report['administrators'] ?? [], ['Display Name', 'Username', 'Account Status', 'Authentication Policy', 'Personal ID', 'Last Login', 'Updated'], [30, 20, 18, 30, 24, 22, 22], 'ACCESS & IDENTITY DIRECTORY', '5B8C85');
+        $addAssocSheet($sheets, 'Administrators', $report['administrators'] ?? [], ['Display Name', 'Username', 'Role', 'Account Status', 'Authentication Policy', 'Personal ID', 'Last Login', 'Updated'], [30, 20, 18, 18, 30, 24, 22, 22], 'ACCESS & IDENTITY DIRECTORY', '5B8C85');
         $addAssocSheet($sheets, 'Authentication Records', $report['authentication_events'] ?? [], ['Time', 'Category', 'Event', 'User', 'Source IP', 'Outcome', 'Description'], [22, 18, 38, 20, 20, 16, 88], 'AUTHENTICATION EVIDENCE', '5B8C85');
         $addAssocSheet($sheets, 'Personal ID Evidence', $report['identity_events'] ?? [], ['Time', 'Event', 'Source IP', 'Outcome', 'Description'], [22, 38, 20, 16, 88], 'POSSESSION-FACTOR EVIDENCE', '5B8C85');
         $addAssocSheet($sheets, 'Account Changes', $report['management_events'] ?? [], ['Time', 'Event', 'Actor/User', 'Source IP', 'Outcome', 'Description'], [22, 40, 20, 20, 16, 88], 'ADMINISTRATOR CHANGE HISTORY', '5B8C85');
@@ -1448,7 +1453,7 @@ function fortress_report_pptx(array $report): string
             } else {
                 foreach ($chunk as $row) {
                     $lines[] = ['text' => $row['Display Name'] . ' (' . $row['Username'] . ')', 'size' => 1240, 'bold' => true, 'height' => 280000, 'fill' => 'F5EEFF'];
-                    $lines[] = ['text' => 'Status: ' . $row['Account Status'] . ' | Policy: ' . $row['Authentication Policy'] . ' | Personal ID: ' . $row['Personal ID'], 'size' => 980, 'height' => 320000, 'fill' => 'FFFFFF'];
+                    $lines[] = ['text' => 'Role: ' . $row['Role'] . ' | Status: ' . $row['Account Status'] . ' | Policy: ' . $row['Authentication Policy'] . ' | Personal ID: ' . $row['Personal ID'], 'size' => 980, 'height' => 320000, 'fill' => 'FFFFFF'];
                     $lines[] = ['text' => 'Last login: ' . $row['Last Login'] . ' | Updated: ' . $row['Updated'], 'size' => 950, 'height' => 320000, 'fill' => 'FFFFFF'];
                 }
             }

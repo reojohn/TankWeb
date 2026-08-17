@@ -28,3 +28,6 @@ ALTER TABLE public.users
     ALTER COLUMN school_id_qr_hash DROP NOT NULL;
 
 COMMIT;
+
+-- Administrator-issued QR second-factor type. Existing accounts stay Personal ID based.
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS second_factor_type VARCHAR(32) NOT NULL DEFAULT 'personal_id';

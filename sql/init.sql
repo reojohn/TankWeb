@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     school_id_2fa_required BOOLEAN NOT NULL DEFAULT TRUE,
+    second_factor_type VARCHAR(32) NOT NULL DEFAULT 'personal_id' CHECK (second_factor_type IN ('personal_id', 'generated_qr')),
     school_id_qr_hash VARCHAR(255) NULL,
     school_id_qr_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     school_id_qr_updated_at TIMESTAMPTZ NULL

@@ -116,7 +116,7 @@ if ($attempts >= $sessionAttemptLimit) {
     );
 
     school_id_json_error(
-        'Too many failed Personal ID attempts. Please log in again.',
+        'Too many failed QR verification attempts. Please log in again.',
         429
     );
 }
@@ -184,15 +184,20 @@ if (
     fortress_rate_limit_is_blocked('school_id_user', $userLimitKey, $userAttemptLimit, $rateWindow)
 ) {
     audit_log('school_id_qr_rate_limited uid=' . $userId);
-    school_id_json_error('Too many Personal ID attempts. Please log in again later.', 429);
+    school_id_json_error('Too many QR verification attempts. Please log in again later.', 429);
 }
 
+
+$factorTypeField = fortress_second_factor_type_available($pdo)
+    ? "COALESCE(second_factor_type, 'personal_id') AS second_factor_type"
+    : "'personal_id' AS second_factor_type";
 
 $stmt =
     $pdo->prepare(
         'SELECT
             id,
             username,
+            ' . $factorTypeField . ',
             school_id_qr_hash,
             school_id_qr_enabled,
             is_active
@@ -222,6 +227,9 @@ if (!$user) {
     );
 }
 
+$factorType = fortress_second_factor_type_value($user);
+$usesGeneratedQr = $factorType === 'generated_qr';
+$factorLabel = $usesGeneratedQr ? 'issued QR credential' : 'Personal ID';
 
 if (array_key_exists('is_active', $user) && !(bool)$user['is_active']) {
     school_id_json_error('Account is disabled.', 403);
@@ -233,7 +241,7 @@ if (
 ) {
 
     school_id_json_error(
-        'No Personal ID is registered to this account.',
+        'No active QR credential is registered to this account.',
         403
     );
 }
@@ -268,7 +276,7 @@ if (!$verified) {
         $_SESSION['school_id_failed_attempts'];
 
     school_id_json_error(
-        'Personal ID does not match this account. Attempts remaining: ' .
+        ucfirst($factorLabel) . ' does not match this account. Attempts remaining: ' .
         max(0, $remaining),
         401
     );
@@ -279,7 +287,7 @@ if (!$verified) {
  * BOTH factors are now complete:
  *
  * 1. Password
- * 2. Registered physical Personal ID QR
+ * 2. Registered QR possession credential
  */
 fortress_rate_limit_clear('school_id_user', $userLimitKey);
 

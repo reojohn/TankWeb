@@ -20,8 +20,12 @@ if (
 
 $userId = (int) $_SESSION['pending_user_id'];
 
+$factorTypeField = fortress_second_factor_type_available($pdo)
+    ? "COALESCE(second_factor_type, 'personal_id') AS second_factor_type"
+    : "'personal_id' AS second_factor_type";
+
 $stmt = $pdo->prepare(
-    'SELECT username, school_id_qr_enabled
+    'SELECT username, ' . $factorTypeField . ', school_id_qr_enabled
      FROM public.users
      WHERE id = ?
      LIMIT 1'
@@ -32,6 +36,12 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     header('Location: /login.php');
+    exit;
+}
+
+if (fortress_second_factor_type_value($user) === 'generated_qr') {
+    audit_log('issued_qr_self_enrollment_blocked uid=' . $userId);
+    header('Location: /login.php?issued_qr_required=1');
     exit;
 }
 

@@ -67,6 +67,90 @@ function fortress_optional_2fa_policy_available(PDO $pdo): bool
     return $cache[$key] = fortress_column_exists($pdo, 'school_id_2fa_required');
 }
 
+
+function fortress_second_factor_type_available(PDO $pdo): bool
+{
+    static $cache = [];
+    $key = spl_object_id($pdo);
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    return $cache[$key] = fortress_column_exists($pdo, 'second_factor_type');
+}
+
+function fortress_second_factor_type_value(array $user): string
+{
+    $type = strtolower(trim((string)($user['second_factor_type'] ?? 'personal_id')));
+    return $type === 'generated_qr' ? 'generated_qr' : 'personal_id';
+}
+
+
+function fortress_role_policy_available(PDO $pdo): bool
+{
+    static $cache = [];
+    $key = spl_object_id($pdo);
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    return $cache[$key] = fortress_column_exists($pdo, 'role');
+}
+
+function fortress_normalize_role(mixed $role): string
+{
+    return strtolower(trim((string)$role)) === 'admin' ? 'admin' : 'superadmin';
+}
+
+function fortress_user_role(PDO $pdo, int $userId): string
+{
+    if ($userId <= 0) {
+        return 'admin';
+    }
+
+    // Backward-compatible safety: before the role migration is applied, all
+    // existing privileged accounts retain the legacy full-access behavior.
+    if (!fortress_role_policy_available($pdo)) {
+        return 'superadmin';
+    }
+
+    try {
+        $stmt = $pdo->prepare('SELECT role FROM public.users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $role = $stmt->fetchColumn();
+        return $role === false ? 'admin' : fortress_normalize_role($role);
+    } catch (Throwable $e) {
+        error_log('FortressAuth role lookup failed for uid=' . $userId);
+        return 'admin';
+    }
+}
+
+function fortress_is_superadmin(PDO $pdo, int $userId): bool
+{
+    return fortress_user_role($pdo, $userId) === 'superadmin';
+}
+
+function fortress_active_superadmin_count(PDO $pdo): int
+{
+    if (!fortress_ensure_user_management_schema($pdo)) {
+        return 0;
+    }
+
+    if (!fortress_role_policy_available($pdo)) {
+        return fortress_active_user_count($pdo);
+    }
+
+    try {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM public.users WHERE is_active = TRUE AND role = 'superadmin'");
+        return (int)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        error_log('FortressAuth active-superadmin count failed.');
+        return 0;
+    }
+}
+
 function fortress_session_version_available(PDO $pdo): bool
 {
     static $cache = [];
@@ -106,10 +190,16 @@ function fortress_fetch_users(PDO $pdo): array
     $policyField = fortress_optional_2fa_policy_available($pdo)
         ? 'COALESCE(school_id_2fa_required, TRUE) AS school_id_2fa_required'
         : 'TRUE AS school_id_2fa_required';
+    $factorTypeField = fortress_second_factor_type_available($pdo)
+        ? "COALESCE(second_factor_type, 'personal_id') AS second_factor_type"
+        : "'personal_id' AS second_factor_type";
+    $roleField = fortress_role_policy_available($pdo)
+        ? "COALESCE(role, 'admin') AS role"
+        : "'superadmin' AS role";
 
     $stmt = $pdo->query(
         'SELECT id, username, full_name, is_active, created_at, updated_at, last_login_at, ' .
-        $policyField . ',
+        $policyField . ', ' . $factorTypeField . ', ' . $roleField . ',
                 COALESCE(school_id_qr_enabled, FALSE) AS school_id_qr_enabled,
                 school_id_qr_updated_at
          FROM public.users
@@ -129,10 +219,16 @@ function fortress_fetch_user(PDO $pdo, int $userId): ?array
     $policyField = fortress_optional_2fa_policy_available($pdo)
         ? 'COALESCE(school_id_2fa_required, TRUE) AS school_id_2fa_required'
         : 'TRUE AS school_id_2fa_required';
+    $factorTypeField = fortress_second_factor_type_available($pdo)
+        ? "COALESCE(second_factor_type, 'personal_id') AS second_factor_type"
+        : "'personal_id' AS second_factor_type";
+    $roleField = fortress_role_policy_available($pdo)
+        ? "COALESCE(role, 'admin') AS role"
+        : "'superadmin' AS role";
 
     $stmt = $pdo->prepare(
         'SELECT id, username, full_name, is_active, created_at, updated_at, last_login_at, ' .
-        $policyField . ',
+        $policyField . ', ' . $factorTypeField . ', ' . $roleField . ',
                 COALESCE(school_id_qr_enabled, FALSE) AS school_id_qr_enabled,
                 school_id_qr_updated_at
          FROM public.users

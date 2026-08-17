@@ -27,6 +27,14 @@ $verifiedDisplay = $schoolIdRequired
     ? ($verifiedAt > 0 ? date('Y-m-d H:i:s', $verifiedAt) : 'Not verified in this session')
     : 'Not required by account policy';
 $accessChainComplete = !$schoolIdRequired || $schoolIdVerified;
+$secondFactorIsIssued = $schoolIdRequired && ($schoolIdFactorType ?? 'personal_id') === 'generated_qr';
+$secondFactorLabel = !$schoolIdRequired
+    ? 'Password only'
+    : ($secondFactorIsIssued ? 'Issued QR' : 'Personal ID');
+$secondFactorFlowTitle = !$schoolIdRequired
+    ? 'Second factor'
+    : ($secondFactorIsIssued ? 'Issued QR' : 'Personal ID 2FA');
+$secondFactorIcon = $secondFactorIsIssued ? 'fa-qrcode' : 'fa-id-card';
 
 $scoreClass = $protectionScore >= 90 ? 'score-strong' : ($protectionScore >= 70 ? 'score-good' : 'score-warning');
 $integrityPercent = (int)round(($activeDefenseCount / max(1, count($defenseLayers))) * 100);
@@ -76,10 +84,10 @@ audit_log('dashboard_access uid=' . $userId);
                 <div class="hero-badges">
                     <span><i class="fa-solid fa-key"></i> Password verified</span>
                     <span class="<?= $schoolIdRequired ? ($schoolIdVerified ? 'verified' : 'warning') : 'verified' ?>">
-                        <i class="fa-solid <?= $schoolIdRequired ? 'fa-id-card' : 'fa-key' ?>"></i>
+                        <i class="fa-solid <?= $schoolIdRequired ? e($secondFactorIcon) : 'fa-key' ?>"></i>
                         <?= $schoolIdRequired
-                            ? ('Personal ID ' . ($schoolIdVerified ? 'verified' : 'not verified'))
-                            : 'Personal ID 2FA disabled · password only' ?>
+                            ? (e($secondFactorLabel) . ' ' . ($schoolIdVerified ? 'verified' : 'not verified'))
+                            : 'Second factor not required · password only' ?>
                     </span>
                     <span><i class="fa-solid fa-shield-halved"></i> <?= $activeDefenseCount ?>/<?= count($defenseLayers) ?> defenses holding</span>
                 </div>
@@ -129,7 +137,7 @@ audit_log('dashboard_access uid=' . $userId);
                     </div>
                     <div class="posture-copy">
                         <span class="posture-label"><?= e($protectionLabel) ?></span>
-                        <p>This score is calculated from the operational state and configured weight of the eight FortressAuth defense layers, not from a decorative random value.</p>
+                        <p>Live composite score derived from the operational state of the active FortressAuth defense layers.</p>
                         <div class="posture-factors">
                             <?php foreach ($defenseLayers as $layer): ?>
                                 <span class="<?= $layer[1] ? 'on' : 'off' ?>"><i class="fa-solid <?= $layer[1] ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i> <?= e($layer[0]) ?> +<?= (int)$layer[3] ?></span>
@@ -140,20 +148,23 @@ audit_log('dashboard_access uid=' . $userId);
             </article>
 
             <article class="panel verification-panel">
-                <div class="panel-heading compact">
+                <div class="panel-heading compact verification-heading">
                     <div><span class="eyebrow">ACCESS VERIFICATION CHAIN</span><h2>Layered Authentication Flow</h2></div>
-                    <i class="fa-solid fa-diagram-project panel-symbol"></i>
+                    <span class="flow-processing" aria-label="Verification telemetry processing">
+                        <span class="flow-processing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span>PROCESSING</span>
+                    </span>
                 </div>
-                <div class="verification-chain">
-                    <div class="chain-node complete"><span>01</span><i class="fa-solid fa-user-shield"></i><strong>Administrator</strong><small><?= $username ?></small></div>
+                <div class="verification-chain" aria-label="Live authentication verification flow">
+                    <div class="chain-node complete"><span>01</span><i class="fa-solid fa-user-shield"></i><strong>Operator</strong><small><?= $username ?></small></div>
                     <div class="chain-connector complete"><i class="fa-solid fa-chevron-right"></i></div>
                     <div class="chain-node complete"><span>02</span><i class="fa-solid fa-key"></i><strong>Password</strong><small>Verified</small></div>
                     <div class="chain-connector complete"><i class="fa-solid fa-chevron-right"></i></div>
-                    <div class="chain-node <?= $accessChainComplete ? 'complete' : 'pending' ?>"><span>03</span><i class="fa-solid fa-id-card"></i><strong>Personal ID 2FA</strong><small><?= $schoolIdRequired ? ($schoolIdVerified ? 'Verified' : 'Pending') : 'Not required' ?></small></div>
+                    <div class="chain-node <?= $accessChainComplete ? 'complete' : 'pending' ?>"><span>03</span><i class="fa-solid <?= e($secondFactorIcon) ?>"></i><strong><?= e($secondFactorFlowTitle) ?></strong><small><?= $schoolIdRequired ? ($schoolIdVerified ? 'Verified' : 'Pending') : 'Not required' ?></small></div>
                     <div class="chain-connector <?= $accessChainComplete ? 'complete' : '' ?>"><i class="fa-solid fa-chevron-right"></i></div>
                     <div class="chain-node <?= $accessChainComplete ? 'complete' : 'pending' ?>"><span>04</span><i class="fa-solid fa-lock-open"></i><strong>Session</strong><small><?= $accessChainComplete ? 'Active' : 'Waiting' ?></small></div>
                     <div class="chain-connector <?= $accessChainComplete ? 'complete' : '' ?>"><i class="fa-solid fa-chevron-right"></i></div>
-                    <div class="chain-node <?= $accessChainComplete ? 'complete protected' : 'pending' ?>"><span>05</span><i class="fa-solid fa-vault"></i><strong>Protected Area</strong><small><?= $accessChainComplete ? 'Granted' : 'Locked' ?></small></div>
+                    <div class="chain-node <?= $accessChainComplete ? 'complete protected' : 'pending' ?>"><span>05</span><i class="fa-solid fa-vault"></i><strong>Protected</strong><small><?= $accessChainComplete ? 'Granted' : 'Locked' ?></small></div>
                 </div>
             </article>
         </section>
@@ -210,7 +221,7 @@ audit_log('dashboard_access uid=' . $userId);
                 <div class="operator-identity"><div class="operator-avatar"><i class="fa-solid fa-user-shield"></i></div><div><strong><?= $username ?></strong><span>Current operator · Administrator</span></div></div>
                 <dl class="session-details">
                     <div><dt>Session status</dt><dd>ACTIVE</dd></div>
-                    <div><dt>Authentication</dt><dd><?= $schoolIdRequired ? 'PASSWORD + PERSONAL ID' : 'PASSWORD ONLY' ?></dd></div>
+                    <div><dt>Authentication</dt><dd><?= $schoolIdRequired ? ('PASSWORD + ' . strtoupper(e($secondFactorLabel))) : 'PASSWORD ONLY' ?></dd></div>
                     <div><dt>Session started</dt><dd><?= e($sessionStartDisplay) ?></dd></div>
                     <div><dt>Session duration</dt><dd class="session-duration" data-start="<?= $sessionStart ?>">00:00:00</dd></div>
                     <div><dt>Current IP</dt><dd><?= $clientIpEscaped ?></dd></div>
@@ -226,7 +237,7 @@ audit_log('dashboard_access uid=' . $userId);
                     <span class="credential-icon"><i class="fa-solid <?= $schoolIdRequired ? 'fa-qrcode' : 'fa-key' ?>"></i></span>
                     <div>
                         <strong><?= !$schoolIdRequired ? '2FA DISABLED' : ($schoolIdEnabled ? 'REGISTERED & ACTIVE' : 'ENROLLMENT REQUIRED') ?></strong>
-                        <small><?= $schoolIdRequired ? 'Physical Personal ID QR possession verification' : 'This account uses password-only authentication' ?></small>
+                        <small><?= $schoolIdRequired ? ($secondFactorIsIssued ? 'Administrator-issued QR possession verification' : 'Personal ID QR possession verification') : 'This account uses password-only authentication' ?></small>
                     </div>
                 </div>
                 <dl class="session-details school-details">

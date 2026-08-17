@@ -1,0 +1,18 @@
+FortressAuth Render ML connection fix
+
+Changed files:
+- src/ml_threat.php
+- public/ai_threat_intelligence.php
+- .env.example
+
+Render setting:
+ML_TIMEOUT_MS=2000
+
+Keep:
+ML_SERVICE_URL=https://fortressauth-ml.onrender.com
+
+Do not append /predict; FortressAuth appends it automatically.
+The ML_SERVICE_TOKEN value must be identical on FortressAuth and fortressauth-ml.
+
+After deployment, open AI Defense and watch fortressauth-ml logs for:
+POST /predict HTTP/1.1 200 OK

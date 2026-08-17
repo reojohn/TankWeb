@@ -1,0 +1,9 @@
+FORTRESSAUTH SUPER ADMIN / ADMIN ROLE UPDATE
+
+1. Run sql/user_roles.sql once in Supabase SQL Editor.
+2. Existing accounts are promoted to superadmin by the migration.
+3. New accounts default to admin in the UI.
+4. Super Admin can create, edit, activate/disable, reset passwords, manage 2FA, assign roles, and delete accounts.
+5. Admin can navigate every FortressAuth page and view the operator directory, but user-account administration is read-only.
+6. Existing passwords cannot be revealed. FortressAuth stores one-way hashes. Super Admin can reset a password and use the Generate/Show controls to hand off a new temporary password.
+7. Test with one newly created Admin account before deployment.

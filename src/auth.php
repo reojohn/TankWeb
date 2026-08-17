@@ -228,6 +228,10 @@ function require_admin_auth(): void
     $optional2faPolicyAvailable = fortress_optional_2fa_policy_available($pdo);
 
     $fields = ['is_active', 'school_id_qr_enabled'];
+    $hasRolePolicy = fortress_role_policy_available($pdo);
+    if ($hasRolePolicy) {
+        $fields[] = 'role';
+    }
     if ($optional2faPolicyAvailable) {
         $fields[] = 'school_id_2fa_required';
     }
@@ -248,6 +252,10 @@ function require_admin_auth(): void
     if (!$account || !(bool)$account['is_active']) {
         fortress_auth_fail('account_disabled_or_missing');
     }
+
+    $_SESSION['role'] = $hasRolePolicy
+        ? fortress_normalize_role($account['role'] ?? 'admin')
+        : 'superadmin';
 
     $requiresSchoolId2fa = $optional2faPolicyAvailable
         ? (bool)$account['school_id_2fa_required']

@@ -173,6 +173,10 @@ if ($qrHash === false) {
 }
 
 
+$factorSet = fortress_second_factor_type_available($pdo)
+    ? ", second_factor_type = 'personal_id'"
+    : '';
+
 $stmt =
     $pdo->prepare(
         'UPDATE public.users
@@ -180,7 +184,7 @@ $stmt =
          SET
             school_id_qr_hash = :qr_hash,
             school_id_qr_enabled = TRUE,
-            school_id_qr_updated_at = NOW()
+            school_id_qr_updated_at = NOW()' . $factorSet . '
 
          WHERE id = :user_id'
     );

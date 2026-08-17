@@ -15,6 +15,14 @@ extract($ctx, EXTR_SKIP);
 $activeNav = 'ai';
 
 $mlEnabled = fortress_ml_enabled();
+$mlServiceStatus = fortress_ml_service_status();
+$mlServiceConnected = is_array($mlServiceStatus) && !empty($mlServiceStatus['ok']);
+$mlServiceState = is_array($mlServiceStatus)
+    ? strtoupper((string)($mlServiceStatus['state'] ?? 'UNKNOWN'))
+    : ($mlEnabled ? 'ENABLED' : 'DISABLED');
+$mlServiceHttpCode = is_array($mlServiceStatus) ? (int)($mlServiceStatus['http_code'] ?? 0) : 0;
+$mlServiceLatencyMs = is_array($mlServiceStatus) ? (int)($mlServiceStatus['latency_ms'] ?? 0) : 0;
+$mlServiceDisplay = !$mlEnabled ? 'DISABLED' : ($mlServiceConnected ? 'CONNECTED' : $mlServiceState);
 $mlLatest = fortress_ml_latest_prediction();
 $mlResult = is_array($mlLatest['result'] ?? null) ? $mlLatest['result'] : null;
 $mlFeatures = is_array($mlLatest['features'] ?? null) ? $mlLatest['features'] : [];
@@ -117,11 +125,19 @@ if (!$mlEnabled) {
         'Once the ML service is enabled, I can continuously review non-sensitive security telemetry and report what XGBoost, the Autoencoder, and the rule engine find about current activity.',
     ];
 } elseif (!$mlResult) {
-    $aiConversationMessages = [
-        'Hello. I am the FortressAuth AI security analyst. I checked the system and confirmed that the ML service is online, but I am still waiting for the first completed behavioral analysis.',
-        'I have not found a security result to report yet because no completed analysis window has been saved. Normal protected-page activity will give the request monitor enough telemetry to generate one.',
-        'While I wait, FortressAuth continues enforcing its normal protections. The AI layer is supplementary and does not replace authentication, rate limits, deterministic rules, or session security.',
-    ];
+    if (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])) {
+        $aiConversationMessages = [
+            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled, but the latest prediction request did not complete successfully.',
+            'The safe connection diagnostic currently reports ' . strtolower(str_replace('_', ' ', $mlServiceState)) . '. The system does not expose the private ML URL, token, request body, or raw transport error in this interface.',
+            'FortressAuth continues enforcing its deterministic protections while the ML connection is unavailable. Once a prediction request succeeds, this page will automatically populate the XGBoost, Autoencoder, and hybrid-risk findings.',
+        ];
+    } else {
+        $aiConversationMessages = [
+            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled and I am waiting for the first completed behavioral analysis.',
+            'I have not found a saved security result yet. Normal protected-page activity will give the request monitor telemetry and trigger a prediction attempt.',
+            'While I wait, FortressAuth continues enforcing its normal protections. The AI layer is supplementary and does not replace authentication, rate limits, deterministic rules, or session security.',
+        ];
+    }
 } else {
     $aiConversationMessages[] = sprintf(
         'Hello. I reviewed the latest FortressAuth security activity from source %s. My current assessment is %s, with a hybrid risk score of %.1f out of 100.',
@@ -297,7 +313,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 </section>
 
 <section class="posture-summary-strip ai-summary-strip">
-    <div><span>ML service</span><strong><?= $mlEnabled ? 'ENABLED' : 'DISABLED' ?></strong></div>
+    <div><span>ML service</span><strong><?= e(str_replace('_', ' ', $mlServiceDisplay)) ?></strong></div>
     <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
     <div><span>Detected behavior</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong></div>
     <div><span>AI response mode</span><strong><?= e($mlResponseMode) ?></strong></div>
@@ -329,6 +345,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         </div>
     <?php elseif (!$mlEnabled): ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is currently disabled. Set <code>ML_SERVICE_ENABLED=true</code>, configure the private service URL/token, and start the ML service. Existing defenses continue working normally.</div>
+    <?php elseif (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])): ?>
+        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest prediction connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active while FortressAuth retries after the configured backoff.</div>
     <?php else: ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is enabled. Use the system normally or run controlled security tests to populate the behavioral window and generate the first analysis.</div>
     <?php endif; ?>
@@ -805,7 +823,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <article class="panel configuration-panel">
         <div class="panel-heading compact"><div><span class="eyebrow">RUNTIME SAFETY</span><h2>AI Defense Boundaries</h2><p>The machine-learning layer can assist network enforcement, but it cannot override authentication or ban a source without deterministic corroboration.</p></div><i class="fa-solid fa-shield-halved panel-symbol"></i></div>
         <div class="configuration-grid">
-            <div><i class="fa-solid fa-toggle-on"></i><span>ML service state</span><strong><?= $mlEnabled ? 'ENABLED' : 'DISABLED' ?></strong></div>
+            <div><i class="fa-solid fa-toggle-on"></i><span>ML service state</span><strong><?= e(str_replace('_', ' ', $mlServiceDisplay)) ?></strong></div>
             <div><i class="fa-solid fa-ban"></i><span>AI-assisted enforcement</span><strong><?= $mlAssistedEnabled ? 'GUARDED ON' : 'OFF' ?></strong></div>
             <div><i class="fa-solid fa-key"></i><span>Authentication dependency</span><strong>NONE</strong></div>
             <div><i class="fa-solid fa-layer-group"></i><span>Corroboration rule</span><strong>MODEL + RULE EVIDENCE</strong></div>

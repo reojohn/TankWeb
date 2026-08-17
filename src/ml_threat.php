@@ -333,32 +333,144 @@ function fortress_ml_rule_score(array $f): float
     return min(100.0, $score);
 }
 
+function fortress_ml_service_status_path(): string
+{
+    return fortress_ml_data_dir() . '/service_status.json';
+}
+
+function fortress_ml_write_service_status(array $status): void
+{
+    $record = array_merge([
+        'ts' => time(),
+        'ok' => false,
+        'state' => 'UNKNOWN',
+        'http_code' => 0,
+        'latency_ms' => 0,
+    ], $status);
+
+    // Keep diagnostics intentionally non-sensitive: never persist the ML URL,
+    // bearer token, request body, response body, or raw transport exception.
+    @file_put_contents(
+        fortress_ml_service_status_path(),
+        json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+        LOCK_EX
+    );
+}
+
+function fortress_ml_service_status(): ?array
+{
+    $path = fortress_ml_service_status_path();
+    if (!is_file($path)) return null;
+    $decoded = json_decode((string)@file_get_contents($path), true);
+    return is_array($decoded) ? $decoded : null;
+}
+
 function fortress_ml_post(array $payload): ?array
 {
     $url = trim((string)(getenv('ML_SERVICE_URL') ?: ''));
-    if ($url === '' || !preg_match('#^https?://#i', $url)) return null;
-    $timeoutMs = (int)(getenv('ML_TIMEOUT_MS') ?: 250);
-    // ML is an additional detection layer, so it must never make normal page
-    // navigation feel blocked. Keep synchronous inference tightly bounded.
-    $timeoutMs = max(75, min(300, $timeoutMs));
+    if ($url === '' || !preg_match('#^https?://#i', $url)) {
+        fortress_ml_write_service_status([
+            'ok' => false,
+            'state' => 'CONFIG_ERROR',
+        ]);
+        return null;
+    }
+
+    $timeoutMs = (int)(getenv('ML_TIMEOUT_MS') ?: 1500);
+    // A separately deployed Render ML service needs enough time for DNS/TLS,
+    // routing, and inference. The request remains bounded so the ML layer can
+    // never stall normal FortressAuth navigation indefinitely.
+    $timeoutMs = max(250, min(5000, $timeoutMs));
+
     $token = trim((string)(getenv('ML_SERVICE_TOKEN') ?: ''));
     $headers = "Content-Type: application/json\r\nAccept: application/json\r\nConnection: close\r\n";
     if ($token !== '') {
         $headers .= 'Authorization: Bearer ' . str_replace(["\r", "\n"], '', $token) . "\r\n";
     }
+
+    $encodedPayload = json_encode($payload, JSON_UNESCAPED_SLASHES);
+    if (!is_string($encodedPayload)) {
+        fortress_ml_write_service_status([
+            'ok' => false,
+            'state' => 'PAYLOAD_ERROR',
+        ]);
+        return null;
+    }
+
     $context = stream_context_create([
         'http' => [
             'method' => 'POST',
             'header' => $headers,
-            'content' => json_encode($payload, JSON_UNESCAPED_SLASHES),
+            'content' => $encodedPayload,
             'timeout' => $timeoutMs / 1000,
             'ignore_errors' => true,
         ],
     ]);
+
+    if (function_exists('error_clear_last')) error_clear_last();
+    $startedAt = microtime(true);
     $body = @file_get_contents(rtrim($url, '/') . '/predict', false, $context);
-    if (!is_string($body) || $body === '') return null;
+    $latencyMs = (int)round((microtime(true) - $startedAt) * 1000);
+
+    $responseHeaders = $http_response_header ?? [];
+    $httpCode = 0;
+    if (is_array($responseHeaders) && isset($responseHeaders[0]) && preg_match('/\s(\d{3})\s/', (string)$responseHeaders[0], $match)) {
+        $httpCode = (int)$match[1];
+    }
+
+    if (!is_string($body) || $body === '') {
+        $lastError = error_get_last();
+        $message = strtolower((string)($lastError['message'] ?? ''));
+        $state = str_contains($message, 'timed out') || $latencyMs >= $timeoutMs
+            ? 'TIMEOUT'
+            : 'TRANSPORT_ERROR';
+
+        fortress_ml_write_service_status([
+            'ok' => false,
+            'state' => $state,
+            'http_code' => $httpCode,
+            'latency_ms' => $latencyMs,
+        ]);
+        error_log('FortressAuth ML request failed state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
+        return null;
+    }
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        $state = match ($httpCode) {
+            401, 403 => 'UNAUTHORIZED',
+            422 => 'INVALID_PAYLOAD',
+            502, 503, 504 => 'SERVICE_UNAVAILABLE',
+            default => 'HTTP_ERROR',
+        };
+        fortress_ml_write_service_status([
+            'ok' => false,
+            'state' => $state,
+            'http_code' => $httpCode,
+            'latency_ms' => $latencyMs,
+        ]);
+        error_log('FortressAuth ML request rejected state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
+        return null;
+    }
+
     $decoded = json_decode($body, true);
-    return is_array($decoded) && isset($decoded['risk_score']) ? $decoded : null;
+    if (!is_array($decoded) || !isset($decoded['risk_score'])) {
+        fortress_ml_write_service_status([
+            'ok' => false,
+            'state' => 'INVALID_RESPONSE',
+            'http_code' => $httpCode,
+            'latency_ms' => $latencyMs,
+        ]);
+        error_log('FortressAuth ML request returned an invalid prediction response.');
+        return null;
+    }
+
+    fortress_ml_write_service_status([
+        'ok' => true,
+        'state' => 'CONNECTED',
+        'http_code' => $httpCode,
+        'latency_ms' => $latencyMs,
+    ]);
+    return $decoded;
 }
 
 function fortress_ml_evaluate_request(): void

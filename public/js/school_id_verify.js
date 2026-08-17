@@ -10,6 +10,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const secondProgress = document.querySelector('.progress-item.active');
     const secondProgressText = secondProgress ? secondProgress.querySelector('div span') : null;
 
+    // The verification page exposes only the second-factor type as a data attribute.
+    // Derive the user-facing labels here so both Personal ID and administrator-issued
+    // QR flows use the same scanner without relying on undefined globals.
+    const factorType = document.body?.dataset?.secondFactor === 'generated_qr'
+        ? 'generated_qr'
+        : 'personal_id';
+    const fortressFactorShort = factorType === 'generated_qr' ? 'issued QR' : 'Personal ID';
+    const fortressFactorLabel = factorType === 'generated_qr' ? 'issued QR credential' : 'Personal ID';
+
     if (!button || !status) {
         return;
     }
@@ -152,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setCameraState(true, 'Camera active');
             setProgressState('processing', 'Scanning');
-            setStatus('working', 'Scanning Personal ID', 'Hold your registered Personal ID QR code inside the frame.');
+            setStatus('working', `Scanning ${fortressFactorShort}`, `Hold your ${fortressFactorLabel} inside the frame.`);
 
             const targetSize = Math.max(205, Math.min(285, Math.floor((scannerStage?.clientWidth || 520) * 0.48)));
 
@@ -173,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     scanCompleted = true;
                     setProgressState('processing', 'QR detected');
-                    setStatus('working', 'QR detected', 'Verifying the scanned Personal ID against your registered credential...');
+                    setStatus('working', 'QR detected', `Verifying the scanned ${fortressFactorLabel} against the registered credential...`);
 
                     scannerStage?.classList.remove('is-scanning');
                     scannerStage?.classList.add('is-processing');
@@ -237,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (!response.ok || result.success !== true) {
-                throw new Error(result.error || 'Personal ID verification failed.');
+                throw new Error(result.error || `${fortressFactorShort} verification failed.`);
             }
 
             scannerStage?.classList.remove('is-processing');
@@ -248,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setCameraState(false, 'Verified');
             setProgressState('complete', 'Verified');
-            setStatus('success', 'Identity verified', 'Personal ID authentication succeeded. Access granted.');
+            setStatus('success', 'Identity verified', `${fortressFactorShort} authentication succeeded. Access granted.`);
             playScanSound('success');
 
             button.classList.add('is-hidden');
@@ -268,13 +277,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setCameraState(false, 'Verification failed');
             setProgressState('failed', 'Scan failed');
-            setStatus('error', 'Personal ID not verified', error.message || 'Personal ID verification failed.');
+            setStatus('error', `${fortressFactorShort} not verified`, error.message || `${fortressFactorShort} verification failed.`);
             playScanSound('error');
 
             scanCompleted = false;
             button.disabled = false;
             button.classList.remove('loading');
-            button.querySelector('span').textContent = 'Scan Personal ID again';
+            button.querySelector('span').textContent = `Scan ${fortressFactorShort} again`;
             placeholder?.classList.remove('is-hidden');
 
             window.setTimeout(() => {
