@@ -155,6 +155,8 @@ function fortress_line_has_any(string $line, array $needles): bool
 function fortress_event_key(string $line): string
 {
     $keys = [
+        'ml_assisted_block',
+        'ml_assisted_strike',
         'ml_threat_prediction',
         'request_threat_detected',
         'csp_violation_reported',
@@ -225,6 +227,8 @@ function fortress_event_key(string $line): string
 function fortress_event_title(string $line): string
 {
     $map = [
+        'ml_assisted_block' => 'AI-assisted temporary ban enforced',
+        'ml_assisted_strike' => 'AI-assisted threat strike recorded',
         'ml_threat_prediction' => 'ML behavioral threat prediction',
         'request_threat_detected' => 'Suspicious request payload detected',
         'csp_violation_reported' => 'Browser CSP violation blocked',
@@ -290,7 +294,7 @@ function fortress_event_title(string $line): string
 function fortress_event_category(string $line): string
 {
     $key = fortress_event_key($line);
-    if ($key === 'ml_threat_prediction' || $key === 'auth_rejected' || $key === 'honeypot_triggered') return 'Threat';
+    if (in_array($key, ['ml_threat_prediction', 'ml_assisted_strike', 'ml_assisted_block', 'auth_rejected', 'honeypot_triggered'], true)) return 'Threat';
     if (fortress_line_has_any($key, ['request_threat', 'csp_violation', 'scanner_user_agent', 'sensitive_path_probe', 'reconnaissance_probe', 'csrf_validation_failed', 'http_method_', 'endpoint_method_rejected', 'oversized_'])) return 'Threat';
     if (str_contains($key, 'school_id')) return 'Identity';
     if (str_contains($key, 'password') || str_starts_with($key, 'login_') || $key === 'login_attempt recorded') return 'Authentication';
@@ -305,7 +309,7 @@ function fortress_event_category(string $line): string
 
 function fortress_event_outcome(string $line): string
 {
-    if (fortress_line_has_any($line, ['malicious_input_detected', 'shell_attack_detected', 'banned_ip_attempt', 'banned_ip_middleware_block', 'ip_banned', 'csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked', 'endpoint_method_rejected', 'sensitive_path_probe', 'reconnaissance_probe', 'auth_rejected', 'school_id_qr_rate_limited', 'honeypot_triggered'])) return 'BLOCKED';
+    if (fortress_line_has_any($line, ['ml_assisted_block', 'malicious_input_detected', 'shell_attack_detected', 'banned_ip_attempt', 'banned_ip_middleware_block', 'ip_banned', 'csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked', 'endpoint_method_rejected', 'sensitive_path_probe', 'reconnaissance_probe', 'auth_rejected', 'school_id_qr_rate_limited', 'honeypot_triggered'])) return 'BLOCKED';
     if (fortress_line_has_any($line, ['failed', 'rejected', 'locked', 'bruteforce_detected'])) return 'REJECTED';
     if (fortress_line_has_any($line, ['success', 'verified', 'registered', 'factor_success'])) return 'PASSED';
     if (fortress_line_has_any($line, ['logout', 'session_timeout'])) return 'CLOSED';
@@ -322,7 +326,9 @@ function fortress_event_type(string $line): string
 
 function fortress_event_description(string $line): string
 {
-    if (str_contains($line, 'ml_threat_prediction')) return 'The hybrid ML engine combined XGBoost attack classification, autoencoder anomaly detection, and the deterministic rule signal into a non-blocking behavioral risk assessment.';
+    if (str_contains($line, 'ml_assisted_block')) return 'The AI-assisted defense layer temporarily banned a source only after a high-confidence malicious model result was corroborated by deterministic security evidence.';
+    if (str_contains($line, 'ml_assisted_strike')) return 'The hybrid ML engine recorded an enforcement strike because a malicious model classification was corroborated by deterministic FortressAuth evidence.';
+    if (str_contains($line, 'ml_threat_prediction')) return 'The hybrid ML engine combined XGBoost attack classification, autoencoder anomaly detection, and deterministic rule evidence into a behavioral risk assessment used by the guarded AI-assisted defense policy.';
     if (str_contains($line, 'request_threat_detected')) return 'A suspicious payload signature was detected outside the login gateway without recording sensitive field contents.';
     if (str_contains($line, 'csp_violation_reported')) return 'The browser reported content that violated the Content Security Policy and was blocked from executing or loading.';
     if (str_contains($line, 'scanner_user_agent_detected')) return 'The request identified itself with a user-agent commonly associated with security scanners or command-line reconnaissance.';
@@ -396,7 +402,7 @@ function fortress_log_user(string $line, string $fallback = 'admin'): string
 function fortress_is_meaningful_event(string $line): bool
 {
     return fortress_line_has_any($line, [
-        'ml_threat_prediction',
+        'ml_assisted_block', 'ml_assisted_strike', 'ml_threat_prediction',
         'school_id_qr_reset', 'school_id_reverification_started', 'school_id_qr_registered',
         'school_id_qr_success', 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
         'school_id_2fa_not_required', 'user_2fa_enabled', 'user_2fa_disabled', 'user_2fa_replaced',
@@ -707,6 +713,7 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
     }
 
     $threatPatterns = [
+        'ml_assisted_block', 'ml_assisted_strike', 'ml_threat_prediction',
         'malicious_input_detected', 'shell_attack_detected', 'request_threat_detected', 'csp_violation_reported',
         'scanner_user_agent_detected', 'sensitive_path_probe', 'reconnaissance_probe',
         'csrf_validation_failed', 'http_method_blocked', 'http_method_anomaly',
@@ -744,6 +751,7 @@ function fortress_build_security_context(PDO $pdo, int $userId): array
             $schoolIdFailures24h++;
         }
         if (fortress_line_has_any($line, [
+            'ml_assisted_block', 'ml_assisted_strike',
             'malicious_input_detected', 'shell_attack_detected', 'request_threat_detected', 'csp_violation_reported',
             'scanner_user_agent_detected', 'sensitive_path_probe', 'reconnaissance_probe',
             'csrf_validation_failed', 'http_method_blocked', 'http_method_anomaly',

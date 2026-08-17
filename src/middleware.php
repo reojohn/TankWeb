@@ -23,6 +23,7 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/request_monitor.php';
 require_once __DIR__ . '/ml_threat.php';
 require_once __DIR__ . '/error_pages.php';
+require_once __DIR__ . '/bruteforce.php';
 
 header_remove('X-Powered-By');
 
@@ -36,6 +37,14 @@ if (!in_array($ip, $whitelist, true) && is_file($banFile)) {
         audit_log('banned_ip_middleware_block source=flat_file');
         fortress_render_security_error(403, 'banned_source');
     }
+}
+
+// Database-backed bans are authoritative. This makes brute-force, honeypot,
+// manual, and AI-assisted bans survive Render sleeps/redeploys instead of
+// depending only on the instance-local fallback file.
+if (!in_array($ip, $whitelist, true) && isset($pdo) && $pdo instanceof PDO && is_ip_banned($pdo, $ip)) {
+    audit_log('banned_ip_middleware_block source=database');
+    fortress_render_security_error(403, 'temporary_ip_ban');
 }
 
 header('X-Frame-Options: DENY');

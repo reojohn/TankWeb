@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanPercent = document.getElementById('login-scan-percent');
     const stageSteps = Array.from(document.querySelectorAll('[data-login-step]'));
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const aiToast = document.getElementById('ai-login-toast');
+    const aiToastTitle = document.getElementById('ai-login-toast-title');
+    const aiToastMessage = document.getElementById('ai-login-toast-message');
+    const aiToastClose = aiToast?.querySelector('.ai-login-toast-close');
+    let aiToastTimer = null;
 
     fields.forEach((input) => {
         const inputShell = input.closest('.input-shell');
@@ -129,14 +134,73 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(() => error.classList.remove('error-enter'), 560);
     }
 
+    function publicFailureCopy(result = {}, responseStatus = 0) {
+        const stage = String(result.stage || '');
+
+        if (stage === 'password' || stage === 'credential_format') {
+            return {
+                title: 'Access not verified',
+                message: 'The submitted credentials could not be verified.'
+            };
+        }
+
+        if (stage === 'csrf' || stage === 'request_security' || stage === 'network_policy' || stage === 'bruteforce' || responseStatus === 403 || responseStatus === 429) {
+            return {
+                title: 'Sign-in activity flagged',
+                message: 'This access attempt was not accepted.'
+            };
+        }
+
+        return {
+            title: 'Access not verified',
+            message: 'The sign-in attempt could not be completed.'
+        };
+    }
+
+    function showAiDefenseToast(title, message) {
+        if (!aiToast) return;
+
+        if (aiToastTimer) {
+            window.clearTimeout(aiToastTimer);
+            aiToastTimer = null;
+        }
+
+        if (aiToastTitle) aiToastTitle.textContent = title || 'Access not verified';
+        if (aiToastMessage) aiToastMessage.textContent = message || 'This sign-in attempt was not accepted.';
+
+        aiToast.hidden = false;
+        aiToast.classList.remove('is-visible', 'is-leaving');
+        void aiToast.offsetWidth;
+        aiToast.classList.add('is-visible');
+
+        aiToastTimer = window.setTimeout(() => {
+            aiToast.classList.add('is-leaving');
+            window.setTimeout(() => {
+                aiToast.classList.remove('is-visible', 'is-leaving');
+                aiToast.hidden = true;
+            }, reduceMotion ? 0 : 320);
+        }, 6200);
+    }
+
+    aiToastClose?.addEventListener('click', () => {
+        if (!aiToast) return;
+        if (aiToastTimer) window.clearTimeout(aiToastTimer);
+        aiToastTimer = null;
+        aiToast.classList.add('is-leaving');
+        window.setTimeout(() => {
+            aiToast.classList.remove('is-visible', 'is-leaving');
+            aiToast.hidden = true;
+        }, reduceMotion ? 0 : 260);
+    });
+
     function resetVerificationUi() {
         shell?.classList.remove('is-submitting', 'login-verified', 'login-rejected');
         document.body.classList.remove('login-verifying');
 
         setVerificationStage(
             1,
-            'Preparing secure sign in...',
-            'FortressAuth is ready for a protected credential verification request.',
+            'Preparing sign in...',
+            'FortressAuth is ready to evaluate your access request.',
             0
         );
 
@@ -175,6 +239,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             event.preventDefault();
             clearInlineError();
+
+            if (aiToast && !aiToast.hidden) {
+                if (aiToastTimer) window.clearTimeout(aiToastTimer);
+                aiToastTimer = null;
+                aiToast.classList.remove('is-visible', 'is-leaving');
+                aiToast.hidden = true;
+            }
+
             submitting = true;
 
             shell?.classList.remove('login-verified', 'login-rejected');
@@ -212,8 +284,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setVerificationStage(
                 1,
-                'Initializing secure request...',
-                'The credential package has been sent to the FortressAuth server.',
+                'Submitting sign-in request...',
+                'Your access request is being evaluated.',
                 8
             );
 
@@ -222,8 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!submitting) return;
                     setVerificationStage(
                         2,
-                        'Applying request protections...',
-                        'Server-side input, CSRF, network, and brute-force controls are protecting this login attempt.',
+                        'Reviewing access context...',
+                        'FortressAuth is assessing the current sign-in request.',
                         30
                     );
                 }, 1050);
@@ -232,8 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!submitting) return;
                     setVerificationStage(
                         3,
-                        'Verifying administrator credentials...',
-                        'FortressAuth is waiting for the server-side password verification decision.',
+                        'Confirming administrator access...',
+                        'Waiting for the final access decision.',
                         58
                     );
                 }, 2550);
@@ -261,8 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 setVerificationStage(
                     3,
-                    'Verifying credentials...',
-                    'Waiting for the FortressAuth server to approve or reject the submitted credentials.',
+                    'Confirming access...',
+                    'Waiting for the final access decision.',
                     75
                 );
             }
@@ -288,17 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     setVerificationStage(
                         4,
-                        'Credentials verified',
-                        result.next_step === 'personal_id_enrollment'
-                            ? 'Password factor passed. Opening protected Personal ID enrollment.'
-                            : (result.next_step === 'dashboard'
-                                ? 'Password factor passed. Personal ID 2FA is disabled for this account; opening the dashboard.'
-                                : 'Password factor passed. Continuing to registered Personal ID verification.'),
+                        'Access verified',
+                        result.next_step === 'dashboard'
+                            ? 'Access approved. Opening your administrative workspace.'
+                            : 'Access approved. Continuing to the next authorized step.',
                         100,
                         { completeAll: true }
                     );
 
-                    if (label) label.textContent = 'Credentials verified';
+                    if (label) label.textContent = 'Access verified';
                     submit.classList.remove('loading');
 
                     // Keep the real success state visible long enough to be read.
@@ -307,21 +377,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                const publicFailure = publicFailureCopy(result, requestResult.response.status);
+
                 shell?.classList.add('login-rejected');
                 setVerificationStage(
                     4,
-                    'Access not verified',
-                    result.message || 'The FortressAuth server rejected the sign-in request.',
+                    publicFailure.title,
+                    publicFailure.message,
                     100
                 );
 
-                if (label) label.textContent = 'Verification rejected';
+                if (label) label.textContent = 'Access not verified';
                 submit.classList.remove('loading');
+
+                showAiDefenseToast(publicFailure.title, publicFailure.message);
 
                 await wait(reduceMotion ? 180 : 1250);
 
                 showInlineError(
-                    result.message || 'The submitted credentials could not be verified.',
+                    publicFailure.message,
                     requestResult.response.status === 429 || result.stage === 'network_policy' || result.stage === 'bruteforce'
                 );
 
@@ -344,8 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 shell?.classList.add('login-rejected');
                 setVerificationStage(
                     4,
-                    'Verification service unavailable',
-                    'FortressAuth could not complete the protected server verification request.',
+                    'Unable to complete sign in',
+                    'The access request could not be completed at this time.',
                     100
                 );
 
@@ -354,7 +428,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await wait(reduceMotion ? 150 : 900);
 
-                showInlineError(error?.message || 'Unable to verify credentials. Please try again.');
+                const unavailableCopy = {
+                    title: 'Sign-in activity flagged',
+                    message: 'This access attempt could not be completed.'
+                };
+
+                showAiDefenseToast(unavailableCopy.title, unavailableCopy.message);
+                showInlineError(unavailableCopy.message);
 
                 submitting = false;
                 resetVerificationUi();

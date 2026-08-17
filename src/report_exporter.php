@@ -71,6 +71,7 @@ function fortress_report_prediction_history(int $limit = 25): array
             'XGBoost Risk' => fortress_report_score($result['xgboost_risk'] ?? null, 1),
             'Hybrid Risk' => fortress_report_score($result['risk_score'] ?? null, 1),
             'Severity' => fortress_report_label((string)($result['severity'] ?? 'UNKNOWN')),
+            'Enforcement Action' => fortress_report_label((string)($result['enforcement_action'] ?? 'OBSERVE')),
             'Indicators' => implode('; ', array_map('strval', is_array($result['indicators'] ?? null) ? $result['indicators'] : [])),
         ];
         if (count($rows) >= max(1, $limit)) break;
@@ -84,7 +85,7 @@ function fortress_report_ai_findings(?array $latestPrediction, bool $mlEnabled):
         return [
             'The hybrid machine-learning service is currently disabled, so no live behavioral classification is available for this report.',
             'Password authentication, Personal ID verification, rate limits, deterministic request defenses, session controls, IP bans, and audit logging continue to operate without the ML service.',
-            'When the ML service is enabled, FortressAuth combines XGBoost known-behavior classification, Autoencoder anomaly detection, and the rule-engine signal into a non-blocking hybrid risk assessment.',
+            'When the ML service is enabled, FortressAuth combines XGBoost known-behavior classification, Autoencoder anomaly detection, and deterministic rule evidence into a hybrid risk assessment that can contribute guarded enforcement strikes.',
         ];
     }
 
@@ -132,9 +133,10 @@ function fortress_report_ai_findings(?array $latestPrediction, bool $mlEnabled):
     } else {
         $messages[] = 'The latest analysis did not record additional behavioral indicators beyond the model scores.';
     }
+    $action = fortress_report_label((string)($result['enforcement_action'] ?? 'OBSERVE'));
     $messages[] = !empty($result['automatic_block'])
-        ? 'Automatic ML blocking was enabled for the saved result.'
-        : 'Automatic ML blocking is OFF. Blocking and authentication decisions remain with FortressAuth deterministic security controls.';
+        ? 'AI-assisted enforcement issued a temporary network ban after the model result was corroborated by deterministic security evidence. Saved action: ' . $action . '.'
+        : 'AI-assisted enforcement did not ban the source for this saved result. Current action: ' . $action . '. Authentication decisions remain independent of ML.';
 
     return $messages;
 }
@@ -337,7 +339,8 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         ['Metric', 'Rule-engine signal', 'Value', $latestResult ? fortress_report_score($latestResult['rule_score'] ?? null, 1) : 'Not available'],
         ['Metric', 'Hybrid risk', 'Value', $latestResult ? fortress_report_score($latestResult['risk_score'] ?? null, 1) : 'Not available'],
         ['Metric', 'Severity', 'Value', $latestResult ? fortress_report_label((string)($latestResult['severity'] ?? 'UNKNOWN')) : 'Not available'],
-        ['Metric', 'Automatic ML blocking', 'Value', !empty($latestResult['automatic_block']) ? 'ON' : 'OFF'],
+        ['Metric', 'AI-assisted enforcement action', 'Value', $latestResult ? fortress_report_label((string)($latestResult['enforcement_action'] ?? 'OBSERVE')) : 'Not available'],
+        ['Metric', 'AI-assisted temporary ban', 'Value', !empty($latestResult['automatic_block']) ? 'ENFORCED' : 'NOT ENFORCED'],
     ];
 
     $aiProbabilities = [];
@@ -426,7 +429,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         'XGBoost confidence is model confidence for the selected behavior class. It is not a probability that a person is an attacker.',
         'Autoencoder anomaly percentage represents deviation from the learned normal baseline. It must be interpreted with classifier, rule-engine, and audit evidence.',
         'The current ML training metadata identifies synthetic/simulated course-project security telemetry. Evaluation scores demonstrate model behavior in that controlled dataset and must not be presented as production incident prevalence.',
-        'The hybrid ML layer is supplementary and non-blocking by design unless the saved result explicitly says otherwise. Deterministic FortressAuth controls remain responsible for authentication and enforcement.',
+        'The hybrid ML layer is supplementary and cannot make authentication decisions. Guarded network enforcement requires a malicious model result plus deterministic corroboration, with repeated qualified strikes or a high-risk multi-signal threshold before a temporary ban.',
         'Source IP evidence identifies the network source recorded by the application and does not by itself establish the identity or intent of a person.',
         'Generated documentation intentionally excludes passwords, password hashes, Personal ID QR values/hashes, cookies, session IDs, CSRF tokens, authorization headers, and similar secrets.',
     ];
@@ -1180,7 +1183,7 @@ function fortress_report_xlsx(array $report): string
 
         $addAssocSheet($sheets, 'AI Probabilities', $report['ai']['probabilities'] ?? [], ['Behavior Class', 'Probability'], [34, 18], 'KNOWN-BEHAVIOR CLASSIFIER', '7C3AED');
         $addAssocSheet($sheets, 'AI Feature Window', $report['ai']['features'] ?? [], ['Feature', 'Value', 'Internal Key'], [38, 20, 34], 'NON-SENSITIVE BEHAVIORAL FEATURE WINDOW', '7C3AED');
-        $addAssocSheet($sheets, 'AI Analysis History', $report['ai']['history'] ?? [], ['Time', 'Source IP', 'Classification', 'Confidence', 'Anomaly', 'Rule Signal', 'XGBoost Risk', 'Hybrid Risk', 'Severity', 'Indicators'], [22, 20, 24, 16, 16, 18, 18, 18, 16, 70], 'RECENT MODEL ANALYSIS EVIDENCE', '6D28D9');
+        $addAssocSheet($sheets, 'AI Analysis History', $report['ai']['history'] ?? [], ['Time', 'Source IP', 'Classification', 'Confidence', 'Anomaly', 'Rule Signal', 'XGBoost Risk', 'Hybrid Risk', 'Severity', 'Enforcement Action', 'Indicators'], [22, 20, 24, 16, 16, 18, 18, 18, 16, 24, 70], 'RECENT MODEL ANALYSIS EVIDENCE', '6D28D9');
         $addAssocSheet($sheets, 'Model Validation', $report['ai']['model_validation'] ?? [], ['Field', 'Details'], [38, 106], 'MODEL EVALUATION & TRAINING METADATA', '6D28D9');
         $addAssocSheet($sheets, 'Feature Importance', $report['ai']['feature_importance'] ?? [], ['Rank', 'Feature', 'Importance'], [10, 42, 18], 'MODEL EXPLAINABILITY', '8B5CF6');
         $addAssocSheet($sheets, 'Class Metrics', $report['ai']['class_metrics'] ?? [], ['Behavior Class', 'Precision', 'Recall', 'F1 Score', 'Support'], [28, 16, 16, 16, 14], 'XGBOOST HOLDOUT VALIDATION', '8B5CF6');

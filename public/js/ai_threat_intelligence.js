@@ -726,7 +726,7 @@
                 transfer('rule', 'in', transferTime);
 
                 later(() => {
-                  /* 5. Core fuses all signals into the advisory defense state. */
+                  /* 5. Core fuses all signals into the guarded AI-assisted defense state. */
                   scene.classList.add('fa-agent-core-fusing');
                   setNodeState('core', 'processing', 'Fusing signals');
 
@@ -1315,13 +1315,13 @@
               later(() => {
                 setNodeState('hybrid', 'complete', 'Risk ready');
 
-                /* 4) Send final advisory risk to the authoritative shield. */
+                /* 4) Send final hybrid risk and corroboration state to the authoritative shield. */
                 flyPacket('hybrid', 'shield', { purple: true });
 
                 later(() => {
                   setNodeState('shield', 'processing', 'Applying posture');
                   setFeedActive('hybrid');
-                  setRotator('FortressAuth Shield is applying the final advisory defense posture...');
+                  setRotator('FortressAuth Shield is evaluating guarded AI-assisted enforcement...');
 
                   later(() => {
                     setNodeState('shield', 'complete', 'Protected');
@@ -1354,7 +1354,7 @@
       'Rule engine is validating known FortressAuth attack signatures.',
       'XGBoost is classifying the current behavior pattern.',
       'Autoencoder is measuring deviation from the learned baseline.',
-      'Hybrid engine is fusing signals into one advisory defense score.'
+      'Hybrid engine is fusing signals into one guarded defense score.'
     ];
 
     let index = 0;

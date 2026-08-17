@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/security_policy.php';
+require_once __DIR__ . '/bruteforce.php';
+require_once __DIR__ . '/error_pages.php';
 
 function fortress_ml_env_bool(string $name, bool $default = false): bool
 {
@@ -14,6 +17,180 @@ function fortress_ml_env_bool(string $name, bool $default = false): bool
 function fortress_ml_enabled(): bool
 {
     return fortress_ml_env_bool('ML_SERVICE_ENABLED', false);
+}
+
+function fortress_ml_env_float(string $name, float $default, float $minimum = 0.0, float $maximum = 100.0): float
+{
+    $raw = getenv($name);
+    if ($raw === false || trim((string)$raw) === '' || !is_numeric($raw)) return $default;
+    return max($minimum, min($maximum, (float)$raw));
+}
+
+function fortress_ml_assisted_enforcement_enabled(): bool
+{
+    // The model never blocks by itself. When enabled, PHP requires model confidence
+    // plus deterministic evidence before it can add a strike or temporary ban.
+    return fortress_ml_enabled() && fortress_ml_env_bool('ML_ASSISTED_ENFORCEMENT', true);
+}
+
+function fortress_ml_enforcement_exempt(string $ip): bool
+{
+    // Protect loopback development sessions from accidental self-bans. Additional
+    // trusted addresses can be supplied as a comma-separated deployment setting.
+    $exempt = fortress_ml_env_bool('ML_ENFORCEMENT_EXEMPT_LOOPBACK', true) ? ['127.0.0.1', '::1'] : [];
+    $configured = trim((string)(getenv('ML_ENFORCEMENT_EXEMPT_IPS') ?: ''));
+    if ($configured !== '') {
+        foreach (explode(',', $configured) as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_IP)) {
+                $exempt[] = $candidate;
+            }
+        }
+    }
+    return in_array($ip, array_values(array_unique($exempt)), true);
+}
+
+function fortress_ml_evidence_groups(array $f): array
+{
+    $groups = [];
+
+    if (
+        (float)($f['failed_logins_5m'] ?? 0) >= 3 ||
+        (float)($f['failed_logins_15m'] ?? 0) >= 5 ||
+        (float)($f['qr_failures_15m'] ?? 0) >= 2 ||
+        (float)($f['auth_rejections_15m'] ?? 0) >= 3
+    ) {
+        $groups[] = 'auth_abuse';
+    }
+
+    if (
+        (float)($f['suspicious_requests_15m'] ?? 0) >= 1 ||
+        (float)($f['csrf_failures_15m'] ?? 0) >= 1 ||
+        (float)($f['method_anomalies_15m'] ?? 0) >= 1
+    ) {
+        $groups[] = 'request_attack';
+    }
+
+    if (
+        (float)($f['sensitive_path_probes_15m'] ?? 0) >= 1 ||
+        (float)($f['scanner_events_15m'] ?? 0) >= 1
+    ) {
+        $groups[] = 'reconnaissance';
+    }
+
+    if (
+        (float)($f['requests_1m'] ?? 0) >= 20 ||
+        (float)($f['unique_paths_5m'] ?? 0) >= 12 ||
+        ((float)($f['requests_5m'] ?? 0) >= 12 && (float)($f['avg_request_interval_5m'] ?? 60) <= 1.5) ||
+        (float)($f['ua_changes_15m'] ?? 0) >= 2
+    ) {
+        $groups[] = 'automation_pattern';
+    }
+
+    return array_values(array_unique($groups));
+}
+
+function fortress_ml_recent_strike_count(string $ip, int $windowSeconds): int
+{
+    global $pdo;
+
+    $windowSeconds = max(60, min(3600, $windowSeconds));
+    $databaseCount = 0;
+
+    if (isset($pdo) && $pdo instanceof PDO) {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*)
+                 FROM public.security_events
+                 WHERE event_key = 'ml_assisted_strike'
+                   AND source_ip = :ip
+                   AND occurred_at > NOW() - make_interval(secs => CAST(:seconds AS integer))"
+            );
+            $stmt->execute(['ip' => $ip, 'seconds' => $windowSeconds]);
+            $databaseCount = (int)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('FortressAuth ML strike lookup failed: ' . $e->getMessage());
+        }
+    }
+
+    // Flat-file fallback keeps local development functional before/without the
+    // persistent security_events table. Use max(), not sum(), because audit_log
+    // intentionally writes the same event to both stores.
+    $fileCount = 0;
+    $cutoff = time() - $windowSeconds;
+    $auditPath = __DIR__ . '/../data/audit.log';
+    foreach (fortress_ml_tail_lines($auditPath, 2200) as $line) {
+        if (!str_contains($line, 'ml_assisted_strike')) continue;
+        if (!preg_match('/\bip=' . preg_quote($ip, '/') . '(?:\s|$)/', $line)) continue;
+        $ts = fortress_ml_audit_ts($line);
+        if ($ts >= $cutoff) $fileCount++;
+    }
+
+    return max($databaseCount, $fileCount);
+}
+
+function fortress_ml_enforcement_decision(string $ip, array $features, array $result): array
+{
+    $classification = strtoupper((string)($result['classification'] ?? 'NORMAL'));
+    $risk = (float)($result['risk_score'] ?? 0);
+    $confidence = (float)($result['confidence'] ?? 0);
+    $ruleScore = (float)($result['rule_score'] ?? 0);
+    $evidence = fortress_ml_evidence_groups($features);
+    $evidenceCount = count($evidence);
+
+    $enabled = fortress_ml_assisted_enforcement_enabled();
+    $exempt = fortress_ml_enforcement_exempt($ip);
+
+    $strikeRisk = fortress_ml_env_float('ML_ASSISTED_STRIKE_RISK', 65.0, 30.0, 100.0);
+    $repeatRisk = fortress_ml_env_float('ML_ASSISTED_REPEAT_BLOCK_RISK', 72.0, $strikeRisk, 100.0);
+    $blockRisk = fortress_ml_env_float('ML_ASSISTED_IMMEDIATE_BLOCK_RISK', 85.0, $repeatRisk, 100.0);
+    $minConfidence = fortress_ml_env_float('ML_ASSISTED_MIN_CONFIDENCE', 0.82, 0.50, 1.0);
+    $repeatConfidence = fortress_ml_env_float('ML_ASSISTED_REPEAT_CONFIDENCE', 0.85, $minConfidence, 1.0);
+    $blockConfidence = fortress_ml_env_float('ML_ASSISTED_BLOCK_CONFIDENCE', 0.90, $repeatConfidence, 1.0);
+    $windowSeconds = max(120, min(3600, (int)(getenv('ML_ASSISTED_STRIKE_WINDOW_SECONDS') ?: 600)));
+    $requiredStrikes = max(2, min(5, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2)));
+
+    $maliciousClass = $classification !== '' && $classification !== 'NORMAL';
+    $eligibleStrike = $enabled && !$exempt && $maliciousClass
+        && $risk >= $strikeRisk
+        && $confidence >= $minConfidence
+        && $ruleScore >= 20.0
+        && $evidenceCount >= 1;
+
+    $priorStrikes = $eligibleStrike ? fortress_ml_recent_strike_count($ip, $windowSeconds) : 0;
+    $strikeCount = $priorStrikes + ($eligibleStrike ? 1 : 0);
+
+    $immediateBlock = $eligibleStrike
+        && $risk >= $blockRisk
+        && $confidence >= $blockConfidence
+        && $ruleScore >= 45.0
+        && $evidenceCount >= 2;
+
+    $repeatBlock = $eligibleStrike
+        && $strikeCount >= $requiredStrikes
+        && $risk >= $repeatRisk
+        && $confidence >= $repeatConfidence
+        && $ruleScore >= 30.0;
+
+    $action = 'OBSERVE';
+    if (!$enabled) $action = 'ADVISORY_ONLY';
+    elseif ($exempt) $action = 'EXEMPT';
+    elseif ($immediateBlock || $repeatBlock) $action = 'TEMPORARY_BAN';
+    elseif ($eligibleStrike) $action = 'STRIKE';
+
+    return [
+        'enabled' => $enabled,
+        'exempt' => $exempt,
+        'action' => $action,
+        'strike' => $eligibleStrike,
+        'strike_count' => $strikeCount,
+        'required_strikes' => $requiredStrikes,
+        'evidence' => $evidence,
+        'immediate_block' => $immediateBlock,
+        'repeat_block' => $repeatBlock,
+        'block' => $immediateBlock || $repeatBlock,
+        'window_seconds' => $windowSeconds,
+    ];
 }
 
 function fortress_ml_data_dir(): string
@@ -228,6 +405,14 @@ function fortress_ml_evaluate_request(): void
 
     if (!$result) return;
 
+    $decision = fortress_ml_enforcement_decision($ip, $features, $result);
+    $result['automatic_block'] = (bool)$decision['block'];
+    $result['enforcement_mode'] = !empty($decision['enabled']) ? 'AI_ASSISTED' : 'ADVISORY';
+    $result['enforcement_action'] = (string)$decision['action'];
+    $result['enforcement_evidence'] = (array)$decision['evidence'];
+    $result['enforcement_strikes'] = (int)$decision['strike_count'];
+    $result['enforcement_required_strikes'] = (int)$decision['required_strikes'];
+
     $record = [
         'ts' => time(),
         'ip' => $ip,
@@ -244,8 +429,43 @@ function fortress_ml_evaluate_request(): void
             ' confidence=' . number_format((float)($result['confidence'] ?? 0), 3, '.', '') .
             ' anomaly=' . number_format((float)($result['anomaly_score'] ?? 0), 3, '.', '') .
             ' risk=' . number_format((float)($result['risk_score'] ?? 0), 1, '.', '') .
-            ' severity=' . fortress_log_safe_value((string)($result['severity'] ?? 'UNKNOWN'))
+            ' severity=' . fortress_log_safe_value((string)($result['severity'] ?? 'UNKNOWN')) .
+            ' action=' . fortress_log_safe_value((string)$decision['action']) .
+            ' strikes=' . (int)$decision['strike_count']
         );
+    }
+
+    if (!empty($decision['strike'])) {
+        audit_log(
+            'ml_assisted_strike class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
+            ' risk=' . number_format((float)($result['risk_score'] ?? 0), 1, '.', '') .
+            ' confidence=' . number_format((float)($result['confidence'] ?? 0), 3, '.', '') .
+            ' rule=' . number_format((float)($result['rule_score'] ?? 0), 1, '.', '') .
+            ' evidence=' . fortress_log_safe_value(implode(',', (array)$decision['evidence'])) .
+            ' strikes=' . (int)$decision['strike_count'] .
+            ' required=' . (int)$decision['required_strikes']
+        );
+    }
+
+    if (!empty($decision['block'])) {
+        global $pdo;
+        if (isset($pdo) && $pdo instanceof PDO) {
+            $banSeconds = max(60, min(86400, (int)(getenv('ML_ASSISTED_BAN_SECONDS') ?: 600)));
+            ban_ip($pdo, $ip, $banSeconds);
+            audit_log(
+                'ml_assisted_block class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
+                ' risk=' . number_format((float)($result['risk_score'] ?? 0), 1, '.', '') .
+                ' confidence=' . number_format((float)($result['confidence'] ?? 0), 3, '.', '') .
+                ' evidence=' . fortress_log_safe_value(implode(',', (array)$decision['evidence'])) .
+                ' strikes=' . (int)$decision['strike_count'] .
+                ' ban_seconds=' . $banSeconds
+            );
+            fortress_render_security_error(403, 'ai_assisted_temporary_ban');
+        }
+
+        // Never fail closed solely because the persistence/enforcement backend
+        // is unavailable. The deterministic rules continue independently.
+        audit_log('ml_assisted_enforcement_deferred reason=ban_backend_unavailable');
     }
 }
 

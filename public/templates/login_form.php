@@ -43,7 +43,7 @@
 
 <body class="auth-page auth-login">
   <main class="auth-shell" role="main">
-    <section class="brand-panel" aria-label="FortressAuth security overview">
+    <section class="brand-panel" aria-label="FortressAuth access overview">
       <div class="brand-glow" aria-hidden="true"></div>
       <div class="login-scan-grid" aria-hidden="true"></div>
 
@@ -74,8 +74,8 @@
         <div class="login-verification-copy">
           <span class="login-verification-badge"><i></i> ACCESS VERIFICATION</span>
           <div class="login-scan-readout"><span>CREDENTIAL VERIFICATION</span><strong id="login-scan-percent">0%</strong></div>
-          <h2 id="login-stage-title">Preparing secure sign in...</h2>
-          <p id="login-stage-message">Initializing the FortressAuth access workflow.</p>
+          <h2 id="login-stage-title">Preparing sign in...</h2>
+          <p id="login-stage-message">Preparing your access request.</p>
 
           <div class="login-stage-progress" aria-hidden="true">
             <span id="login-stage-progress-bar"></span>
@@ -83,14 +83,14 @@
 
           <div class="login-stage-steps" aria-label="Login verification progress">
             <div class="login-stage-step" data-login-step="1"><i></i><span>Initialize</span></div>
-            <div class="login-stage-step" data-login-step="2"><i></i><span>Credentials</span></div>
-            <div class="login-stage-step" data-login-step="3"><i></i><span>Defenses</span></div>
-            <div class="login-stage-step" data-login-step="4"><i></i><span>Verify</span></div>
+            <div class="login-stage-step" data-login-step="2"><i></i><span>Identity</span></div>
+            <div class="login-stage-step" data-login-step="3"><i></i><span>Review</span></div>
+            <div class="login-stage-step" data-login-step="4"><i></i><span>Complete</span></div>
           </div>
 
           <div class="login-stage-role">
-            <span>Next protected factor</span>
-            <strong>Personal ID verification</strong>
+            <span>Next step</span>
+            <strong>Access continuation</strong>
           </div>
         </div>
       </div>
@@ -103,11 +103,11 @@
         <div class="brand-copy">
           <span class="eyebrow">SECURE ACCESS GATEWAY</span>
           <h1>FortressAuth</h1>
-          <p>Protected administrator access with layered authentication and continuous security monitoring.</p>
+          <p>Restricted administrator access for approved operators.</p>
         </div>
       </div>
 
-      <div class="security-stack" aria-label="Security controls">
+      <div class="security-stack" aria-label="Access overview">
         <div class="security-item">
           <span class="security-icon icon-shield" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet">
@@ -116,8 +116,8 @@
             </svg>
           </span>
           <div>
-            <strong>Layered authentication</strong>
-            <span>Password with optional per-account Personal ID 2FA</span>
+            <strong>Operator verification</strong>
+            <span>Confirm your identity to continue to the administrative workspace.</span>
           </div>
         </div>
 
@@ -130,8 +130,8 @@
             </svg>
           </span>
           <div>
-            <strong>Threat-aware login</strong>
-            <span>Malicious input checks, audit logging and brute-force protection</span>
+            <strong>Adaptive access</strong>
+            <span>Sign-in activity is evaluated before access is approved.</span>
           </div>
         </div>
 
@@ -144,15 +144,15 @@
             </svg>
           </span>
           <div>
-            <strong>Protected session</strong>
-            <span>Secure session controls before privileged access is granted</span>
+            <strong>Private workspace</strong>
+            <span>Administrative functions remain unavailable until access is approved.</span>
           </div>
         </div>
       </div>
 
       <div class="brand-footer">
         <span class="live-dot" aria-hidden="true"></span>
-        Security monitoring active
+        Access gateway ready
       </div>
     </section>
 
@@ -166,7 +166,7 @@
         <div class="auth-heading">
           <span class="step-pill">PRIMARY SIGN-IN</span>
           <h2>Welcome back</h2>
-          <p>Enter your administrator credentials. Accounts with Personal ID 2FA enabled will continue to QR verification.</p>
+          <p>Enter your administrator credentials to continue.</p>
         </div>
 
         <?php if (!empty($error)): ?>
@@ -192,7 +192,7 @@
           <div class="field-group">
             <div class="field-label-row">
               <label for="password">Password</label>
-              <span class="field-note">Protected entry</span>
+              <span class="field-note">Private entry</span>
             </div>
             <div class="input-shell">
               <span class="input-icon" aria-hidden="true">
@@ -212,16 +212,33 @@
           </button>
         </form>
 
-        <div class="trust-row" aria-label="Login protections">
-          <span><i class="trust-dot"></i> CSRF protected</span>
-          <span><i class="trust-dot"></i> Audit logged</span>
-          <span><i class="trust-dot"></i> Rate limited</span>
+        <div class="trust-row" aria-label="Access status">
+          <span><i class="trust-dot"></i> Authorized users only</span>
+          <span><i class="trust-dot"></i> Private workspace</span>
+          <span><i class="trust-dot"></i> Access verified</span>
         </div>
 
-        <p class="auth-footnote">Authorized access only. Suspicious activity may be recorded and blocked.</p>
+        <p class="auth-footnote">Restricted system. Continue only if you are authorized.</p>
       </div>
     </section>
   </main>
+
+  <aside class="ai-login-toast" id="ai-login-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <button class="ai-login-toast-close" type="button" aria-label="Dismiss security notice">×</button>
+    <div class="ai-login-toast-visual" aria-hidden="true">
+      <span class="ai-login-toast-glow"></span>
+      <img src="/images/ai7.png" alt="">
+    </div>
+    <div class="ai-login-toast-copy">
+      <span class="ai-login-toast-kicker">AI DEFENSE ACTIVE</span>
+      <strong id="ai-login-toast-title">Access not verified</strong>
+      <span id="ai-login-toast-message">This sign-in attempt was not accepted.</span>
+    </div>
+    <div class="ai-login-toast-status">
+      <span class="ai-login-toast-dot" aria-hidden="true"></span>
+      <span>Continuous assessment active</span>
+    </div>
+  </aside>
 
   <script src="/js/auth_motion.js"></script>
   <script src="/js/login_ui.js"></script>

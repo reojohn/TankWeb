@@ -65,6 +65,8 @@ $auditPath = $dataDir . '/audit.log';
 // Only events that can materially change a visible security page are included.
 // Page-open/view events are intentionally excluded.
 $stateNeedles = [
+    'ml_assisted_block',
+    'ml_assisted_strike',
     'ml_threat_prediction',
     'request_threat_detected',
     'malicious_input_detected',

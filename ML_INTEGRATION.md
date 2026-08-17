@@ -8,7 +8,7 @@ The existing FortressAuth security controls remain authoritative. A separate opt
 2. **XGBoost classifier** for known behavioral patterns: NORMAL, BRUTE_FORCE, CREDENTIAL_STUFFING, RECONNAISSANCE, WEB_ATTACK, MFA_ABUSE, and SESSION_ABUSE.
 3. **Autoencoder anomaly score** for behavior that differs from the learned normal baseline.
 
-The final advisory risk score uses the project configuration:
+The final hybrid risk score uses the project configuration:
 
 - 35% deterministic rule signal
 - 40% XGBoost risk signal
@@ -18,7 +18,7 @@ Risk bands are NORMAL (0–29), WATCH (30–49), SUSPICIOUS (50–69), HIGH (70�
 
 ## Security boundary
 
-The ML engine is **not an authentication factor** and is **not allowed to automatically ban users/IPs**. Password → Personal ID QR remains unchanged. If the ML service fails, FortressAuth keeps enforcing its original CSRF, rate-limit, IP-ban, session, request-signature, account, and audit controls.
+The ML engine is **not an authentication factor** and it never receives sole blocking authority. Password → Personal ID QR remains unchanged. When AI-assisted enforcement is enabled, a model result can create a threat strike only when it is also supported by deterministic FortressAuth evidence. A temporary network ban requires either repeated qualified strikes or an immediate high-risk result with multiple independent evidence groups. If the ML service fails, FortressAuth keeps enforcing its original CSRF, rate-limit, IP-ban, session, request-signature, account, and audit controls.
 
 No password value, QR value, CSRF token, cookie, authorization header, session ID, API key, or secret is sent to ML. Only numeric behavior metadata is used.
 
@@ -67,6 +67,17 @@ ML_SERVICE_URL=http://127.0.0.1:8001
 ML_SERVICE_TOKEN=choose-a-private-token
 ML_TIMEOUT_MS=400
 ML_MIN_LOG_RISK=30
+ML_ASSISTED_ENFORCEMENT=true
+ML_ASSISTED_STRIKE_RISK=65
+ML_ASSISTED_REPEAT_BLOCK_RISK=72
+ML_ASSISTED_IMMEDIATE_BLOCK_RISK=85
+ML_ASSISTED_MIN_CONFIDENCE=0.82
+ML_ASSISTED_REPEAT_CONFIDENCE=0.85
+ML_ASSISTED_BLOCK_CONFIDENCE=0.90
+ML_ASSISTED_REQUIRED_STRIKES=2
+ML_ASSISTED_STRIKE_WINDOW_SECONDS=600
+ML_ASSISTED_BAN_SECONDS=600
+ML_ENFORCEMENT_EXEMPT_LOOPBACK=true
 ```
 
 Then browse FortressAuth. `Threat Center` will display the latest hybrid ML result.
@@ -85,7 +96,7 @@ The root PHP image deliberately excludes `ml-service/`; the ML engine has its ow
 
 Deploy the PHP application exactly as before. Deploy `ml-service/` as a second small Python web service. Set the PHP environment to the private/internal ML URL whenever the hosting platform supports private networking. Use the same strong `ML_SERVICE_TOKEN` on both services.
 
-Do not expose the model endpoint without a token on a public deployment. If the service cannot be reached, FortressAuth fails open **only for ML enrichment**, never for authentication/security enforcement.
+Do not expose the model endpoint without a token on a public deployment. If the service cannot be reached, FortressAuth fails open **only for ML-assisted enrichment/enforcement**. Authentication and deterministic security enforcement continue independently.
 
 ## Demonstration ideas
 

@@ -16,6 +16,13 @@ extract($ctx, EXTR_SKIP);
 $activeNav = 'controls';
 $policy = fortress_security_policy();
 
+$aiAssistedEnabled = fortress_ml_assisted_enforcement_enabled();
+$aiStrikeRisk = (float)(getenv('ML_ASSISTED_STRIKE_RISK') ?: 65);
+$aiImmediateRisk = (float)(getenv('ML_ASSISTED_IMMEDIATE_BLOCK_RISK') ?: 85);
+$aiRequiredStrikes = max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2));
+$aiStrikeWindow = max(120, (int)(getenv('ML_ASSISTED_STRIKE_WINDOW_SECONDS') ?: 600));
+$aiBanSeconds = max(60, (int)(getenv('ML_ASSISTED_BAN_SECONDS') ?: 600));
+
 $controlDetails = [
     'Password authentication' => ['Credential hashing', 'Operational', $successfulPassword24h . ' accepted / ' . $failedAttempts24h . ' rejected in 24h'],
     'Personal ID 2FA' => ['Per-account QR possession factor', $schoolIdRequired ? ($schoolIdEnabled ? 'Operational' : 'Attention') : 'Disabled', $schoolIdRequired ? ($schoolIdSuccess24h . ' passed / ' . $schoolIdFailures24h . ' failed in 24h') : 'Password-only account policy'],
@@ -53,6 +60,10 @@ audit_log('security_controls_viewed uid=' . $userId);
 <div><i class="fa-solid fa-gauge-high"></i><span>Password brute-force threshold</span><strong><?= (int)$policy['password_ip_failure_limit'] ?> IP / <?= (int)$policy['password_account_failure_limit'] ?> account failures · <?= e(fortress_policy_minutes((int)$policy['password_failure_window_seconds'])) ?></strong></div>
 <div><i class="fa-solid fa-ban"></i><span>Temporary IP ban duration</span><strong><?= e(fortress_policy_minutes((int)$policy['ip_ban_seconds'])) ?></strong></div>
 <div><i class="fa-solid fa-id-card"></i><span>Personal ID rate limit</span><strong><?= (int)$policy['school_id_account_attempt_limit'] ?> account / <?= (int)$policy['school_id_ip_attempt_limit'] ?> IP · <?= e(fortress_policy_minutes((int)$policy['school_id_rate_window_seconds'])) ?></strong></div>
+<div><i class="fa-solid fa-brain"></i><span>AI-assisted enforcement</span><strong><?= $aiAssistedEnabled ? 'GUARDED ON' : 'OFF' ?></strong></div>
+<div><i class="fa-solid fa-bolt"></i><span>AI strike threshold</span><strong><?= number_format($aiStrikeRisk, 0) ?>/100 · <?= (int)$aiRequiredStrikes ?> strikes / <?= e(fortress_policy_minutes($aiStrikeWindow)) ?></strong></div>
+<div><i class="fa-solid fa-shield-virus"></i><span>Immediate AI block threshold</span><strong><?= number_format($aiImmediateRisk, 0) ?>/100 + corroborating evidence</strong></div>
+<div><i class="fa-solid fa-hourglass-half"></i><span>AI-assisted ban duration</span><strong><?= e(fortress_policy_minutes($aiBanSeconds)) ?></strong></div>
 <div><i class="fa-solid fa-cookie-bite"></i><span>Session cookie mode</span><strong>HttpOnly + SameSite Strict</strong></div></div></article>
 <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth defense integrity</span><span><?= e($protectionLabel) ?></span></footer>
 

@@ -133,7 +133,7 @@ function fortress_audit_severity(string $eventKey, array $fields): string
         str_contains($issues, 'shell_attack') ||
         str_contains($issues, 'command') ||
         in_array($eventKey, [
-            'bruteforce_detected', 'banned_ip_middleware_block',
+            'bruteforce_detected', 'banned_ip_middleware_block', 'ml_assisted_block',
             'honeypot_triggered', 'honeypot_access',
         ], true)
     ) {
@@ -144,7 +144,7 @@ function fortress_audit_severity(string $eventKey, array $fields): string
         str_contains($issues, 'xss') ||
         str_contains($issues, 'path_traversal') ||
         in_array($eventKey, [
-            'malicious_input_detected', 'auth_rejected',
+            'malicious_input_detected', 'auth_rejected', 'ml_assisted_strike',
             'reconnaissance_probe', 'sensitive_path_probe',
             'scanner_user_agent_detected', 'http_method_abuse',
             'oversized_request', 'csrf_rejected', 'csp_violation',
@@ -163,7 +163,7 @@ function fortress_audit_outcome(string $eventKey): string
         str_contains($eventKey, 'blocked') ||
         str_contains($eventKey, 'rejected') ||
         in_array($eventKey, [
-            'malicious_input_detected', 'auth_rejected', 'bruteforce_detected',
+            'malicious_input_detected', 'auth_rejected', 'ml_assisted_block', 'bruteforce_detected',
             'banned_ip_middleware_block', 'reconnaissance_probe',
             'sensitive_path_probe', 'scanner_user_agent_detected',
             'http_method_abuse', 'oversized_request', 'csrf_rejected',

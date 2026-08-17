@@ -559,6 +559,286 @@ svg {
   font-weight: 900;
 }
 
+
+/* AI login notice --------------------------------------------------------- */
+.ai-login-toast {
+  position: fixed;
+  z-index: 80;
+  top: 24px;
+  right: 24px;
+  width: min(390px, calc(100vw - 32px));
+  min-height: 178px;
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+  border: 1px solid rgba(207, 156, 255, 0.24);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(181, 103, 255, 0.18), transparent 42%),
+    linear-gradient(160deg, rgba(20, 10, 37, 0.98), rgba(8, 5, 15, 0.98));
+  box-shadow: 0 24px 70px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  opacity: 0;
+  transform: translate3d(28px, -8px, 0) scale(.97);
+  pointer-events: none;
+}
+
+.ai-login-toast[hidden] {
+  display: none !important;
+}
+
+.ai-login-toast.is-visible {
+  pointer-events: auto;
+  animation: aiLoginToastIn .42s cubic-bezier(.2,.85,.25,1) forwards;
+}
+
+.ai-login-toast.is-leaving {
+  pointer-events: none;
+  animation: aiLoginToastOut .3s ease forwards;
+}
+
+.ai-login-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: linear-gradient(120deg, black, transparent 80%);
+}
+
+.ai-login-toast::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, var(--accent-2) 18%, var(--accent) 70%, transparent);
+  box-shadow: 0 0 18px rgba(181,103,255,.5);
+}
+
+.ai-login-toast-close {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 11px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  cursor: pointer;
+  color: #a99db5;
+  background: rgba(255,255,255,.035);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.ai-login-toast-close:hover,
+.ai-login-toast-close:focus-visible {
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  outline: none;
+}
+
+.ai-login-toast-visual {
+  position: relative;
+  z-index: 1;
+  min-height: 124px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-right: 1px solid rgba(255,255,255,.055);
+}
+
+.ai-login-toast-visual::before,
+.ai-login-toast-visual::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(202, 144, 255, .16);
+}
+
+.ai-login-toast-visual::before {
+  width: 94px;
+  height: 94px;
+  animation: aiLoginOrbit 5s linear infinite;
+}
+
+.ai-login-toast-visual::after {
+  width: 70px;
+  height: 70px;
+  border-style: dashed;
+  animation: aiLoginOrbit 4s linear infinite reverse;
+}
+
+.ai-login-toast-glow {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: rgba(181,103,255,.2);
+  filter: blur(22px);
+  animation: aiLoginPulse 2.1s ease-in-out infinite;
+}
+
+.ai-login-toast-visual img {
+  position: relative;
+  z-index: 2;
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 20px rgba(0,0,0,.32));
+  animation: aiLoginFloat 2.6s ease-in-out infinite;
+}
+
+.ai-login-toast-copy {
+  position: relative;
+  z-index: 2;
+  padding: 28px 44px 20px 20px;
+  align-self: center;
+}
+
+.ai-login-toast-copy > span,
+.ai-login-toast-copy > strong {
+  display: block;
+}
+
+.ai-login-toast-kicker {
+  margin-bottom: 7px;
+  color: var(--accent-2);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.ai-login-toast-copy strong {
+  margin-bottom: 6px;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.ai-login-toast-copy > span:last-child {
+  color: #b9aec5;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ai-login-toast-status {
+  position: relative;
+  z-index: 2;
+  grid-column: 1 / -1;
+  min-height: 46px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid rgba(255,255,255,.055);
+  color: #8f849c;
+  background: rgba(255,255,255,.018);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.ai-login-toast-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #79f0c3;
+  box-shadow: 0 0 0 5px rgba(101,230,180,.07), 0 0 12px rgba(101,230,180,.55);
+}
+
+@keyframes aiLoginToastIn {
+  from { opacity: 0; transform: translate3d(28px, -8px, 0) scale(.97); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes aiLoginToastOut {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(20px, -5px, 0) scale(.98); }
+}
+
+@keyframes aiLoginFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-5px) rotate(1deg); }
+}
+
+@keyframes aiLoginOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes aiLoginPulse {
+  0%, 100% { transform: scale(.88); opacity: .5; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .ai-login-toast {
+    top: auto;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    width: auto;
+    grid-template-columns: 96px 1fr;
+    min-height: 158px;
+    border-radius: 20px;
+  }
+
+  .ai-login-toast-visual {
+    min-height: 110px;
+  }
+
+  .ai-login-toast-visual img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .ai-login-toast-visual::before {
+    width: 80px;
+    height: 80px;
+  }
+
+  .ai-login-toast-visual::after {
+    width: 58px;
+    height: 58px;
+  }
+
+  .ai-login-toast-copy {
+    padding: 24px 38px 16px 16px;
+  }
+
+  .ai-login-toast-copy strong {
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-login-toast,
+  .ai-login-toast.is-visible,
+  .ai-login-toast.is-leaving,
+  .ai-login-toast-visual::before,
+  .ai-login-toast-visual::after,
+  .ai-login-toast-glow,
+  .ai-login-toast-visual img {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .ai-login-toast.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* QR verification and enrollment */
 .auth-qr-page {
   padding: 28px;

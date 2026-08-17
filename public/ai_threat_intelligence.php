@@ -33,6 +33,13 @@ $mlSourceIp = is_array($mlLatest) ? (string)($mlLatest['ip'] ?? 'No source yet')
 $mlPredictionTs = is_array($mlLatest) ? (int)($mlLatest['ts'] ?? 0) : 0;
 $mlPredictionTime = $mlPredictionTs > 0 ? date('Y-m-d H:i:s', $mlPredictionTs) : 'Waiting for first analysis';
 
+$mlAssistedEnabled = fortress_ml_assisted_enforcement_enabled();
+$mlEnforcementAction = $mlResult ? (string)($mlResult['enforcement_action'] ?? ($mlAssistedEnabled ? 'OBSERVE' : 'ADVISORY_ONLY')) : ($mlAssistedEnabled ? 'WAITING' : 'ADVISORY_ONLY');
+$mlEnforcementStrikes = $mlResult ? (int)($mlResult['enforcement_strikes'] ?? 0) : 0;
+$mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes'] ?? max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2))) : max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2));
+$mlEnforcementEvidence = $mlResult && is_array($mlResult['enforcement_evidence'] ?? null) ? $mlResult['enforcement_evidence'] : [];
+$mlResponseMode = $mlAssistedEnabled ? 'AI-ASSISTED' : 'ADVISORY';
+
 $featureLabels = [
     'requests_1m' => 'Requests / 1 min',
     'requests_5m' => 'Requests / 5 min',
@@ -251,7 +258,9 @@ if (!$mlEnabled) {
         $mlPredictionTime
     );
 
-    $aiConversationMessages[] = 'One final note: I am an advisory security analyst. I can classify, compare, score, and explain what I find, but automatic ML blocking remains off so deterministic FortressAuth controls stay authoritative for enforcement.';
+    $aiConversationMessages[] = $mlAssistedEnabled
+        ? 'One final note: AI-assisted enforcement is active. I can contribute a threat strike when a malicious model result is corroborated by deterministic evidence. Temporary blocking requires either multiple qualified strikes or a very high-risk result with multiple independent evidence groups, so no model can ban a source by itself.'
+        : 'One final note: the AI layer is currently advisory. I can classify, compare, score, and explain what I find, while deterministic FortressAuth controls remain authoritative for enforcement.';
 }
 
 
@@ -282,7 +291,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <div>
         <span class="eyebrow">HYBRID MACHINE LEARNING</span>
         <h1>AI Threat Intelligence</h1>
-        <p>FortressAuth combines XGBoost attack classification, Autoencoder behavioral anomaly detection, and the deterministic rule engine into one explainable, non-blocking security risk assessment.</p>
+        <p>FortressAuth combines XGBoost attack classification, Autoencoder behavioral anomaly detection, and deterministic rule evidence into one explainable risk assessment that can safely assist enforcement when independent signals agree.</p>
     </div>
     <div class="page-hero-icon"><i class="fa-solid fa-brain"></i></div>
 </section>
@@ -291,7 +300,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <div><span>ML service</span><strong><?= $mlEnabled ? 'ENABLED' : 'DISABLED' ?></strong></div>
     <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
     <div><span>Detected behavior</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong></div>
-    <div><span>AI response mode</span><strong>ADVISORY</strong></div>
+    <div><span>AI response mode</span><strong><?= e($mlResponseMode) ?></strong></div>
 </section>
 
 <article class="panel request-defense-panel ai-live-analysis">
@@ -299,7 +308,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <div>
             <span class="eyebrow">LIVE MODEL ANALYSIS</span>
             <h2>Intelligent Threat Analysis</h2>
-            <p>Latest behavioral assessment for the most recently evaluated source. The AI layer assists detection and scoring; existing FortressAuth controls remain authoritative for blocking.</p>
+            <p>Latest behavioral assessment for the most recently evaluated source. ML can add guarded enforcement strikes, but a ban requires corroborating deterministic evidence and policy thresholds.</p>
         </div>
         <span class="panel-status"><i class="fa-solid fa-satellite-dish"></i> <?= e($mlSeverity) ?></span>
     </div>
@@ -312,7 +321,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <div class="ai-analysis-meta">
         <span><i class="fa-solid fa-network-wired"></i> Source: <code><?= e($mlSourceIp) ?></code></span>
         <span><i class="fa-solid fa-clock"></i> Last analysis: <?= e($mlPredictionTime) ?></span>
-        <span><i class="fa-solid fa-shield"></i> Automatic ML blocking: OFF</span>
+        <span><i class="fa-solid fa-shield"></i> AI-assisted enforcement: <?= $mlAssistedEnabled ? 'ON' : 'OFF' ?> · Action: <?= e(str_replace('_', ' ', $mlEnforcementAction)) ?></span>
     </div>
     <?php if ($mlIndicators): ?>
         <div class="ai-indicator-list">
@@ -368,7 +377,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                     </div>
                     <div>
                         <span>Response mode</span>
-                        <strong>ADVISORY · ML BLOCKING OFF</strong>
+                        <strong><?= $mlAssistedEnabled ? 'AI-ASSISTED · GUARDED ENFORCEMENT' : 'ADVISORY · ENFORCEMENT OFF' ?></strong>
                     </div>
                 </div>
             </div>
@@ -461,7 +470,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
             <div class="fortress-ai-conversation-note">
                 <i class="fa-solid fa-shield-halved"></i>
-                <span>Security interpretation only. Machine learning remains advisory; deterministic FortressAuth controls remain authoritative for enforcement.</span>
+                <span>Machine learning assists enforcement only through guarded strikes. Deterministic evidence and policy thresholds remain required before any temporary ban.</span>
             </div>
         </div>
     </div>
@@ -578,14 +587,14 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <div class="fortress-defense-board-avatar"><img src="/images/ai1.png" alt="Hybrid risk defense core"></div>
                 <div class="fortress-defense-board-copy">
                     <h3>Hybrid Risk Engine</h3>
-                    <p>Fuses rule evidence, XGBoost classification, and Autoencoder deviation into one advisory risk score.</p>
+                    <p>Fuses rule evidence, XGBoost classification, and Autoencoder deviation into one risk score used by the guarded enforcement policy.</p>
                     <div class="fortress-defense-board-tags"><span>Signal fusion</span><span>Explainable score</span></div>
                 </div>
             </div>
             <div class="fortress-defense-board-metrics">
                 <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
                 <div><span>Severity</span><strong><?= e($mlSeverity) ?></strong></div>
-                <div><span>Response</span><strong>ADVISORY</strong></div>
+                <div><span>Response</span><strong><?= e($mlResponseMode) ?></strong></div>
             </div>
             <div class="fortress-defense-board-foot"><span>Risk-fusion specialist</span><i class="fa-solid fa-gauge-high"></i></div>
         </article>
@@ -654,7 +663,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-flow-node ai-flow-node-shield">
                 <span class="ai-node-kicker">Defense posture</span>
                 <strong>FortressAuth Shield</strong>
-                <small>Advisory AI · existing controls remain authoritative</small>
+                <small><?= $mlAssistedEnabled ? 'Guarded AI assistance · corroboration required' : 'Advisory AI · enforcement disabled' ?></small>
             </div>
         </div>
 
@@ -682,7 +691,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 </div>
                 <div class="ai-feed-item" style="--feed-delay:2.8s">
                     <span class="ai-feed-dot"></span>
-                    <div><strong>Hybrid Engine</strong><small>Fused risk is <?= number_format($mlRisk, 1) ?>/100. Response mode remains advisory to avoid false lockouts.</small></div>
+                    <div><strong>Hybrid Engine</strong><small>Fused risk is <?= number_format($mlRisk, 1) ?>/100. Current action: <?= e(str_replace('_', ' ', $mlEnforcementAction)) ?><?php if ($mlEnforcementStrikes > 0): ?> · strike <?= (int)$mlEnforcementStrikes ?>/<?= (int)$mlRequiredStrikes ?><?php endif; ?>.</small></div>
                 </div>
             </div>
         </div>
@@ -794,11 +803,12 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 <section class="ai-model-grid ai-runtime-grid">
     <article class="panel configuration-panel">
-        <div class="panel-heading compact"><div><span class="eyebrow">RUNTIME SAFETY</span><h2>AI Defense Boundaries</h2><p>The machine-learning layer is deliberately isolated from authentication decisions.</p></div><i class="fa-solid fa-shield-halved panel-symbol"></i></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">RUNTIME SAFETY</span><h2>AI Defense Boundaries</h2><p>The machine-learning layer can assist network enforcement, but it cannot override authentication or ban a source without deterministic corroboration.</p></div><i class="fa-solid fa-shield-halved panel-symbol"></i></div>
         <div class="configuration-grid">
             <div><i class="fa-solid fa-toggle-on"></i><span>ML service state</span><strong><?= $mlEnabled ? 'ENABLED' : 'DISABLED' ?></strong></div>
-            <div><i class="fa-solid fa-ban"></i><span>Automatic ML blocking</span><strong>OFF</strong></div>
+            <div><i class="fa-solid fa-ban"></i><span>AI-assisted enforcement</span><strong><?= $mlAssistedEnabled ? 'GUARDED ON' : 'OFF' ?></strong></div>
             <div><i class="fa-solid fa-key"></i><span>Authentication dependency</span><strong>NONE</strong></div>
+            <div><i class="fa-solid fa-layer-group"></i><span>Corroboration rule</span><strong>MODEL + RULE EVIDENCE</strong></div>
             <div><i class="fa-solid fa-user-secret"></i><span>Sensitive values sent</span><strong>NONE</strong></div>
             <div><i class="fa-solid fa-lock"></i><span>Service authentication</span><strong>PRIVATE TOKEN</strong></div>
             <div><i class="fa-solid fa-shield"></i><span>Failure behavior</span><strong>RULES CONTINUE</strong></div>
@@ -817,14 +827,14 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 <article class="panel data-panel ai-history-panel">
     <div class="panel-heading filter-heading">
-        <div><span class="eyebrow">MODEL HISTORY</span><h2>Recent AI Analyses</h2><p>Latest non-blocking hybrid assessments recorded by FortressAuth.</p></div>
+        <div><span class="eyebrow">MODEL HISTORY</span><h2>Recent AI Analyses</h2><p>Latest hybrid assessments and guarded enforcement decisions recorded by FortressAuth.</p></div>
     </div>
     <div class="responsive-table-wrap">
         <table class="security-table">
-            <thead><tr><th>Timestamp</th><th>Source</th><th>Classification</th><th>Confidence</th><th>Anomaly</th><th>Hybrid risk</th><th>Severity</th></tr></thead>
+            <thead><tr><th>Timestamp</th><th>Source</th><th>Classification</th><th>Confidence</th><th>Anomaly</th><th>Hybrid risk</th><th>Severity</th><th>Action</th></tr></thead>
             <tbody>
             <?php if (!$predictionHistory): ?>
-                <tr><td colspan="7" class="table-empty">No AI analyses have been recorded yet.</td></tr>
+                <tr><td colspan="8" class="table-empty">No AI analyses have been recorded yet.</td></tr>
             <?php else: foreach ($predictionHistory as $row): $result=(array)$row['result']; ?>
                 <tr>
                     <td><?= e(date('Y-m-d H:i:s', (int)($row['ts'] ?? 0))) ?></td>
@@ -834,6 +844,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                     <td><?= number_format(((float)($result['anomaly_score'] ?? 0))*100, 1) ?>%</td>
                     <td><strong><?= number_format((float)($result['risk_score'] ?? 0), 1) ?>/100</strong></td>
                     <td><span class="status-pill <?= in_array((string)($result['severity'] ?? ''), ['HIGH','CRITICAL'], true) ? 'status-rejected' : 'status-passed' ?>"><?= e((string)($result['severity'] ?? 'UNKNOWN')) ?></span></td>
+                    <td><strong><?= e(str_replace('_', ' ', (string)($result['enforcement_action'] ?? 'OBSERVE'))) ?></strong></td>
                 </tr>
             <?php endforeach; endif; ?>
             </tbody>
@@ -841,7 +852,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     </div>
 </article>
 
-<footer class="command-footer"><span><i class="fa-solid fa-brain"></i> FortressAuth hybrid machine-learning defense</span><span>Advisory intelligence · deterministic defenses remain enforced</span></footer>
+<footer class="command-footer"><span><i class="fa-solid fa-brain"></i> FortressAuth hybrid machine-learning defense</span><span><?= $mlAssistedEnabled ? 'AI-assisted enforcement · deterministic corroboration required' : 'Advisory intelligence · deterministic defenses remain enforced' ?></span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main>

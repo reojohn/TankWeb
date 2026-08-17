@@ -52,7 +52,7 @@ FortressAuth now includes an optional, separate `ml-service/` that combines:
 - **Feed-forward autoencoder** anomaly detection
 - The existing **deterministic FortressAuth rule score**
 
-The ML layer is advisory and non-blocking. Authentication does not depend on it. The PHP application continues to operate normally if the ML service is disabled or unavailable. The model receives numeric behavioral metadata only and does not receive passwords, Personal ID QR contents, CSRF tokens, cookies, authorization headers, or session IDs.
+The ML layer now supports guarded AI-assisted network enforcement. Authentication does not depend on it, and no model can ban a source by itself. A temporary ban requires a malicious model result plus deterministic FortressAuth evidence, with either repeated qualified strikes or a high-risk multi-signal threshold. The PHP application continues to operate normally if the ML service is disabled or unavailable. The model receives numeric behavioral metadata only and does not receive passwords, Personal ID QR contents, CSRF tokens, cookies, authorization headers, or session IDs.
 
 For the project demonstration, the bundled model was trained on **35,000 synthetic labeled training observations** and evaluated on a separate **10,500-row shifted synthetic hold-out set**. These are simulated project results, not production incident claims.
 

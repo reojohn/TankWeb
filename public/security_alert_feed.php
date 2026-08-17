@@ -27,6 +27,8 @@ $historyMode = isset($_GET['history']) && (string)$_GET['history'] === '1';
 $dbStreamId = 'security-events-v1';
 
 $priority = [
+    'ml_assisted_block' => 110,
+    'ml_assisted_strike' => 104,
     'bruteforce_detected' => 100,
     'honeypot_triggered' => 99,
     'ip_banned' => 98,
@@ -80,6 +82,8 @@ function fortress_alert_field(string $line, string $name): string
 
 function fortress_alert_title(string $line): string
 {
+    if (str_contains($line, 'ml_assisted_block')) return 'AI-Assisted Defense Blocked a Threat';
+    if (str_contains($line, 'ml_assisted_strike')) return 'AI-Assisted Threat Strike Recorded';
     if (str_contains($line, 'bruteforce_detected')) return 'Brute Force Detected';
     if (str_contains($line, 'ip_banned')) return 'Attacking Source Temporarily Banned';
     if (str_contains($line, 'request_threat_detected')) {
@@ -127,7 +131,7 @@ function fortress_alert_title(string $line): string
 function fortress_notification_severity(string $key): string
 {
     if (in_array($key, [
-        'bruteforce_detected', 'honeypot_triggered', 'ip_banned', 'request_threat_detected',
+        'ml_assisted_block', 'bruteforce_detected', 'honeypot_triggered', 'ip_banned', 'request_threat_detected',
         'malicious_input_detected', 'shell_attack_detected', 'csrf_validation_failed',
         'scanner_user_agent_detected', 'sensitive_path_probe', 'http_method_blocked',
         'banned_ip_middleware_block', 'banned_ip_attempt', 'school_id_qr_locked',
@@ -138,7 +142,7 @@ function fortress_notification_severity(string $key): string
     }
 
     if (in_array($key, [
-        'csp_violation_reported', 'http_method_anomaly', 'endpoint_method_rejected',
+        'ml_assisted_strike', 'csp_violation_reported', 'http_method_anomaly', 'endpoint_method_rejected',
         'oversized_request_detected', 'oversized_uri_detected', 'user_account_disabled',
         'user_account_deleted', 'user_password_reset', 'user_personal_id_reset',
         'user_2fa_disabled', 'current_user_security_policy_changed',
@@ -158,7 +162,7 @@ function fortress_notification_severity(string $key): string
 
 function fortress_notification_target(string $key): string
 {
-    if (in_array($key, ['ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], true)) {
+    if (in_array($key, ['ml_assisted_block', 'ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], true)) {
         return '/blocked_ips.php';
     }
 
@@ -179,7 +183,7 @@ function fortress_notification_target(string $key): string
         return '/user_management.php#reports';
     }
 
-    if ($key === 'ml_threat_prediction') {
+    if (in_array($key, ['ml_threat_prediction', 'ml_assisted_strike'], true)) {
         return '/ai_threat_intelligence.php';
     }
 

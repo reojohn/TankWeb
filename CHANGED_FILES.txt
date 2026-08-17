@@ -84,3 +84,26 @@ ml-service/data/synthetic_security_dataset.csv
 ml-service/data/training_report.json
 
 ML behavior is advisory/non-blocking and fail-safe. Existing FortressAuth authentication and deterministic defenses remain independent of the ML service.
+
+AI-ASSISTED ENFORCEMENT ADDITION - 2026-08-17
+==============================================
+
+[MODIFIED]
+.env
+.env.example
+README.md
+ML_INTEGRATION.md
+public/ai_threat_intelligence.php
+public/blocked_ips.php
+public/js/ai_threat_intelligence.js
+public/security_alert_feed.php
+public/security_controls.php
+public/security_live_state.php
+public/threats.php
+src/fortress_metrics.php
+src/logger.php
+src/middleware.php
+src/ml_threat.php
+src/report_exporter.php
+
+Behavior now uses guarded AI-assisted enforcement. XGBoost/Autoencoder output cannot ban a source by itself. A persistent temporary ban requires deterministic corroboration plus either repeated qualified ML strikes or an immediate high-risk multi-signal threshold. Authentication remains independent of ML, and deterministic defenses continue if the ML service is unavailable.
