@@ -53,6 +53,58 @@ $mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes']
 $mlEnforcementEvidence = $mlResult && is_array($mlResult['enforcement_evidence'] ?? null) ? $mlResult['enforcement_evidence'] : [];
 $mlResponseMode = $mlAssistedEnabled ? 'AI-ASSISTED' : 'ADVISORY';
 
+// Lightweight recent-threat snapshot used only by the AI collaboration
+// visualization. This lets the animated defenders react to real security
+// events even when the latest ML window has already returned to NORMAL.
+$recentThreatVisual = [
+    'total' => 0,
+    'brute' => 0,
+    'sqli' => 0,
+    'xss' => 0,
+    'recon' => 0,
+    'web' => 0,
+];
+try {
+    $recentThreatStmt = $pdo->query(
+        "SELECT
+            COUNT(*) FILTER (WHERE event_key IN (
+                'ml_assisted_block', 'ml_assisted_strike',
+                'malicious_input_detected', 'shell_attack_detected', 'request_threat_detected',
+                'scanner_user_agent_detected', 'sensitive_path_probe', 'reconnaissance_probe',
+                'csrf_validation_failed', 'http_method_blocked', 'http_method_anomaly',
+                'endpoint_method_rejected', 'oversized_request_detected', 'oversized_uri_detected',
+                'banned_ip_attempt', 'banned_ip_middleware_block', 'bruteforce_detected'
+            )) AS total,
+            COUNT(*) FILTER (WHERE event_key = 'bruteforce_detected') AS brute,
+            COUNT(*) FILTER (
+                WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%sql_attack%')
+                   OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%sqli%')
+            ) AS sqli,
+            COUNT(*) FILTER (
+                WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%xss_attack%')
+                   OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%xss%')
+            ) AS xss,
+            COUNT(*) FILTER (WHERE event_key IN (
+                'sensitive_path_probe', 'reconnaissance_probe', 'scanner_user_agent_detected'
+            )) AS recon,
+            COUNT(*) FILTER (WHERE event_key IN (
+                'shell_attack_detected', 'csrf_validation_failed', 'http_method_blocked',
+                'http_method_anomaly', 'endpoint_method_rejected',
+                'oversized_request_detected', 'oversized_uri_detected'
+            )) AS web
+         FROM public.security_events
+         WHERE occurred_at >= NOW() - INTERVAL '90 minutes'"
+    );
+    $recentThreatRow = $recentThreatStmt ? $recentThreatStmt->fetch(PDO::FETCH_ASSOC) : false;
+    if (is_array($recentThreatRow)) {
+        foreach (array_keys($recentThreatVisual) as $key) {
+            $recentThreatVisual[$key] = max(0, (int)($recentThreatRow[$key] ?? 0));
+        }
+    }
+} catch (Throwable $e) {
+    error_log('FortressAuth AI recent-threat visualization query failed: ' . $e->getMessage());
+}
+
 $featureLabels = [
     'requests_1m' => 'Requests / 1 min',
     'requests_5m' => 'Requests / 5 min',
@@ -732,12 +784,31 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <span class="panel-status"><i class="fa-solid fa-robot"></i> AGENT MESH</span>
     </div>
     <div class="ai-agent-grid">
-        <div class="ai-agent-scene" aria-label="Animated AI agent collaboration scene">
+        <div class="ai-agent-scene"
+            aria-label="Animated AI agent collaboration scene"
+            data-agent-classification="<?= e(str_replace('_', ' ', $mlClass)) ?>"
+            data-agent-confidence="<?= number_format($mlConfidence, 1, '.', '') ?>"
+            data-agent-anomaly="<?= number_format($mlAnomaly, 1, '.', '') ?>"
+            data-agent-rule-score="<?= number_format($mlRuleScore, 1, '.', '') ?>"
+            data-agent-risk="<?= number_format($mlRisk, 1, '.', '') ?>"
+            data-agent-severity="<?= e($mlSeverity) ?>"
+            data-agent-response="<?= e($mlResponseMode) ?>"
+            data-agent-action="<?= e(str_replace('_', ' ', $mlEnforcementAction)) ?>"
+            data-agent-source="<?= e($mlSourceIp) ?>"
+            data-agent-assisted="<?= $mlAssistedEnabled ? '1' : '0' ?>"
+            data-agent-strikes="<?= (int)$mlEnforcementStrikes ?>"
+            data-agent-required-strikes="<?= (int)$mlRequiredStrikes ?>"
+            data-agent-recent-threats="<?= (int)$recentThreatVisual['total'] ?>"
+            data-agent-threat-brute="<?= (int)$recentThreatVisual['brute'] ?>"
+            data-agent-threat-sqli="<?= (int)$recentThreatVisual['sqli'] ?>"
+            data-agent-threat-xss="<?= (int)$recentThreatVisual['xss'] ?>"
+            data-agent-threat-recon="<?= (int)$recentThreatVisual['recon'] ?>"
+            data-agent-threat-web="<?= (int)$recentThreatVisual['web'] ?>">
             <img src="/images/agentbg.png?v=20260813" alt="" class="ai-agent-scene-background" aria-hidden="true">
             <div class="ai-agent-orbit ai-agent-orbit-one"></div>
             <div class="ai-agent-orbit ai-agent-orbit-two"></div>
             <div class="ai-agent-node ai-agent-node-core">
-                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/ai1.png" alt="" aria-hidden="true"></span>
+                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core.png" alt="" aria-hidden="true"></span>
                 <strong>FortressAuth Core</strong>
                 <small>Defense state: <?= e($mlSeverity) ?></small>
             </div>
@@ -772,6 +843,25 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <span class="ai-packet ai-packet-two"></span>
             <span class="ai-packet ai-packet-three"></span>
             <span class="ai-packet ai-packet-four"></span>
+        </div>
+
+        <div class="ai-agent-consensus-panel" id="ai-agent-consensus-panel">
+            <div class="ai-agent-consensus-head">
+                <div>
+                    <span class="ai-agent-consensus-kicker">EXPLAINABLE CONSENSUS</span>
+                    <strong id="ai-agent-consensus-title">Agent mesh synchronized</strong>
+                </div>
+                <span class="ai-agent-consensus-state" id="ai-agent-consensus-state"><i></i> MONITORING</span>
+            </div>
+            <div class="ai-agent-consensus-metrics">
+                <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
+                <div><span>XGBoost</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?> · <?= number_format($mlConfidence, 1) ?>%</strong></div>
+                <div><span>Anomaly</span><strong><?= number_format($mlAnomaly, 1) ?>%</strong></div>
+                <div><span>Rule evidence</span><strong><?= number_format($mlRuleScore, 1) ?>/100</strong></div>
+                <div><span>Response</span><strong><?= e($mlResponseMode) ?></strong></div>
+                <div><span>Action</span><strong><?= e(str_replace('_', ' ', $mlEnforcementAction)) ?></strong></div>
+            </div>
+            <p id="ai-agent-consensus-summary">Current source <?= e($mlSourceIp) ?> is being continuously evaluated by the synchronized agent mesh.</p>
         </div>
 
         <div class="ai-agent-status-panel">
