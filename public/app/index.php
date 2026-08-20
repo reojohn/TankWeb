@@ -17,7 +17,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 // response before any React markup is sent. Keep it visible briefly so the
 // denial is clear, then return the browser to the secure login gateway.
 if ((int)($_SESSION['uid'] ?? 0) <= 0) {
-    audit_log('auth_rejected reason=react_workspace_logged_out uid=0');
+    audit_log('auth_rejected reason=missing_primary_session uid=0');
     fortress_render_security_error(403, 'react_workspace_logged_out', 2, '/login.php');
 }
 

@@ -314,15 +314,15 @@
       <!-- =====================================================
            FORTRESS BACKGROUND ART
            File location:
-           public/fortress.png
+           public/images/fortress.png
 
            Browser URL:
-           /fortress.png
+           /images/fortress.png
            ===================================================== -->
 
       <img
         class="fortress-login-art"
-        src="/fortress.png?v=20260817"
+        src="/images/fortress.png?v=20260820"
         alt=""
         aria-hidden="true"
         draggable="false"
