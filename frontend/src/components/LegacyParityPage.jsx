@@ -311,6 +311,23 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
 
   return (
     <>
+      {loading && !html ? (
+        <section
+          className="v3-route-skeleton"
+          aria-label="Loading FortressAuth page"
+          aria-busy="true"
+          role="status"
+        >
+          <span className="sr-only">Loading FortressAuth page</span>
+          <div className="v3-skeleton-metrics">
+            {[0, 1, 2, 3].map((item) => <span key={item} />)}
+          </div>
+          <div className="v3-skeleton-panels">
+            <span />
+            <span />
+          </div>
+        </section>
+      ) : null}
       {error ? <section className="panel v3-error-panel"><i className="fa-solid fa-triangle-exclamation" /><div><strong>Unable to load this workspace</strong><span>{error}</span></div></section> : null}
       <div
         ref={root}

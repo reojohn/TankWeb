@@ -123,7 +123,7 @@ const appIndex = `<!doctype html>
           '/app/vendor/remix-router.umd.min.js',
           '/app/vendor/react-router.production.min.js',
           '/app/vendor/react-router-dom.production.min.js',
-          '/app/assets/v3-fast-navigation-20260820.js',
+          '/app/assets/v3-fast-navigation-skeleton-20260820.js',
           '/js/dashboard.js',
           '/js/security_alerts.js',
           '/js/ai_threat_intelligence.js',
