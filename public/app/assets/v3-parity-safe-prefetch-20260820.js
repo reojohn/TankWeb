@@ -969,7 +969,7 @@ function AppShell({
     "aria-hidden": "true"
   }), React.createElement("main", {
     className: "command-shell fortress-react-shell"
-  }, React.createElement("div", {
+  }, ReactDOM.createPortal(React.createElement("div", {
     className: "fortress-mobile-bar"
   }, React.createElement("button", {
     className: "fortress-mobile-menu",
@@ -1007,7 +1007,7 @@ function AppShell({
     "aria-label": "Log out"
   }, React.createElement("i", {
     className: "fa-solid fa-arrow-right-from-bracket"
-  })))), React.createElement("div", {
+  })))), document.body), React.createElement("div", {
     className: `fortress-sidebar-overlay ${open ? 'open' : ''}`,
     onClick: () => setOpen(false)
   }), React.createElement("aside", {

@@ -190,3 +190,64 @@ html,body,#root,.fortress-react-shell{max-width:100%;overflow-x:hidden}
   .fortress-react-shell{min-height:100dvh}
 }
 
+
+/* =========================================================
+   MOBILE NAV FIRST-PAINT FIX — Aug 20 2026
+   The mobile command bar is rendered as a root-level sibling of the
+   scrolling/grid shell. This avoids an iOS Safari compositing quirk where
+   a fixed child of a positioned grid can stay behind the browser chrome
+   until the first scroll. Keep the bar on its own compositor layer and use
+   a stable top offset in normal browser mode.
+   ========================================================= */
+@media (max-width: 900px) {
+  body.command-page.fortress-react-v3 {
+    padding-top: 72px !important;
+  }
+
+  body.fortress-react-v3 > .fortress-mobile-bar,
+  body.fortress-react-v3 > #root > .fortress-mobile-bar,
+  #root > .fortress-mobile-bar {
+    display: grid !important;
+    position: fixed !important;
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    z-index: 900 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translate3d(0, 0, 0) !important;
+    -webkit-transform: translate3d(0, 0, 0) !important;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  #root > .fortress-sidebar-overlay {
+    position: fixed;
+  }
+}
+
+@media (max-width: 620px) {
+  body.command-page.fortress-react-v3 {
+    padding-top: 68px !important;
+  }
+
+  body.fortress-react-v3 > .fortress-mobile-bar,
+  body.fortress-react-v3 > #root > .fortress-mobile-bar,
+  #root > .fortress-mobile-bar {
+    top: 6px !important;
+    left: 5px !important;
+    right: 5px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  body.fortress-react-v3 > .fortress-mobile-bar,
+  body.fortress-react-v3 > #root > .fortress-mobile-bar,
+  #root > .fortress-mobile-bar {
+    top: 5px !important;
+    left: 4px !important;
+    right: 4px !important;
+  }
+}

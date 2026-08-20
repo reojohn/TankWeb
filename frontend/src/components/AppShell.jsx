@@ -220,20 +220,25 @@ export default function AppShell({ children }) {
     <>
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
-      <main className="command-shell fortress-react-shell">
-        <div className="fortress-mobile-bar">
-          <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
-            <i className="fa-solid fa-bars" />
-          </button>
-          <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>FortressAuth · Protection enforced</span></div>
-          <div className="fortress-mobile-actions">
-            <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
-            <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
-            <a className="fortress-mobile-logout" href="/logout.php" aria-label="Log out"><i className="fa-solid fa-arrow-right-from-bracket" /></a>
-          </div>
-        </div>
-        <div className={`fortress-sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
 
+      {/* Keep the mobile command bar outside the scrolling/grid shell.
+          iOS Safari can delay painting a fixed descendant of a positioned
+          grid container until the first scroll. As a root-level sibling the
+          bar is composited immediately and remains pinned from first paint. */}
+      <div className="fortress-mobile-bar">
+        <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <i className="fa-solid fa-bars" />
+        </button>
+        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>FortressAuth · Protection enforced</span></div>
+        <div className="fortress-mobile-actions">
+          <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
+          <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
+          <a className="fortress-mobile-logout" href="/logout.php" aria-label="Log out"><i className="fa-solid fa-arrow-right-from-bracket" /></a>
+        </div>
+      </div>
+      <div className={`fortress-sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
+
+      <main className="command-shell fortress-react-shell">
         <aside className={`command-chrome fortress-sidebar ${open ? 'open' : ''}`} data-fortress-sidebar>
           <div className="sidebar-brand-card">
             <NavLink
