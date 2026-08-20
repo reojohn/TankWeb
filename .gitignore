@@ -50,3 +50,9 @@ composer.phar
 # Ignore any generated .env with secrets
 .env.*.local
 data/audit.log
+
+# FortressAuth v3 React build artifacts
+/frontend/node_modules/
+
+# Vercel generated static output
+/vercel-dist/

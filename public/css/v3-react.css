@@ -1,0 +1,192 @@
+/* FortressAuth v3 React compatibility layer.
+   Existing v2 visual classes are intentionally retained so the migration can
+   reuse the proven dashboard/AI/operator styles without redesigning the app. */
+
+html, body, #root { min-height: 100%; }
+body.fortress-react-v3 { min-height: 100vh; }
+.fortress-react-shell { min-height: 100vh; }
+.fortress-react-shell .fortress-main-column { min-width: 0; }
+
+button.fortress-mobile-refresh,
+button.icon-action {
+  font: inherit;
+  cursor: pointer;
+}
+
+.v3-bootstrap-strip,
+.v3-loading-panel,
+.v3-error-panel,
+.v3-bridge-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.v3-bootstrap-strip {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border: 1px solid rgba(188, 119, 255, .16);
+  border-radius: 14px;
+  background: rgba(23, 10, 42, .58);
+  color: rgba(242, 232, 255, .78);
+  font-size: 13px;
+}
+.v3-loading-panel,
+.v3-error-panel,
+.v3-bridge-notice { min-height: 94px; padding: 20px 22px; }
+.v3-loading-panel > i,
+.v3-error-panel > i,
+.v3-bridge-notice > i { font-size: 22px; }
+.v3-loading-panel strong,
+.v3-error-panel strong,
+.v3-bridge-notice strong { display: block; margin-bottom: 5px; }
+.v3-loading-panel span,
+.v3-error-panel span,
+.v3-bridge-notice span { color: var(--muted, #ad9dbe); }
+.v3-error-panel { border-color: rgba(255, 96, 139, .35); }
+.v3-error-panel > i { color: #ff6c93; }
+.v3-bridge-notice { margin-bottom: 18px; border-color: rgba(120, 214, 255, .22); }
+.v3-bridge-notice > i { color: #77c9ff; }
+
+.v3-legacy-bridge { min-width: 0; }
+.v3-legacy-bridge > .operator-workspace-tabs:first-child { margin-top: 0; }
+.v3-legacy-bridge .command-footer { margin-bottom: 0; }
+.v3-legacy-bridge form[method="post"] button:disabled,
+.security-table button:disabled { opacity: .55; cursor: wait; }
+
+
+/* Quiet route loading: show the page shape immediately instead of a large blocking message. */
+.v3-route-skeleton {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+}
+.v3-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.v3-skeleton-metrics > span,
+.v3-skeleton-panels > span {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(188, 119, 255, .10);
+  background: rgba(24, 12, 41, .38);
+}
+.v3-skeleton-metrics > span {
+  height: 92px;
+  border-radius: 18px;
+}
+.v3-skeleton-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+  gap: 14px;
+}
+.v3-skeleton-panels > span {
+  height: 220px;
+  border-radius: 20px;
+}
+.v3-skeleton-metrics > span::after,
+.v3-skeleton-panels > span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(210, 166, 255, .07), transparent);
+  animation: fortressV3Skeleton 1.15s ease-in-out infinite;
+}
+@keyframes fortressV3Skeleton {
+  100% { transform: translateX(100%); }
+}
+.v3-inline-sync {
+  position: fixed;
+  right: 24px;
+  bottom: 22px;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(188, 119, 255, .18);
+  border-radius: 999px;
+  background: rgba(18, 8, 33, .88);
+  color: rgba(242, 232, 255, .72);
+  font-size: 11px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .18);
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .v3-skeleton-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v3-skeleton-panels { grid-template-columns: 1fr; }
+  .v3-skeleton-panels > span { height: 170px; }
+  .v3-inline-sync { right: 14px; bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v3-skeleton-metrics > span::after,
+  .v3-skeleton-panels > span::after { animation: none; }
+}
+
+/* React reuses the v2 4-card grid. Analytics has its own summary grid. */
+.analytics-summary-grid > .metric-grid:empty { display: none; }
+
+.ai-probability-row progress {
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.08);
+}
+.ai-probability-row progress::-webkit-progress-bar { background: rgba(255,255,255,.08); border-radius: 999px; }
+.ai-probability-row progress::-webkit-progress-value { background: linear-gradient(90deg, #8f4dff, #d497ff); border-radius: 999px; }
+.ai-probability-row progress::-moz-progress-bar { background: linear-gradient(90deg, #8f4dff, #d497ff); border-radius: 999px; }
+
+/* Route transitions: content swaps quickly without animating the persistent shell. */
+.fortress-main-column > section,
+.fortress-main-column > article,
+.fortress-main-column > .ai-intelligence-page,
+.fortress-main-column > .v3-legacy-bridge {
+  animation: fortressV3PageIn .18s ease-out both;
+}
+@keyframes fortressV3PageIn {
+  from { opacity: .45; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fortress-main-column > section,
+  .fortress-main-column > article,
+  .fortress-main-column > .ai-intelligence-page,
+  .fortress-main-column > .v3-legacy-bridge { animation: none; }
+}
+
+/* v2-to-v3 parity bridge: v2 page sections render unchanged inside React's
+   persistent main column. The wrapper is intentionally layout-neutral. */
+.v3-v2-parity-content {
+  min-width: 0;
+  width: 100%;
+}
+.v3-v2-parity-content > .command-footer:last-child {
+  margin-bottom: 0;
+}
+.v3-v2-parity-content > :first-child {
+  margin-top: 0;
+}
+.v3-v2-parity-content,
+.v3-vault-parity {
+  animation: fortressV3PageIn .18s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v3-v2-parity-content,
+  .v3-vault-parity { animation: none; }
+}
+
+/* React shell all-device hardening — Aug 20 2026 */
+html,body,#root,.fortress-react-shell{max-width:100%;overflow-x:hidden}
+.fortress-react-shell .fortress-main-column{max-width:100%}
+@media(max-width:900px){
+  .fortress-react-shell{min-height:100dvh}
+}
+

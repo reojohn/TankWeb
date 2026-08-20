@@ -402,7 +402,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (int)$user_id
                 );
 
-                $redirect = '/dashboard.php';
+                $redirect = is_file(__DIR__ . '/app/index.html') ? '/app/#/overview' : '/dashboard.php';
 
                 if ($wantsJson) {
                     fortress_login_json([

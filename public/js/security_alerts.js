@@ -657,7 +657,12 @@
     document.addEventListener('visibilitychange', visibilityHandler);
   };
 
-  window.FortressSecurityAlerts = { init, destroy };
+  const pollNow = () => {
+    if (destroyed) return;
+    poll(generation);
+  };
+
+  window.FortressSecurityAlerts = { init, destroy, pollNow };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
