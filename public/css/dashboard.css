@@ -197,12 +197,12 @@ a { color: inherit; }
   display: grid;
   place-items: center;
 }
-.core-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(205,159,255,.18); }
-.ring-one { width: 245px; height: 245px; animation: coreSpin 20s linear infinite; border-style: dashed; }
-.ring-two { width: 188px; height: 188px; animation: coreSpin 14s linear infinite reverse; border-color: rgba(97,247,189,.16); }
-.ring-three { width: 145px; height: 145px; box-shadow: 0 0 50px rgba(180,92,255,.12); }
-.ring-one::before, .ring-two::before { content:""; position:absolute; width:8px; height:8px; border-radius:50%; background: var(--purple-2); box-shadow: 0 0 14px var(--purple); top:-4px; left:50%; }
-.ring-two::before { background: var(--green); box-shadow: 0 0 14px var(--green); }
+.fortress-core .core-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(205,159,255,.18); }
+.fortress-core .ring-one { width: 245px; height: 245px; animation: coreSpin 20s linear infinite; border-style: dashed; }
+.fortress-core .ring-two { width: 188px; height: 188px; animation: coreSpin 14s linear infinite reverse; border-color: rgba(97,247,189,.16); }
+.fortress-core .ring-three { width: 145px; height: 145px; box-shadow: 0 0 50px rgba(180,92,255,.12); }
+.fortress-core .ring-one::before, .fortress-core .ring-two::before { content:""; position:absolute; width:8px; height:8px; border-radius:50%; background: var(--purple-2); box-shadow: 0 0 14px var(--purple); top:-4px; left:50%; }
+.fortress-core .ring-two::before { background: var(--green); box-shadow: 0 0 14px var(--green); }
 @keyframes coreSpin { to { transform: rotate(360deg); } }
 .core-center { width: 112px; height: 112px; display:grid; place-items:center; border:1px solid var(--line-strong); border-radius:32px; background: radial-gradient(circle, rgba(166,78,238,.22), rgba(15,7,27,.9)); box-shadow: 0 0 60px rgba(180,92,255,.2), inset 0 0 35px rgba(180,92,255,.08); animation: coreBreath 3.6s ease-in-out infinite; }
 @keyframes coreBreath { 50% { transform: scale(1.035); box-shadow: 0 0 75px rgba(180,92,255,.28), inset 0 0 40px rgba(180,92,255,.1); } }
@@ -323,7 +323,7 @@ a { color: inherit; }
   .logout-mini span { display:none; }
   .command-hero { grid-template-columns:1fr; padding:28px 24px; }
   .fortress-core { width:230px; height:230px; }
-  .ring-one { width:215px; height:215px; }
+  .fortress-core .ring-one { width:215px; height:215px; }
   .metric-grid, .dashboard-side, .lower-grid { grid-template-columns:1fr; }
   .assets-panel { grid-column:auto; }
 }
@@ -8547,5 +8547,282 @@ input[type="reset"]:not(:disabled):active,
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+  }
+}
+
+/* =========================================================
+   ALL-DEVICE HARDENING PASS — Aug 20 2026
+   Safe-area support, touch targets, ultra-narrow phones,
+   landscape phones, split-screen tablets, and high zoom.
+   Desktop geometry is intentionally preserved.
+   ========================================================= */
+
+/* Prevent long values, URLs, hashes and labels from forcing page overflow. */
+.command-page img,
+.command-page svg,
+.command-page canvas,
+.command-page video { max-width: 100%; }
+
+.command-page input,
+.command-page select,
+.command-page textarea,
+.command-page button { max-width: 100%; }
+
+.command-page .panel,
+.command-page .metric-card,
+.command-page .control-card,
+.command-page .user-account-card,
+.command-page .analytics-card,
+.command-page .page-hero,
+.command-page .compact-page-hero { min-width: 0; }
+
+.command-page code,
+.command-page pre,
+.command-page dd,
+.command-page td,
+.command-page strong,
+.command-page small { overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  body.command-page {
+    padding-top: calc(72px + env(safe-area-inset-top, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .fortress-mobile-bar {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: calc(8px + env(safe-area-inset-left, 0px));
+    right: calc(8px + env(safe-area-inset-right, 0px));
+  }
+
+  .fortress-sidebar {
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  }
+
+  /* Keep visual buttons compact but preserve a comfortable touch target. */
+  .fortress-mobile-menu,
+  .fortress-mobile-refresh,
+  .fortress-mobile-notifications,
+  .fortress-page-header .icon-action,
+  .fortress-page-header .logout-mini,
+  .fortress-notification-close,
+  .sidebar-close {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    touch-action: manipulation;
+  }
+
+  .fortress-notification-panel {
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    max-height: calc(100dvh - 92px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  .fortress-notification-list {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tablet / split-screen: prevent hero and page-header crowding. */
+@media (min-width: 701px) and (max-width: 820px) {
+  .command-hero {
+    grid-template-columns: minmax(0, 1fr) 170px;
+    gap: 14px;
+    padding: 19px;
+  }
+
+  .fortress-core { width: 164px; height: 164px; }
+  .fortress-core .ring-one { width: 154px; height: 154px; }
+  .fortress-core .ring-two { width: 126px; height: 126px; }
+  .fortress-core .ring-three { width: 100px; height: 100px; }
+  .fortress-core .core-center { width: 78px; height: 78px; border-radius: 22px; }
+  .fortress-core .core-center img { width: 66px; height: 66px; }
+
+  .page-heading-chips { max-width: 52vw; }
+  .page-heading-actions { flex: 0 0 auto; }
+}
+
+@media (max-width: 620px) {
+  body.command-page {
+    padding-top: calc(68px + env(safe-area-inset-top, 0px));
+  }
+
+  .command-shell {
+    width: calc(100% - 10px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  }
+
+  .fortress-mobile-bar {
+    top: calc(6px + env(safe-area-inset-top, 0px));
+    left: calc(5px + env(safe-area-inset-left, 0px));
+    right: calc(5px + env(safe-area-inset-right, 0px));
+    gap: 5px;
+  }
+
+  .fortress-mobile-title strong,
+  .fortress-mobile-title span {
+    max-width: 100%;
+  }
+
+  .fortress-notification-panel {
+    top: calc(68px + env(safe-area-inset-top, 0px));
+    left: calc(6px + env(safe-area-inset-left, 0px));
+    right: calc(6px + env(safe-area-inset-right, 0px));
+    max-height: calc(100dvh - 76px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  .fortress-notification-list {
+    max-height: calc(100dvh - 252px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  .fortress-security-alert-host {
+    right: calc(6px + env(safe-area-inset-right, 0px)) !important;
+    left: calc(6px + env(safe-area-inset-left, 0px)) !important;
+    width: auto !important;
+  }
+}
+
+/* 320–359px devices: prioritize readability over dense two-column cards. */
+@media (max-width: 359px) {
+  .fortress-mobile-title span { display: none; }
+
+  .fortress-mobile-bar {
+    padding-inline: 5px;
+  }
+
+  .metric-grid,
+  .analytics-summary-grid,
+  .user-management-stats,
+  .posture-summary-strip,
+  .configuration-grid,
+  .control-grid,
+  .security-state-grid,
+  .integrity-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-badges,
+  .attack-grid,
+  .threat-category-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-card,
+  .analytics-page .analytics-summary-grid .metric-card {
+    min-height: 76px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  .operator-workspace-tabs,
+  .report-format-grid { grid-template-columns: 1fr !important; }
+
+  .page-heading-icon { display: none; }
+  .page-heading-chips { display: none; }
+  .fortress-page-header h1 { font-size: 17px; }
+
+  .security-table { min-width: 620px; }
+}
+
+/* Landscape phones / short split-screen windows. */
+@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
+  body.command-page { padding-top: 58px; }
+  .fortress-mobile-bar {
+    min-height: 46px;
+    top: 4px;
+    padding-block: 3px;
+  }
+  .fortress-mobile-title span { display: none; }
+  .fortress-sidebar { max-width: 310px; }
+  .sidebar-brand-card,
+  .sidebar-status-card,
+  .sidebar-operator-card { padding-block: 8px; }
+  .fortress-sidebar .command-nav-links { gap: 3px; }
+  .fortress-sidebar .command-nav-links > a { min-height: 38px; }
+  .command-hero { margin-top: 8px; }
+  .fortress-notification-panel { top: 54px; max-height: calc(100dvh - 60px); }
+  .fortress-notification-list { max-height: calc(100dvh - 205px); }
+}
+
+/* Browser zoom / accessibility: collapse sooner when effective CSS width shrinks. */
+@media (max-width: 500px) {
+  .table-tools,
+  .filter-heading { align-items: stretch; }
+  .search-control,
+  .table-tools select { width: 100%; }
+  .panel-heading { flex-wrap: wrap; }
+  .panel-heading .panel-status { margin-left: 0; }
+}
+
+
+/* =========================================================
+   DESKTOP SIDEBAR STICKY RESTORE — Aug 20 2026
+   Keep the FortressAuth navigation pinned while the main page
+   scrolls. `overflow-x: clip` avoids creating an ancestor scroll
+   container that can disable CSS sticky in Chromium browsers.
+   Mobile keeps the existing off-canvas fixed drawer behavior.
+   ========================================================= */
+@media (min-width: 901px) {
+  body.command-page {
+    overflow-x: clip;
+  }
+
+  .command-shell {
+    overflow: visible;
+  }
+
+  .fortress-sidebar {
+    position: sticky !important;
+    top: 16px !important;
+    align-self: start;
+    height: calc(100dvh - 32px);
+    max-height: calc(100dvh - 32px);
+  }
+}
+
+@media (max-width: 900px) {
+  .fortress-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+/* =========================================================
+   DESKTOP NAVIGATION PIN — FINAL
+   The long React parity pages contain several nested layout/overflow
+   contexts that make CSS sticky inconsistent in Chromium. On desktop,
+   pin the sidebar to the viewport instead. The command-shell grid keeps
+   its first column, so the main content remains perfectly aligned and
+   nothing shifts horizontally. Mobile keeps the existing drawer.
+   ========================================================= */
+@media (min-width: 901px) {
+  .fortress-sidebar {
+    position: fixed !important;
+    top: 16px !important;
+    left: max(17px, calc((100vw - 1840px) / 2)) !important;
+    width: 278px !important;
+    height: calc(100dvh - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    margin: 0 !important;
+    align-self: auto !important;
+    z-index: 120 !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .fortress-sidebar {
+    width: 248px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .fortress-sidebar {
+    left: 0 !important;
+    width: min(88vw, 330px) !important;
   }
 }

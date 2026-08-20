@@ -317,7 +317,7 @@ audit_log(
 
 $redirect =
     $_SESSION['school_id_redirect_after_verify']
-    ?? '/dashboard.php';
+    ?? (is_file(__DIR__ . '/app/index.html') ? '/app/#/overview' : '/dashboard.php');
 
 
 unset(

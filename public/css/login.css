@@ -4938,3 +4938,22 @@ body.auth-login::after {
       no-repeat
       fixed !important;
 }
+
+/* =========================================================
+   LOGIN / PERSONAL ID — ALL-DEVICE HARDENING — Aug 20 2026
+   ========================================================= */
+@media(max-width:620px){
+  body.auth-login{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .auth-shell,.login-shell,.login-container{max-width:100%}
+  input,select,button,.auth-action,.login-button{min-height:44px}
+}
+@media(max-width:359px){
+  .login-card,.auth-card,.login-panel{border-radius:18px}
+  .login-card,.auth-card{padding-left:14px!important;padding-right:14px!important}
+  .auth-brand strong,.login-brand strong{overflow-wrap:anywhere}
+}
+@media(max-width:900px) and (max-height:520px) and (orientation:landscape){
+  body.auth-login{overflow:auto!important}
+  .login-shell,.auth-shell{min-height:0!important;padding-top:8px!important;padding-bottom:8px!important}
+}
+
