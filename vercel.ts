@@ -5,10 +5,14 @@ export const config = {
 
   /*
    * Existing files in vercel-dist are served by Vercel first.
-   * Anything that does not exist there is reverse-proxied to the
-   * authoritative FortressAuth PHP backend on Render.
+   * PHP/API/security and other non-static requests are transparently
+   * reverse-proxied to the authoritative FortressAuth backend on Render.
    */
   rewrites: [
+    {
+      source: '/',
+      destination: 'https://tankweb-v3.onrender.com/',
+    },
     {
       source: '/:path*',
       destination: 'https://tankweb-v3.onrender.com/:path*',
