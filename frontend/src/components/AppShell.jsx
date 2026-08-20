@@ -68,11 +68,9 @@ export default function AppShell({ children }) {
       .filter(([path]) => path !== location.pathname)
       .map(([, page, legacyUrl]) => [page, legacyUrl]);
 
-    const warm = async () => {
-      for (const item of queue) {
-        if (cancelled) return;
-        await warmLegacyPages([item]);
-      }
+    const warm = () => {
+      if (cancelled) return;
+      warmLegacyPages(queue);
 
       // Current Operator and Crown Jewel are intentionally excluded from
       // background warming. Their original v2 PHP pages write meaningful
@@ -80,15 +78,9 @@ export default function AppShell({ children }) {
       // false access/objective events before the user actually navigates.
     };
 
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(() => warm(), { timeout: 800 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback?.(idleId);
-      };
-    }
-
-    timerId = window.setTimeout(warm, 180);
+    // Begin warming almost immediately after bootstrap. Running the ordinary
+    // fragments in parallel avoids the old page-1 -> page-2 -> page-3 waterfall.
+    timerId = window.setTimeout(warm, 60);
     return () => {
       cancelled = true;
       if (timerId !== null) window.clearTimeout(timerId);
@@ -191,10 +183,10 @@ export default function AppShell({ children }) {
 
   const prefetch = (page, legacyUrl) => () => prefetchLegacyPage(page, legacyUrl);
 
-  const openLegacyRoute = (path, page, legacyUrl) => async (event) => {
+  const openLegacyRoute = (path, page, legacyUrl) => (event) => {
     if (location.pathname === path) return;
     event.preventDefault();
-    await prefetchLegacyPage(page, legacyUrl);
+    prefetchLegacyPage(page, legacyUrl);
     navigate(path);
   };
 

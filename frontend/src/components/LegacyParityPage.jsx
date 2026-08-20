@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 const parityFragmentCache = new Map();
 const parityInflight = new Map();
-const PARITY_TTL = 10_000;
 
 const legacyRouteMap = {
   '/dashboard.php': '/overview',
@@ -70,8 +69,8 @@ function extractLegacyContent(html) {
 async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
   const key = cacheKey(page, legacyUrl);
   const cached = parityFragmentCache.get(key);
-  if (!force && cached && Date.now() - cached.at < PARITY_TTL) return cached.html;
-  if (!force && parityInflight.has(key)) return parityInflight.get(key);
+  if (!force && cached) return cached.html;
+  if (parityInflight.has(key)) return parityInflight.get(key);
 
   const promise = fetch(buildFragmentUrl(page, legacyUrl), {
     credentials: 'same-origin',
@@ -110,11 +109,12 @@ export function prefetchLegacyPage(page, legacyUrl = '') {
 }
 
 export async function warmLegacyPages(items = []) {
-  for (const item of items) {
-    const [page, legacyUrl] = Array.isArray(item) ? item : [item, ''];
-    if (!pagePathMap[page]) continue;
-    await prefetchLegacyPage(page, legacyUrl);
-  }
+  const jobs = items
+    .map((item) => (Array.isArray(item) ? item : [item, '']))
+    .filter(([page]) => pagePathMap[page])
+    .map(([page, legacyUrl]) => prefetchLegacyPage(page, legacyUrl));
+
+  await Promise.allSettled(jobs);
 }
 
 function updateFragmentCache(page, legacyUrl, html) {
@@ -157,16 +157,39 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
   const load = async ({ force = false, url = currentLegacyUrl.current } = {}) => {
     const key = cacheKey(page, url);
     const cached = parityFragmentCache.get(key)?.html || '';
-    if (cached && !force) setHtml(cached);
     setError('');
-    setLoading(!cached && !html);
-    setRefreshing(Boolean(cached || html));
+
+    // Stale-while-revalidate: a cached page is painted immediately. The PHP
+    // fragment refresh happens silently afterwards and only replaces the DOM
+    // when newer server output arrives. Navigation never waits for Render.
+    if (cached && !force) {
+      currentLegacyUrl.current = url;
+      setHtml(cached);
+      setLoading(false);
+      setRefreshing(false);
+
+      requestFragment(page, url, { force: true })
+        .then((next) => {
+          currentLegacyUrl.current = url;
+          if (next && next !== cached) setHtml(next);
+        })
+        .catch(() => {
+          // Keep the known-good cached page visible if a background refresh
+          // fails. Live security polling will try again on the next revision.
+        });
+      return cached;
+    }
+
+    setLoading(!html);
+    setRefreshing(Boolean(html));
     try {
       const next = await requestFragment(page, url, { force });
       currentLegacyUrl.current = url;
       setHtml(next);
+      return next;
     } catch (e) {
       setError(e?.message || String(e));
+      return '';
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -228,13 +251,13 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
       event.preventDefault();
       pendingAnchor.current = resolved.hash || '';
 
-      // Keep the current page visible until the destination fragment is ready.
-      // In normal use the sidebar has already warmed this cache, so the switch
-      // is immediate. If not, the user still never sees a skeleton/blank route.
+      // Start any missing fragment request, but never hold the route change
+      // behind network latency. In normal use the parallel warmer has already
+      // filled this cache, so the destination paints from memory immediately.
       const routePath = target.split('?')[0];
       const targetPage = routePageMap[routePath];
       if (targetPage) {
-        await prefetchLegacyPage(targetPage[0], targetPage[1] + (resolved.search || ''));
+        prefetchLegacyPage(targetPage[0], targetPage[1] + (resolved.search || ''));
       }
 
       navigate(target, { state: resolved.hash ? { legacyAnchor: resolved.hash } : undefined });

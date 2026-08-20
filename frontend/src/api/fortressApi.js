@@ -1,6 +1,6 @@
 const cache = new Map();
 const inflight = new Map();
-const TTL = 10_000;
+const TTL = 120_000;
 
 function keyFor(view) {
   return String(view || 'bootstrap');
