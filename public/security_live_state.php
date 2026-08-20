@@ -123,6 +123,7 @@ if ($tail !== '') {
     foreach (preg_split('/\R/', $tail) ?: [] as $line) {
         $line = trim((string)$line);
         if ($line === '' || !fortress_line_has_any($line, $stateNeedles)) continue;
+        if (function_exists('fortress_is_benign_recon_event_line') && fortress_is_benign_recon_event_line($line)) continue;
         $meaningfulLines[] = $line;
     }
 }

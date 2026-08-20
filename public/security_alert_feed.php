@@ -266,6 +266,10 @@ function fortress_build_notifications(array $lines, array $priority, int $limit 
     $grouped = [];
 
     foreach ($lines as $line) {
+        if (function_exists('fortress_is_benign_recon_event_line') && fortress_is_benign_recon_event_line($line)) {
+            continue;
+        }
+
         $key = fortress_event_key($line);
         if (!isset($priority[$key])) continue;
 

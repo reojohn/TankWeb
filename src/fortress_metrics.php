@@ -6,6 +6,43 @@ require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/sanitize.php';
 require_once __DIR__ . '/user_accounts.php';
 
+
+/**
+ * Legacy harmless missing assets that older FortressAuth builds accidentally
+ * persisted as reconnaissance_probe events. Keep them out of threat totals,
+ * timelines, live pressure, and notifications without deleting audit history.
+ */
+function fortress_benign_recon_paths(): array
+{
+    return [
+        '/favicon.ico',
+        '/robots.txt',
+        '/apple-touch-icon.png',
+        '/apple-touch-icon-precomposed.png',
+        '/fortress.png',
+    ];
+}
+
+function fortress_is_benign_recon_event_line(string $line): bool
+{
+    if (!str_contains($line, 'reconnaissance_probe')) {
+        return false;
+    }
+
+    if (preg_match('/(?:^|\s)path=([^\s]+)/', $line, $match) !== 1) {
+        return false;
+    }
+
+    $path = strtolower(rawurldecode(trim((string)$match[1])));
+    return in_array($path, fortress_benign_recon_paths(), true);
+}
+
+/** SQL predicate used only with trusted internal column names. */
+function fortress_sql_non_benign_recon_predicate(string $eventColumn = 'event_key', string $pathColumn = 'request_path'): string
+{
+    return "NOT (" . $eventColumn . " = 'reconnaissance_probe' AND LOWER(COALESCE(" . $pathColumn . ", '')) IN ('/favicon.ico','/robots.txt','/apple-touch-icon.png','/apple-touch-icon-precomposed.png','/fortress.png'))";
+}
+
 function fortress_read_lines(string $path): array
 {
     if (!is_file($path)) {
@@ -102,7 +139,7 @@ function fortress_read_persistent_audit_lines(PDO $pdo, string $fallbackPath, in
     $seen = [];
     foreach (array_merge($fileLines, $databaseLines) as $line) {
         $line = trim((string)$line);
-        if ($line === '') continue;
+        if ($line === '' || fortress_is_benign_recon_event_line($line)) continue;
         $fingerprint = hash('sha256', $line);
         if (isset($seen[$fingerprint])) continue;
         $seen[$fingerprint] = true;
@@ -527,9 +564,10 @@ function fortress_security_metrics_24h_db(PDO $pdo): ?array
     try {
         $stmt = $pdo->query(
             "WITH recent AS (
-                SELECT id, occurred_at, event_key, source_ip, issues, raw_line, metadata
+                SELECT id, occurred_at, event_key, source_ip, request_path, issues, raw_line, metadata
                 FROM public.security_events
                 WHERE occurred_at >= NOW() - INTERVAL '24 hours'
+                  AND " . fortress_sql_non_benign_recon_predicate() . "
             ),
             forced AS (
                 SELECT
@@ -636,6 +674,7 @@ function fortress_security_hourly_chart_db(PDO $pdo): ?array
                 )) AS blocked
              FROM public.security_events
              WHERE occurred_at >= NOW() - INTERVAL '24 hours'
+               AND " . fortress_sql_non_benign_recon_predicate() . "
              GROUP BY 1
              ORDER BY 1"
         );
@@ -658,6 +697,7 @@ function fortress_top_threat_sources_24h_db(PDO $pdo, int $limit = 5): ?array
              WHERE occurred_at >= NOW() - INTERVAL '24 hours'
                AND source_ip IS NOT NULL
                AND BTRIM(source_ip) <> ''
+               AND " . fortress_sql_non_benign_recon_predicate() . "
                AND event_key IN (
                     'ml_assisted_block', 'ml_assisted_strike', 'ml_threat_prediction',
                     'malicious_input_detected', 'shell_attack_detected', 'request_threat_detected', 'csp_violation_reported',
@@ -701,6 +741,7 @@ function fortress_recent_security_event_lines(PDO $pdo, array $eventKeys, int $l
         $sql = "SELECT raw_line
                 FROM public.security_events
                 WHERE event_key IN ($placeholders)
+                  AND " . fortress_sql_non_benign_recon_predicate() . "
                   AND raw_line IS NOT NULL
                   AND BTRIM(raw_line) <> ''
                 ORDER BY occurred_at DESC, id DESC
@@ -873,7 +914,8 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
                 COUNT(*) FILTER (WHERE event_key = 'honeypot_triggered') AS honeypot,
                 COUNT(*) FILTER (WHERE event_key IN ('banned_ip_attempt', 'banned_ip_middleware_block')) AS banned_source_hits
              FROM public.security_events
-             WHERE event_key IN (
+             WHERE " . fortress_sql_non_benign_recon_predicate() . "
+               AND event_key IN (
                 'password_factor_failed',
                 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
                 'malicious_input_detected', 'request_threat_detected', 'shell_attack_detected',
@@ -964,6 +1006,7 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
     $auditHoneypotCount = 0;
 
     foreach ($auditLines as $line) {
+        if (fortress_is_benign_recon_event_line($line)) continue;
         if (str_contains($line, 'password_factor_failed')) $totals['passwordRejection']++;
         if (fortress_line_has_any($line, ['school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'])) $totals['personalIdRejection']++;
 

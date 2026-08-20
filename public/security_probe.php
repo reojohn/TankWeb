@@ -17,11 +17,13 @@ if (!is_string($probePath) || $probePath === '') {
 $lowerProbePath = strtolower($probePath);
 $benignMissing = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'];
 
-// A missing static subresource requested by the browser from an already loaded
-// page is not reconnaissance. Sec-Fetch-Dest distinguishes those requests from
-// a user/attacker directly browsing to a path, which normally arrives as
-// destination "document". Keep the extension allow-list deliberately narrow
-// so random pages and security-sensitive/archive probes are still recorded.
+// Missing browser assets are not reconnaissance. In production FortressAuth
+// sits behind Vercel/Render, and some proxies/clients do not preserve
+// Sec-Fetch-Dest. Requiring that header caused harmless image misses such as
+// /fortress.png to be persisted as Recon / 404 probes every time the login
+// screen loaded. Treat a narrow set of ordinary web-asset extensions as
+// benign, but never suppress a path that the sensitive-path detector marks as
+// security relevant (for example config/settings/credential-style names).
 $fetchDest = strtolower(trim((string)($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '')));
 $staticSubresourceDests = ['image', 'style', 'script', 'font', 'manifest'];
 $staticSubresourceExtensions = [
@@ -29,8 +31,13 @@ $staticSubresourceExtensions = [
     'woff', 'woff2', 'ttf', 'otf', 'eot', 'map', 'json', 'webmanifest',
 ];
 $extension = strtolower((string)pathinfo($lowerProbePath, PATHINFO_EXTENSION));
-$isBrowserStaticMiss = in_array($fetchDest, $staticSubresourceDests, true)
-    && in_array($extension, $staticSubresourceExtensions, true);
+$sensitiveProbe = function_exists('fortress_monitor_sensitive_path')
+    ? fortress_monitor_sensitive_path($probePath) !== null
+    : false;
+$isStaticAssetMiss = in_array($extension, $staticSubresourceExtensions, true)
+    && !$sensitiveProbe;
+$isBrowserStaticMiss = $isStaticAssetMiss
+    && ($fetchDest === '' || in_array($fetchDest, $staticSubresourceDests, true));
 
 $isBenignMissing = in_array($lowerProbePath, $benignMissing, true) || $isBrowserStaticMiss;
 
@@ -44,9 +51,6 @@ if (!$isBenignMissing) {
     // Count the probe in the deterministic fuzzer defense. The request is
     // still returned as a generic 404 until the rolling reconnaissance
     // threshold is crossed; then the source receives a temporary 403 ban.
-    $sensitiveProbe = function_exists('fortress_monitor_sensitive_path')
-        ? fortress_monitor_sensitive_path($probePath) !== null
-        : false;
     fortress_recon_register_probe($probePath, $sensitiveProbe);
 }
 
