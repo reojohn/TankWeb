@@ -22,17 +22,36 @@ async function copyDir(relativeSource, relativeTarget = relativeSource) {
   }
 }
 
-// Copy only browser-safe static assets. PHP, .env, templates, logs, source code,
-// and security configuration are deliberately never included in Vercel output.
+// Only browser-safe static assets are published to Vercel.
+// PHP, .env files, logs, templates and backend source remain on Render.
 for (const dir of ['css', 'images', 'js', 'webfonts']) {
   await copyDir(dir);
 }
 await copyDir('app/assets');
 await copyDir('app/vendor');
 
-// /app/ itself is intentionally absent from the static filesystem. That path
-// must fall through Vercel's rewrite to Render, where public/app/index.php
-// performs the authoritative PHP session/MFA check before returning React HTML.
+// Give the Vercel root a real filesystem entry.
+// Filesystem entries take precedence over rewrites, so "/" always resolves
+// and then moves to the same-origin PHP login route, which Vercel proxies
+// to the authoritative Render backend.
+const rootIndex = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta http-equiv="refresh" content="0;url=/login.php">
+  <title>FortressAuth</title>
+</head>
+<body>
+  <script>location.replace('/login.php');</script>
+  <noscript><a href="/login.php">Continue to FortressAuth</a></noscript>
+</body>
+</html>
+`;
+
+await writeFile(path.join(out, 'index.html'), rootIndex, 'utf8');
+
 await writeFile(
   path.join(out, 'VERCEL_STATIC_ONLY.txt'),
   'FortressAuth v3 static frontend output. Dynamic/security requests are reverse-proxied to Render.\n',
