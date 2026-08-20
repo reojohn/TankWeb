@@ -14,8 +14,27 @@ if (!is_string($probePath) || $probePath === '') {
 
 // Browsers commonly request these automatically. Keep them out of the threat
 // timeline so real reconnaissance is not buried in harmless noise.
+$lowerProbePath = strtolower($probePath);
 $benignMissing = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'];
-if (!in_array(strtolower($probePath), $benignMissing, true)) {
+
+// A missing static subresource requested by the browser from an already loaded
+// page is not reconnaissance. Sec-Fetch-Dest distinguishes those requests from
+// a user/attacker directly browsing to a path, which normally arrives as
+// destination "document". Keep the extension allow-list deliberately narrow
+// so random pages and security-sensitive/archive probes are still recorded.
+$fetchDest = strtolower(trim((string)($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '')));
+$staticSubresourceDests = ['image', 'style', 'script', 'font', 'manifest'];
+$staticSubresourceExtensions = [
+    'css', 'js', 'mjs', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico',
+    'woff', 'woff2', 'ttf', 'otf', 'eot', 'map', 'json', 'webmanifest',
+];
+$extension = strtolower((string)pathinfo($lowerProbePath, PATHINFO_EXTENSION));
+$isBrowserStaticMiss = in_array($fetchDest, $staticSubresourceDests, true)
+    && in_array($extension, $staticSubresourceExtensions, true);
+
+$isBenignMissing = in_array($lowerProbePath, $benignMissing, true) || $isBrowserStaticMiss;
+
+if (!$isBenignMissing) {
     audit_log(
         'reconnaissance_probe method=' . fortress_log_safe_value((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) .
         ' path=' . fortress_log_safe_value($probePath) .

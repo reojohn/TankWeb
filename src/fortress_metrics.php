@@ -262,6 +262,16 @@ function fortress_event_key(string $line): string
 
 function fortress_event_title(string $line): string
 {
+    if (
+        str_contains($line, 'auth_rejected')
+        && (
+            str_contains($line, 'reason=missing_primary_session')
+            || str_contains($line, 'reason=incomplete_primary_auth')
+        )
+    ) {
+        return 'Forced browsing attempt blocked';
+    }
+
     $map = [
         'ml_assisted_block' => 'AI-assisted temporary ban enforced',
         'ml_assisted_strike' => 'AI-assisted threat strike recorded',
@@ -328,15 +338,6 @@ function fortress_event_title(string $line): string
     ];
 
     $key = fortress_event_key($line);
-    if (
-        $key === 'auth_rejected'
-        && (
-            str_contains($line, 'reason=missing_primary_session')
-            || str_contains($line, 'reason=incomplete_primary_auth')
-        )
-    ) {
-        return 'Forced browsing attempt blocked';
-    }
     $issuedQr = str_contains($line, 'factor=generated_qr');
     if ($issuedQr) {
         if ($key === 'school_id_qr_registered') return 'Administrator-issued QR registered';
@@ -385,6 +386,13 @@ function fortress_event_type(string $line): string
 
 function fortress_event_description(string $line): string
 {
+    if (
+        str_contains($line, 'auth_rejected')
+        && (
+            str_contains($line, 'reason=missing_primary_session')
+            || str_contains($line, 'reason=incomplete_primary_auth')
+        )
+    ) return 'An unauthenticated or incompletely authenticated client tried to open a real protected FortressAuth resource directly and was blocked.';
     if (str_contains($line, 'ml_assisted_block')) return 'The AI-assisted defense layer temporarily banned a source only after a high-confidence malicious model result was corroborated by deterministic security evidence.';
     if (str_contains($line, 'ml_assisted_strike')) return 'The hybrid ML engine recorded an enforcement strike because a malicious model classification was corroborated by deterministic FortressAuth evidence.';
     if (str_contains($line, 'ml_threat_prediction')) return 'The hybrid ML engine combined XGBoost attack classification, autoencoder anomaly detection, and deterministic rule evidence into a behavioral risk assessment used by the guarded AI-assisted defense policy.';
@@ -443,13 +451,6 @@ function fortress_event_description(string $line): string
     if (str_contains($line, 'user_account_deleted')) return 'A privileged administrator account was permanently removed.';
     if (str_contains($line, 'login_disabled_account')) return 'A disabled administrator account attempted to authenticate and was rejected.';
     if (str_contains($line, 'honeypot_triggered')) return 'A client interacted with the decoy administrator login and triggered the honeypot defense.';
-    if (
-        str_contains($line, 'auth_rejected')
-        && (
-            str_contains($line, 'reason=missing_primary_session')
-            || str_contains($line, 'reason=incomplete_primary_auth')
-        )
-    ) return 'A real protected FortressAuth resource was requested without a valid authenticated administrator session and the access attempt was blocked as forced browsing.';
     if (str_contains($line, 'auth_rejected')) return 'A request for a protected resource failed the required authentication or session-security checks and was blocked.';
     if (str_contains($line, 'vault_flag_viewed')) return 'The penetration-test crown-jewel objective was reached from a fully verified administrator session.';
     return 'Security activity was recorded by FortressAuth.';

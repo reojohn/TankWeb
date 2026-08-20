@@ -322,7 +322,7 @@
 
       <img
         class="fortress-login-art"
-        src="/images/fortress.png?v=20260820"
+        src="/images/fortress.png?v=20260817"
         alt=""
         aria-hidden="true"
         draggable="false"

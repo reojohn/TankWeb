@@ -125,7 +125,9 @@ function fortress_alert_title(string $line): string
     if (str_contains($line, 'honeypot_triggered')) return 'Honeypot Intrusion Detected';
     if (str_contains($line, 'auth_rejected')) {
         $reason = strtolower(fortress_alert_field($line, 'reason'));
-        if (in_array($reason, ['missing_primary_session', 'incomplete_primary_auth'], true)) return 'Forced Browsing Attempt Blocked';
+        if (in_array($reason, ['missing_primary_session', 'incomplete_primary_auth'], true)) {
+            return 'Forced Browsing Attempt Blocked';
+        }
         if (str_contains($reason, 'fingerprint')) return 'Suspicious Session Reuse Blocked';
         if (str_contains($reason, 'revoked')) return 'Revoked Session Blocked';
         if (str_contains($reason, 'multifactor')) return 'Protected Page Access Blocked';

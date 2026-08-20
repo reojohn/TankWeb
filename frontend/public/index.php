@@ -18,7 +18,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 // denial is clear, then return the browser to the secure login gateway.
 if ((int)($_SESSION['uid'] ?? 0) <= 0) {
     audit_log('auth_rejected reason=missing_primary_session uid=0');
-    fortress_render_security_error(403, 'react_workspace_logged_out', 2, '/login.php');
+    fortress_render_security_error(403, 'missing_primary_session', 2, '/login.php');
 }
 
 // Incomplete MFA, revoked, disabled, or otherwise invalid sessions continue
