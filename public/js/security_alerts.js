@@ -277,7 +277,20 @@
     }).join('');
 
     list.querySelectorAll('[data-notification-id]').forEach((item) => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (eventObject) => {
+        const openDetails = eventObject.target?.closest?.('.fortress-notification-open');
+
+        // React v3 keeps the notification drawer mounted while the user is
+        // reviewing alerts. A normal click on a notification should therefore
+        // mark it as read without dismissing the entire panel. Only the
+        // explicit "Open details" action is allowed to navigate away.
+        if (!openDetails) {
+          eventObject.preventDefault();
+          eventObject.stopPropagation();
+          markRead(item.dataset.notificationId || '');
+          return;
+        }
+
         markRead(item.dataset.notificationId || '');
         closePanel();
       });
