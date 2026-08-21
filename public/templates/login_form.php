@@ -1107,7 +1107,7 @@
 
 
   <script src="/js/auth_motion.js"></script>
-  <script src="/js/login_ui.js"></script>
+  <script src="/js/login_ui.js?v=20260821-fast-login-1"></script>
 
 </body>
 </html>

@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // a live presentation of the same request, not a timer that runs
             // before authentication starts.
             const requestStartedAt = performance.now();
-            const minimumPresentationMs = reduceMotion ? 500 : 5200;
+            const minimumPresentationMs = reduceMotion ? 180 : 650;
 
             const loginRequest = fetch(form.action || '/login.php', {
                 method: 'POST',
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'FortressAuth is assessing the current sign-in request.',
                         30
                     );
-                }, 1050);
+                }, 140);
 
                 window.setTimeout(() => {
                     if (!submitting) return;
@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Waiting for the final access decision.',
                         58
                     );
-                }, 2550);
+                }, 330);
 
                 const progressStartedAt = performance.now();
                 const animateVerificationProgress = (now) => {
@@ -372,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     submit.classList.remove('loading');
 
                     // Keep the real success state visible long enough to be read.
-                    await wait(reduceMotion ? 180 : 950);
+                    await wait(reduceMotion ? 90 : 300);
                     window.location.assign(result.redirect);
                     return;
                 }
