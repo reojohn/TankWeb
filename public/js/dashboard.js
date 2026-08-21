@@ -28,6 +28,308 @@
     destroy();
   const palette = ['#b45cff', '#d497ff', '#8b5cf6', '#c084fc', '#a855f7', '#e0b8ff', '#7c3aed', '#f29aff'];
 
+  // Fortress Defense Engine. The browser only requests a profile change; the
+  // PHP endpoint remains authoritative, requires CSRF, and restricts changes to
+  // Super Admin accounts. The UI animation deliberately continues briefly even
+  // when the server responds quickly so the mode transition remains visible.
+  const defenseEngine = document.querySelector('[data-defense-engine]');
+  if (defenseEngine instanceof HTMLElement) {
+    const canManage = defenseEngine.dataset.engineCanManage === '1';
+    const csrfToken = defenseEngine.dataset.engineCsrf || '';
+    const buttons = Array.from(defenseEngine.querySelectorAll('[data-defense-mode]'));
+    const overlay = defenseEngine.querySelector('[data-engine-activation]');
+    const overlayTitle = defenseEngine.querySelector('[data-engine-activation-title]');
+    const profileTitle = defenseEngine.querySelector('[data-engine-profile-title]');
+    const profileDescription = defenseEngine.querySelector('[data-engine-profile-description]');
+    const profileIcon = defenseEngine.querySelector('[data-engine-profile-icon]');
+    const readyLabel = defenseEngine.querySelector('[data-engine-ready-label]');
+    const message = defenseEngine.querySelector('[data-engine-message]');
+    const reducedEngineMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const applyGlobalTheme = (mode, animate = true) => {
+      if (window.FortressTheme?.apply) {
+        return window.FortressTheme.apply(mode, { animate });
+      }
+      const normalized = mode === 'standard' || mode === 'fortress_boost' ? mode : 'balanced';
+      document.body.dataset.fortressTheme = normalized;
+      return normalized;
+    };
+
+    applyGlobalTheme(defenseEngine.dataset.engineMode || 'balanced', false);
+
+    const copy = {
+      standard: {
+        title: 'Standard',
+        label: 'ENGINE READY',
+        description: 'Normal layered protection with conservative automated response thresholds.',
+        icon: 'fa-shield-halved',
+      },
+      balanced: {
+        title: 'Balanced',
+        label: 'ENGINE READY',
+        description: 'Current FortressAuth policy with strong protection and measured automated enforcement.',
+        icon: 'fa-scale-balanced',
+      },
+      fortress_boost: {
+        title: 'Fortress Boost',
+        label: 'BOOST ACTIVE',
+        description: 'High-alert defense profile with faster corroborated blocking and accelerated ML replay.',
+        icon: 'fa-bolt',
+      },
+    };
+
+
+    const countupNodes = Array.from(defenseEngine.querySelectorAll('[data-engine-countup]'));
+    const stepNodes = Array.from(defenseEngine.querySelectorAll('[data-engine-step]'));
+    let processingTicker = 0;
+
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const animateEngineCount = (node, target, duration = 950) => {
+      if (!(node instanceof HTMLElement)) return;
+      const safeTarget = Number.isFinite(target) ? target : Number.parseInt(node.textContent || '0', 10) || 0;
+      if (reducedEngineMotion) {
+        node.textContent = String(safeTarget);
+        return;
+      }
+      const startValue = 0;
+      const startTime = performance.now();
+      const tick = (now) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const value = Math.round(startValue + ((safeTarget - startValue) * easeOutCubic(progress)));
+        node.textContent = String(value);
+        if (progress < 1) {
+          window.requestAnimationFrame(tick);
+        } else {
+          node.textContent = String(safeTarget);
+        }
+      };
+      window.requestAnimationFrame(tick);
+    };
+
+    const runTelemetryIntro = () => {
+      countupNodes.forEach((node, index) => {
+        const target = Number.parseInt(node.dataset.engineCountupTarget || node.textContent || '0', 10) || 0;
+        schedule(() => animateEngineCount(node, target, 860 + (index * 120)), 180 + (index * 110));
+      });
+    };
+
+    const resetProcessingSteps = () => {
+      stepNodes.forEach((node) => node.classList.remove('active', 'complete'));
+    };
+
+    const setProcessingStep = (activeIndex, markCompleteAll = false) => {
+      stepNodes.forEach((node, index) => {
+        node.classList.toggle('active', !markCompleteAll && index === activeIndex);
+        node.classList.toggle('complete', markCompleteAll || index < activeIndex);
+      });
+    };
+
+    const stopProcessingAnimation = (markCompleteAll = false) => {
+      if (processingTicker) {
+        window.clearInterval(processingTicker);
+        processingTicker = 0;
+      }
+      buttons.forEach((button) => button.classList.remove('processing'));
+      defenseEngine.classList.remove('engine-processing');
+      if (markCompleteAll) {
+        setProcessingStep(stepNodes.length, true);
+      } else {
+        resetProcessingSteps();
+      }
+    };
+
+    const startProcessingAnimation = (targetButton) => {
+      stopProcessingAnimation(false);
+      defenseEngine.classList.add('engine-processing');
+      if (targetButton instanceof HTMLElement) targetButton.classList.add('processing');
+      if (!stepNodes.length) return;
+      let index = 0;
+      setProcessingStep(index, false);
+      processingTicker = window.setInterval(() => {
+        index = (index + 1) % stepNodes.length;
+        setProcessingStep(index, false);
+      }, 240);
+    };
+
+    lifecycle.cleanups.push(() => stopProcessingAnimation(false));
+
+    const schedule = (fn, delay) => {
+      const id = window.setTimeout(fn, delay);
+      lifecycle.cleanups.push(() => window.clearTimeout(id));
+      return id;
+    };
+
+    const setMessage = (text, state = '') => {
+      if (!(message instanceof HTMLElement)) return;
+      message.classList.remove('error', 'success');
+      if (state) message.classList.add(state);
+      const icon = message.querySelector('i');
+      const span = message.querySelector('span');
+      if (icon) {
+        icon.className = `fa-solid ${state === 'error' ? 'fa-triangle-exclamation' : state === 'success' ? 'fa-circle-check' : canManage ? 'fa-circle-info' : 'fa-lock'}`;
+      }
+      if (span) span.textContent = text;
+    };
+
+    const applyModeUi = (mode) => {
+      const selected = copy[mode] || copy.balanced;
+      defenseEngine.dataset.engineMode = mode;
+      defenseEngine.classList.remove('mode-standard', 'mode-balanced', 'mode-fortress_boost');
+      defenseEngine.classList.add(`mode-${mode}`);
+      buttons.forEach((button) => button.classList.toggle('active', button.dataset.defenseMode === mode));
+      if (profileTitle) profileTitle.textContent = selected.title;
+      if (profileDescription) profileDescription.textContent = selected.description;
+      if (readyLabel) readyLabel.textContent = selected.label;
+      if (profileIcon) profileIcon.className = `fa-solid ${selected.icon}`;
+      if (mode === 'fortress_boost') {
+        defenseEngine.classList.remove('engine-boost-pulse');
+        // Force a new animation when Boost is re-engaged after another profile.
+        void defenseEngine.offsetWidth;
+        defenseEngine.classList.add('engine-boost-pulse');
+      }
+    };
+
+    const setBusy = (busy) => {
+      buttons.forEach((button) => { button.disabled = busy || !canManage; });
+      if (overlay instanceof HTMLElement) overlay.setAttribute('aria-hidden', busy ? 'false' : 'true');
+      if (!busy) defenseEngine.classList.remove('engine-processing');
+    };
+
+    schedule(() => defenseEngine.classList.add('engine-premium-ready'), 120);
+    schedule(runTelemetryIntro, 210);
+
+    if (!reducedEngineMotion) {
+      const premiumTargets = [
+        ...defenseEngine.querySelectorAll('.engine-dial'),
+        ...defenseEngine.querySelectorAll('.engine-mode-button'),
+        defenseEngine.querySelector('.engine-active-profile'),
+      ].filter(Boolean);
+
+      let premiumRaf = 0;
+      let premiumX = 0;
+      let premiumY = 0;
+
+      const resetPremiumMotion = () => {
+        premiumTargets.forEach((target) => {
+          if (!(target instanceof HTMLElement)) return;
+          target.style.transform = '';
+        });
+      };
+
+      const renderPremiumMotion = () => {
+        premiumRaf = 0;
+        premiumTargets.forEach((target, index) => {
+          if (!(target instanceof HTMLElement)) return;
+          const depth = target.classList.contains('engine-active-profile') ? .22 : index < 3 ? .34 : .18;
+          const x = premiumX * depth;
+          const y = premiumY * depth;
+          target.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+        });
+      };
+
+      listen(defenseEngine, 'pointermove', (event) => {
+        const rect = defenseEngine.getBoundingClientRect();
+        const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) - .5;
+        const normalizedY = ((event.clientY - rect.top) / Math.max(1, rect.height)) - .5;
+        premiumX = normalizedX * 10;
+        premiumY = normalizedY * 8;
+        if (!premiumRaf) premiumRaf = window.requestAnimationFrame(renderPremiumMotion);
+      });
+
+      listen(defenseEngine, 'pointerleave', () => {
+        premiumX = 0;
+        premiumY = 0;
+        if (premiumRaf) {
+          window.cancelAnimationFrame(premiumRaf);
+          premiumRaf = 0;
+        }
+        resetPremiumMotion();
+      });
+
+      lifecycle.cleanups.push(() => {
+        if (premiumRaf) window.cancelAnimationFrame(premiumRaf);
+        resetPremiumMotion();
+      });
+    }
+
+    buttons.forEach((button) => {
+      listen(button, 'click', async () => {
+        if (!canManage || button.disabled) return;
+        const mode = button.dataset.defenseMode || 'balanced';
+        if (!copy[mode]) return;
+        const previousMode = defenseEngine.dataset.engineMode || 'balanced';
+        if (mode === previousMode) {
+          setMessage(`${copy[mode].title} is already the active server-side defense profile.`, 'success');
+          return;
+        }
+
+        if (overlayTitle) {
+          overlayTitle.textContent = mode === 'fortress_boost'
+            ? 'ENGAGING FORTRESS BOOST'
+            : mode === 'balanced'
+              ? 'CALIBRATING BALANCED DEFENSE'
+              : 'APPLYING STANDARD DEFENSE';
+        }
+        setBusy(true);
+        startProcessingAnimation(button);
+        // Preview the target operating palette while the engine revs. If the
+        // server rejects the profile change, the previous palette is restored.
+        applyGlobalTheme(mode, true);
+        setMessage('Applying the new enforcement thresholds securely...');
+        const animationStarted = performance.now();
+
+        try {
+          const response = await fetch('/api/security_profile.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Fortress-React': '1',
+            },
+            body: JSON.stringify({ mode, csrfToken }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403 && !payload?.message) {
+            window.location.href = '/login.php';
+            return;
+          }
+          if (!response.ok || payload.ok === false) {
+            throw new Error(payload.message || 'FortressAuth could not change the defense profile.');
+          }
+
+          const activeMode = payload?.data?.mode || mode;
+          applyModeUi(activeMode);
+          applyGlobalTheme(activeMode, false);
+          const selected = copy[activeMode] || copy.balanced;
+          const minAnimationMs = 1320;
+          const remaining = Math.max(0, minAnimationMs - (performance.now() - animationStarted));
+          schedule(() => {
+            stopProcessingAnimation(true);
+            schedule(() => {
+              setBusy(false);
+              stopProcessingAnimation(false);
+            }, 140);
+            setMessage(`${selected.title} is active. The change was recorded in Security Logs.`, 'success');
+            window.dispatchEvent(new CustomEvent('fortress:defense-profile-changed', {
+              detail: { mode: activeMode, label: payload?.data?.label || selected.title.toUpperCase() },
+            }));
+            schedule(() => window.dispatchEvent(new CustomEvent('fortress:v3-route-refresh')), 450);
+          }, remaining);
+        } catch (error) {
+          const remaining = Math.max(0, 760 - (performance.now() - animationStarted));
+          schedule(() => {
+            stopProcessingAnimation(false);
+            setBusy(false);
+            applyGlobalTheme(previousMode, true);
+            setMessage(error?.message || 'The defense profile could not be changed.', 'error');
+          }, remaining);
+        }
+      });
+    });
+  }
+
 
   // Tactile micro-interactions for buttons and button-like command controls.
   // Uses the Web Animations API so no inline styles or CSP exceptions are needed.

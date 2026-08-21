@@ -360,6 +360,7 @@ function fortress_event_title(string $line): string
         'login_page_accessed' => 'Login gateway viewed',
         'login_attempt recorded' => 'Authentication attempt recorded',
         'security_report_generated' => 'Security documentation report generated',
+        'security_profile_changed' => 'Fortress defense profile changed',
         'user_management_access' => 'User management opened',
         'user_account_created' => 'Administrator account created',
         'user_account_updated' => 'Administrator account updated',
@@ -396,6 +397,7 @@ function fortress_event_category(string $line): string
     if (str_contains($key, 'school_id')) return 'Identity';
     if (str_contains($key, 'password') || str_starts_with($key, 'login_') || $key === 'login_attempt recorded') return 'Authentication';
     if ($key === 'security_report_generated') return 'Documentation';
+    if ($key === 'security_profile_changed') return 'Configuration';
     if (str_starts_with($key, 'user_')) return 'Accounts';
     if (fortress_line_has_any($key, ['bruteforce', 'ip_banned', 'banned_ip'])) return 'Network';
     if (fortress_line_has_any($key, ['malicious', 'shell_attack'])) return 'Threat';
@@ -476,6 +478,7 @@ function fortress_event_description(string $line): string
     if (str_contains($line, 'dashboard_access')) return 'A fully verified session entered the protected command center.';
     if (str_contains($line, 'school_id_manage_access')) return 'The protected Personal ID management area was opened.';
     if (str_contains($line, 'security_report_generated')) return 'An authenticated administrator generated a documentation export from the Current Operator reporting center. Secret credentials are excluded from the report.';
+    if (str_contains($line, 'security_profile_changed')) return 'A Super Admin changed the server-side Fortress Defense Engine profile. The new enforcement thresholds apply without changing the authentication flow.';
     if (str_contains($line, 'user_management_access')) return 'The authenticated administrator opened privileged account management.';
     if (str_contains($line, 'user_account_created')) return 'A new privileged administrator account was created.';
     if (str_contains($line, 'user_account_updated')) return 'Administrator identity or account settings were updated.';
@@ -527,7 +530,7 @@ function fortress_is_meaningful_event(string $line): bool
         'bruteforce_detected', 'ip_banned', 'malicious_input_detected', 'shell_attack_detected',
         'banned_ip_attempt',
         'auth_rejected', 'logout', 'dashboard_session_timeout', 'dashboard_access',
-        'security_report_generated', 'user_management_access', 'user_account_created', 'user_account_updated',
+        'security_report_generated', 'security_profile_changed', 'user_management_access', 'user_account_created', 'user_account_updated',
         'user_account_enabled', 'user_account_disabled', 'user_password_reset',
         'user_personal_id_reset', 'user_account_deleted', 'login_disabled_account',
         'vault_flag_viewed',

@@ -26,7 +26,12 @@ $operatorRole = $operatorRoleRaw === 'admin' ? 'admin' : 'superadmin';
 $operatorRoleLabel = $operatorRole === 'superadmin' ? 'SUPER ADMIN' : 'ADMIN';
 $currentUri = e($_SERVER['REQUEST_URI'] ?? '/dashboard.php');
 $notificationOwner = (int)($_SESSION['uid'] ?? 0);
+$runtimeDefenseMode = fortress_security_profile_mode();
+$runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
 ?>
+
+<div hidden data-runtime-defense-theme="<?= e($runtimeDefenseMode) ?>"></div>
+<script src="/js/fortress_theme.js"></script>
 
 <div class="fortress-mobile-bar">
     <button class="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false" data-sidebar-toggle>
@@ -34,7 +39,7 @@ $notificationOwner = (int)($_SESSION['uid'] ?? 0);
     </button>
     <div class="fortress-mobile-title">
         <strong><?= e($pageTitle) ?></strong>
-        <span>FortressAuth · Protection enforced</span>
+        <span>FortressAuth · <?= $runtimeDefenseBoost ? 'Fortress Boost active' : 'Protection enforced' ?></span>
     </div>
     <div class="fortress-mobile-actions" aria-label="Quick actions">
         <button class="fortress-mobile-notifications fortress-notification-toggle" type="button" aria-label="Open notifications" aria-expanded="false" aria-controls="fortress-notification-panel" data-notification-toggle>
@@ -63,7 +68,7 @@ $notificationOwner = (int)($_SESSION['uid'] ?? 0);
     <div class="sidebar-status-card">
         <div>
             <span>Workspace status</span>
-            <strong><i class="live-dot"></i> Enforced</strong>
+            <strong><i class="live-dot"></i> <?= $runtimeDefenseBoost ? 'Boosted' : 'Enforced' ?></strong>
         </div>
         <div class="sidebar-score">
             <span>Score</span>
@@ -120,7 +125,7 @@ $notificationOwner = (int)($_SESSION['uid'] ?? 0);
         <div>
             <div class="page-heading-chips">
                 <span>FORTRESSAUTH</span>
-                <span class="status-chip"><i class="live-dot"></i> PROTECTION ENFORCED</span>
+                <span class="status-chip <?= $runtimeDefenseBoost ? 'boost-active' : '' ?>"><i class="<?= $runtimeDefenseBoost ? 'fa-solid fa-bolt' : 'live-dot' ?>"></i> <?= $runtimeDefenseBoost ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED' ?></span>
             </div>
             <h1><?= e($pageTitle) ?></h1>
             <p><?= e($pageSubtitle) ?> · <?= $defenseActive ?>/<?= $defenseTotal ?> defense layers operational</p>

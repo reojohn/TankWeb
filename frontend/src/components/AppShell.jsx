@@ -33,6 +33,7 @@ export default function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [runtimeDefenseMode, setRuntimeDefenseMode] = useState(null);
   const liveRevision = useRef(null);
   const livePollBusy = useRef(false);
   const meta = pageMap[location.pathname] || pageMap['/overview'];
@@ -46,6 +47,20 @@ export default function AppShell({ children }) {
     document.body.className = `command-page fortress-react-v3 ${legacyBodyClass}`.trim();
     setOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (data?.defenseProfileMode) setRuntimeDefenseMode(data.defenseProfileMode);
+  }, [data?.defenseProfileMode]);
+
+  useEffect(() => {
+    const onProfileChanged = (event) => {
+      const mode = event?.detail?.mode;
+      if (mode) setRuntimeDefenseMode(mode);
+      reload();
+    };
+    window.addEventListener('fortress:defense-profile-changed', onProfileChanged);
+    return () => window.removeEventListener('fortress:defense-profile-changed', onProfileChanged);
+  }, [reload]);
 
   useEffect(() => {
     if (!data) return;
@@ -171,8 +186,16 @@ export default function AppShell({ children }) {
 
   const header = data || {
     username: 'Loading…', roleLabel: 'ADMIN', protectionScore: 0, activeDefenseCount: 0, defenseTotal: 8,
+    defenseProfileMode: 'balanced', defenseProfileLabel: 'BALANCED',
     policy: { alertPollSeconds: 4, livePollSeconds: 2, sessionIdleSeconds: 900 },
   };
+  const activeDefenseMode = runtimeDefenseMode || header.defenseProfileMode || 'balanced';
+
+  useEffect(() => {
+    window.FortressTheme?.apply?.(activeDefenseMode);
+  }, [activeDefenseMode]);
+
+  const boostActive = activeDefenseMode === 'fortress_boost';
 
   const runtimeAttrs = {
     'data-alert-poll-seconds': header.policy?.alertPollSeconds || 4,
@@ -224,7 +247,7 @@ export default function AppShell({ children }) {
         <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
           <i className="fa-solid fa-bars" />
         </button>
-        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>FortressAuth · Protection enforced</span></div>
+        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>{boostActive ? 'FortressAuth · Fortress Boost active' : 'FortressAuth · Protection enforced'}</span></div>
         <div className="fortress-mobile-actions">
           <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
           <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
@@ -250,7 +273,7 @@ export default function AppShell({ children }) {
             <button type="button" className="sidebar-close" onClick={() => setOpen(false)} aria-label="Close navigation"><i className="fa-solid fa-xmark" /></button>
           </div>
           <div className="sidebar-status-card">
-            <div><span>Workspace status</span><strong><i className="live-dot" /> Enforced</strong></div>
+            <div><span>Workspace status</span><strong><i className="live-dot" /> {boostActive ? 'Boosted' : 'Enforced'}</strong></div>
             <div className="sidebar-score"><span>Score</span><strong>{header.protectionScore}</strong></div>
           </div>
           <NavLink
@@ -300,7 +323,7 @@ export default function AppShell({ children }) {
           <header className="fortress-page-header">
             <div className="page-heading-left">
               <span className="page-heading-icon"><i className={`fa-solid ${meta[2]}`} /></span>
-              <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className="status-chip"><i className="live-dot" /> PROTECTION ENFORCED</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
+              <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className={`status-chip ${boostActive ? 'boost-active' : ''}`}><i className={boostActive ? 'fa-solid fa-bolt' : 'live-dot'} /> {boostActive ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED'}</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
             </div>
             <div className="page-heading-actions">
               <div className="header-score-card"><span>Protection</span><strong>{header.protectionScore}/100</strong></div>

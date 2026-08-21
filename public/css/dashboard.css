@@ -8826,3 +8826,2454 @@ input[type="reset"]:not(:disabled):active,
     width: min(88vw, 330px) !important;
   }
 }
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — runtime security profile console
+   ========================================================= */
+.defense-engine-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(197, 140, 255, .18);
+  background:
+    linear-gradient(145deg, rgba(40, 16, 61, .86), rgba(15, 6, 27, .94) 54%, rgba(25, 8, 43, .9)),
+    rgba(13, 5, 24, .9);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 18px 50px rgba(0,0,0,.18);
+}
+
+.defense-engine-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(rgba(211, 151, 255, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(211, 151, 255, .035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to right, black, rgba(0,0,0,.55), transparent 95%);
+}
+
+.defense-engine-panel::after {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  right: -170px;
+  top: -210px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(172, 82, 255, .18), rgba(172, 82, 255, 0) 70%);
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity .35s ease, transform .5s ease;
+}
+
+.defense-engine-panel.mode-fortress_boost::after {
+  opacity: 1;
+  transform: scale(1.14);
+  background: radial-gradient(circle, rgba(205, 102, 255, .28), rgba(172, 82, 255, 0) 70%);
+}
+
+.defense-engine-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.defense-engine-ambient span {
+  position: absolute;
+  height: 1px;
+  width: 42%;
+  left: -44%;
+  background: linear-gradient(90deg, transparent, rgba(214, 159, 255, .35), transparent);
+  opacity: .35;
+  animation: fortressEngineSweep 7s linear infinite;
+}
+.defense-engine-ambient span:nth-child(1) { top: 24%; }
+.defense-engine-ambient span:nth-child(2) { top: 55%; animation-delay: 2.2s; width: 54%; }
+.defense-engine-ambient span:nth-child(3) { top: 78%; animation-delay: 4.4s; width: 34%; }
+
+@keyframes fortressEngineSweep {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: .55; }
+  85% { opacity: .4; }
+  100% { transform: translateX(360%); opacity: 0; }
+}
+
+.defense-engine-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.defense-engine-heading h2 {
+  margin: 5px 0 7px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(18px, 1.8vw, 25px);
+}
+
+.defense-engine-heading h2 i {
+  color: #d9a0ff;
+  filter: drop-shadow(0 0 9px rgba(201, 123, 255, .45));
+}
+
+.defense-engine-heading p {
+  margin: 0;
+  max-width: 760px;
+  color: rgba(222, 207, 234, .68);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.defense-engine-ready {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(102, 255, 200, .16);
+  border-radius: 999px;
+  background: rgba(15, 78, 62, .14);
+  color: #a8f5d7;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.defense-engine-ready i {
+  font-size: 7px;
+  color: #61efbd;
+  filter: drop-shadow(0 0 7px rgba(97, 239, 189, .55));
+  animation: fortressReadyPulse 1.8s ease-in-out infinite;
+}
+
+.mode-fortress_boost .defense-engine-ready {
+  color: #f0c5ff;
+  border-color: rgba(210, 130, 255, .26);
+  background: rgba(130, 45, 185, .18);
+  box-shadow: 0 0 20px rgba(188, 86, 255, .08);
+}
+.mode-fortress_boost .defense-engine-ready i { color: #dc8cff; }
+
+@keyframes fortressReadyPulse {
+  50% { opacity: .45; transform: scale(.82); }
+}
+
+.defense-engine-console {
+  display: grid;
+  grid-template-columns: minmax(300px, .88fr) minmax(460px, 1.45fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.engine-dials,
+.engine-control-deck {
+  border: 1px solid rgba(203, 147, 255, .12);
+  border-radius: 20px;
+  background: rgba(9, 3, 18, .46);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.engine-dials {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  padding: 16px;
+  align-items: center;
+}
+
+.engine-dial {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.engine-dial-ring {
+  position: relative;
+  width: clamp(88px, 8vw, 120px);
+  aspect-ratio: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(31, 13, 49, .96) 56%, transparent 57%),
+    conic-gradient(from 210deg, rgba(193, 110, 255, .95), rgba(112, 74, 220, .82) 64%, rgba(73, 45, 101, .18) 65% 100%);
+  box-shadow: inset 0 0 22px rgba(0,0,0,.45), 0 0 22px rgba(172, 82, 255, .08);
+}
+
+.engine-dial:nth-child(2) .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(31, 13, 49, .96) 56%, transparent 57%),
+    conic-gradient(from 215deg, rgba(109, 239, 199, .9), rgba(104, 104, 237, .78) 78%, rgba(73, 45, 101, .18) 79% 100%);
+}
+
+.engine-dial.ml .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(31, 13, 49, .96) 56%, transparent 57%),
+    conic-gradient(from 210deg, rgba(131, 100, 177, .75), rgba(85, 64, 116, .54) 62%, rgba(73, 45, 101, .18) 63% 100%);
+}
+.engine-dial.ml.online .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(24, 22, 47, .96) 56%, transparent 57%),
+    conic-gradient(from 210deg, rgba(91, 238, 186, .92), rgba(119, 111, 244, .82) 75%, rgba(73, 45, 101, .18) 76% 100%);
+}
+.engine-dial.ml.queued .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(32, 19, 44, .96) 56%, transparent 57%),
+    conic-gradient(from 210deg, rgba(244, 185, 95, .92), rgba(197, 103, 255, .8) 68%, rgba(73, 45, 101, .18) 69% 100%);
+}
+
+.engine-dial-ring strong {
+  font-size: clamp(19px, 2vw, 29px);
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+.engine-dial-ring small { font-size: 9px; color: rgba(227, 211, 239, .58); }
+.engine-dial-ring i { font-size: 15px; margin-bottom: 6px; color: #d9a0ff; }
+.engine-dial.ml .engine-dial-ring strong { font-size: clamp(10px, .95vw, 13px); letter-spacing: .08em; }
+.engine-dial > span { font-size: 10px; font-weight: 800; color: rgba(238, 225, 247, .78); }
+.engine-dial > small { margin-top: -4px; font-size: 9px; color: rgba(211, 194, 223, .52); }
+.engine-dial > small b { color: #e3b5ff; }
+
+.engine-control-deck {
+  padding: 16px;
+  display: grid;
+  gap: 13px;
+}
+
+.engine-mode-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.engine-mode-button {
+  position: relative;
+  min-height: 76px;
+  border: 1px solid rgba(205, 151, 255, .11);
+  border-radius: 15px;
+  background: rgba(40, 20, 57, .45);
+  color: rgba(235, 221, 245, .7);
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 7px;
+  align-items: center;
+  text-align: left;
+  padding: 12px 13px;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease, box-shadow .2s ease, color .2s ease;
+}
+
+.engine-mode-button i {
+  grid-row: 1 / 3;
+  font-size: 16px;
+  color: rgba(200, 157, 231, .72);
+}
+.engine-mode-button span { font-size: 11px; font-weight: 900; }
+.engine-mode-button small { font-size: 8.5px; line-height: 1.25; color: rgba(198, 181, 211, .48); }
+.engine-mode-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(205, 151, 255, .24);
+  background: rgba(60, 28, 83, .55);
+}
+.engine-mode-button.active {
+  color: #f7ebff;
+  border-color: rgba(210, 149, 255, .34);
+  background: linear-gradient(145deg, rgba(151, 71, 205, .3), rgba(73, 38, 105, .46));
+  box-shadow: inset 0 0 18px rgba(188, 86, 255, .07), 0 0 20px rgba(169, 69, 235, .06);
+}
+.engine-mode-button.active i { color: #e1a8ff; }
+.engine-mode-button.boost.active {
+  border-color: rgba(229, 143, 255, .46);
+  background: linear-gradient(145deg, rgba(188, 72, 235, .42), rgba(105, 45, 155, .54));
+  box-shadow: inset 0 0 22px rgba(224, 117, 255, .11), 0 0 28px rgba(180, 77, 239, .12);
+}
+.engine-mode-button:disabled { cursor: not-allowed; opacity: .52; }
+
+.engine-active-profile {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 13px;
+  border: 1px solid rgba(201, 145, 244, .09);
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(108, 47, 150, .12), rgba(31, 13, 44, .2));
+}
+.engine-profile-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #dfa6ff;
+  background: rgba(143, 66, 187, .2);
+  border: 1px solid rgba(211, 155, 255, .14);
+}
+.engine-active-profile span { display: block; font-size: 8px; font-weight: 900; letter-spacing: .15em; color: rgba(210, 175, 233, .6); }
+.engine-active-profile strong { display: block; margin-top: 2px; font-size: 13px; }
+.engine-active-profile p { margin: 3px 0 0; font-size: 9px; line-height: 1.45; color: rgba(210, 192, 223, .57); }
+
+.engine-defense-flags {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.engine-defense-flags span {
+  min-width: 0;
+  min-height: 31px;
+  padding: 0 9px;
+  border: 1px solid rgba(107, 235, 190, .1);
+  border-radius: 10px;
+  background: rgba(24, 93, 72, .08);
+  color: rgba(172, 235, 213, .76);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 8.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.engine-defense-flags i { color: #65e6b7; font-size: 8px; }
+
+.engine-control-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 31px;
+  color: rgba(211, 196, 223, .55);
+  font-size: 8.5px;
+}
+.engine-control-note i { color: #c68df0; }
+.engine-control-note.locked i { color: #efbb79; }
+.engine-control-note.error { color: #ff9eb5; }
+.engine-control-note.success { color: #9ff0d2; }
+
+.engine-activation-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(11, 4, 20, .88);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+.engine-activation-overlay[aria-hidden="false"] { opacity: 1; visibility: visible; }
+.engine-activation-core {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(220, 157, 255, .3);
+  color: #dfa3ff;
+  background: radial-gradient(circle, rgba(137, 57, 183, .42), rgba(42, 17, 61, .7));
+  box-shadow: 0 0 0 0 rgba(196, 91, 255, .2), 0 0 30px rgba(189, 85, 249, .16);
+  animation: fortressEngineCharge .8s ease-out infinite;
+}
+.engine-activation-core i { font-size: 24px; }
+.engine-activation-overlay > strong { font-size: 11px; letter-spacing: .16em; color: #f2d8ff; }
+.engine-activation-steps { display: flex; gap: 11px; flex-wrap: wrap; justify-content: center; }
+.engine-activation-steps span { display: inline-flex; align-items: center; gap: 5px; font-size: 8px; color: rgba(221, 198, 236, .62); }
+.engine-activation-steps i { width: 6px; height: 6px; border-radius: 50%; background: #6ce6b9; box-shadow: 0 0 8px rgba(108,230,185,.55); animation: fortressStepPulse .8s ease-in-out infinite alternate; }
+.engine-activation-steps span:nth-child(2) i { animation-delay: .13s; }
+.engine-activation-steps span:nth-child(3) i { animation-delay: .26s; }
+.engine-activation-steps span:nth-child(4) i { animation-delay: .39s; }
+
+@keyframes fortressEngineCharge {
+  60% { box-shadow: 0 0 0 16px rgba(196, 91, 255, 0), 0 0 34px rgba(189, 85, 249, .28); transform: scale(1.045); }
+}
+@keyframes fortressStepPulse { to { opacity: .35; transform: scale(.78); } }
+
+.defense-engine-panel.engine-boost-pulse {
+  animation: fortressBoostPanel .95s cubic-bezier(.2,.85,.3,1);
+}
+@keyframes fortressBoostPanel {
+  0% { box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 18px 50px rgba(0,0,0,.18); }
+  45% { box-shadow: inset 0 0 38px rgba(202, 100, 255, .16), 0 0 46px rgba(181, 78, 238, .18); border-color: rgba(224, 143, 255, .44); }
+  100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 18px 50px rgba(0,0,0,.18); }
+}
+
+@media (max-width: 1180px) {
+  .defense-engine-console { grid-template-columns: 1fr; }
+  .engine-dials { min-height: 175px; }
+}
+
+@media (max-width: 700px) {
+  .defense-engine-panel { padding: 16px; }
+  .defense-engine-heading { flex-direction: column; gap: 10px; }
+  .engine-dials { grid-template-columns: repeat(3, 1fr); padding: 11px 8px; }
+  .engine-dial-ring { width: clamp(74px, 24vw, 96px); }
+  .engine-mode-selector { grid-template-columns: 1fr; }
+  .engine-mode-button { min-height: 58px; }
+  .engine-defense-flags { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 430px) {
+  .engine-dial-ring { width: 68px; }
+  .engine-dial-ring strong { font-size: 20px; }
+  .engine-dial.ml .engine-dial-ring strong { font-size: 9px; }
+  .engine-dial > span { font-size: 8.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .defense-engine-ambient span,
+  .defense-engine-ready i,
+  .engine-activation-core,
+  .engine-activation-steps i,
+  .defense-engine-panel.engine-boost-pulse { animation: none !important; }
+}
+
+/* Global shell feedback while the high-alert profile is active. */
+.status-chip.boost-active {
+  color: #f1caff !important;
+  border-color: rgba(221, 143, 255, .28) !important;
+  background: linear-gradient(90deg, rgba(131, 47, 181, .2), rgba(85, 34, 119, .14)) !important;
+  box-shadow: inset 0 0 14px rgba(204, 102, 255, .07), 0 0 14px rgba(181, 75, 235, .06);
+}
+.status-chip.boost-active i {
+  color: #dc92ff !important;
+  filter: drop-shadow(0 0 7px rgba(220, 146, 255, .5));
+}
+
+/* =========================================================
+   PREMIUM FORTRESS DEFENSE ENGINE REFRESH
+   ========================================================= */
+.defense-engine-panel {
+  margin-top: 20px;
+  padding: 26px;
+  border-radius: 30px;
+  border: 1px solid rgba(212, 150, 255, .22);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(122, 86, 255, .15), transparent 26%),
+    radial-gradient(circle at 84% 16%, rgba(237, 115, 255, .14), transparent 28%),
+    linear-gradient(160deg, rgba(42, 16, 66, .97), rgba(18, 7, 32, .98) 52%, rgba(26, 10, 44, .97));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 0 0 1px rgba(255,255,255,.02),
+    0 22px 70px rgba(1, 0, 8, .34),
+    0 0 0 1px rgba(145, 86, 213, .08);
+}
+
+.defense-engine-panel::before {
+  opacity: .9;
+  background-image:
+    linear-gradient(rgba(221, 166, 255, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(221, 166, 255, .045) 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: fortressEngineGridFloat 18s linear infinite;
+}
+
+.defense-engine-panel::after {
+  width: 500px;
+  height: 500px;
+  right: -190px;
+  top: -230px;
+  filter: blur(4px);
+}
+
+@keyframes fortressEngineGridFloat {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(24px, 24px, 0); }
+}
+
+.defense-engine-ambient {
+  z-index: -1;
+  mix-blend-mode: screen;
+  opacity: .95;
+}
+
+.defense-engine-ambient span {
+  height: 2px;
+  width: 46%;
+  left: -52%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(126, 238, 255, .24), rgba(228, 151, 255, .44), transparent);
+  box-shadow: 0 0 18px rgba(214, 159, 255, .18);
+  animation-duration: 8.5s;
+}
+
+.defense-engine-ambient span:nth-child(1) { top: 16%; }
+.defense-engine-ambient span:nth-child(2) { top: 34%; width: 55%; animation-delay: 1.5s; }
+.defense-engine-ambient span:nth-child(3) { top: 52%; width: 40%; animation-delay: 3s; }
+.defense-engine-ambient span:nth-child(4) { top: 70%; width: 58%; animation-delay: 4.5s; }
+.defense-engine-ambient span:nth-child(5) { top: 86%; width: 32%; animation-delay: 6s; }
+
+.defense-engine-heading {
+  margin-bottom: 22px;
+}
+
+.defense-engine-heading h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(22px, 2vw, 31px);
+  letter-spacing: -.03em;
+}
+
+.defense-engine-heading p {
+  max-width: 830px;
+  color: rgba(227, 211, 241, .78);
+  font-size: 13px;
+}
+
+.defense-engine-ready {
+  min-height: 40px;
+  padding: 0 16px;
+  border-color: rgba(102, 255, 200, .2);
+  background: linear-gradient(90deg, rgba(18, 78, 62, .22), rgba(7, 41, 30, .18));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 0 24px rgba(64, 209, 156, .06);
+  font-size: 10.5px;
+}
+
+.defense-engine-console {
+  grid-template-columns: minmax(330px, .96fr) minmax(520px, 1.38fr);
+  gap: 20px;
+}
+
+.engine-dials,
+.engine-control-deck {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(216, 162, 255, .14);
+  background:
+    linear-gradient(180deg, rgba(31, 11, 48, .92), rgba(11, 4, 21, .92)),
+    rgba(12, 6, 20, .88);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    inset 0 -12px 22px rgba(0,0,0,.18),
+    0 10px 34px rgba(0,0,0,.14);
+}
+
+.engine-dials::before,
+.engine-control-deck::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(145deg, rgba(255,255,255,.045), transparent 30%, transparent 70%, rgba(255,255,255,.02));
+}
+
+.engine-dials {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 16px 16px;
+}
+
+.engine-dials-head,
+.engine-dials-floor {
+  grid-column: 1 / -1;
+}
+
+.engine-dials-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 2px;
+  margin-bottom: 4px;
+}
+
+.engine-dials-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.engine-dials-head span,
+.engine-dials-floor > span {
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .23em;
+  color: rgba(185, 163, 209, .66);
+}
+
+.engine-dials-head strong {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: #f3e2ff;
+}
+
+.engine-dials-head small {
+  max-width: 230px;
+  font-size: 9px;
+  line-height: 1.45;
+  text-align: right;
+  color: rgba(207, 189, 220, .6);
+}
+
+.engine-dial {
+  position: relative;
+  gap: 10px;
+  padding: 14px 10px 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(214, 160, 255, .1);
+  background: linear-gradient(180deg, rgba(48, 21, 73, .58), rgba(17, 8, 30, .78));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03), inset 0 -14px 18px rgba(0,0,0,.16);
+  transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background .28s ease;
+}
+
+.engine-dial::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 28%, transparent 70%, rgba(255,255,255,.018));
+}
+
+.engine-dial::after {
+  content: '';
+  position: absolute;
+  inset: auto 18px 0 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(222, 168, 255, .28), transparent);
+}
+
+.engine-dial:hover {
+  transform: translateY(-2px);
+  border-color: rgba(218, 168, 255, .16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03), inset 0 -14px 18px rgba(0,0,0,.16), 0 12px 28px rgba(0,0,0,.16);
+}
+
+.engine-dial-tag {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .18em;
+  color: rgba(194, 177, 214, .56);
+}
+
+.engine-dial-ring {
+  width: clamp(102px, 8.8vw, 134px);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 10, 31, .98) 56%, transparent 57%),
+    conic-gradient(from 212deg, rgba(211, 116, 255, 1), rgba(113, 76, 232, .84) 64%, rgba(73, 45, 101, .16) 65% 100%);
+  box-shadow: inset 0 0 28px rgba(0,0,0,.5), 0 0 24px rgba(172, 82, 255, .08), 0 0 0 1px rgba(255,255,255,.018);
+  animation: fortressDialFloat 5.8s ease-in-out infinite;
+}
+
+.engine-dial-ring::before,
+.engine-dial-ring::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.engine-dial-ring::before {
+  inset: -6px;
+  border: 1px solid rgba(226, 177, 255, .12);
+  animation: fortressDialSpin 9s linear infinite;
+}
+
+.engine-dial-ring::after {
+  inset: 14%;
+  background: radial-gradient(circle, rgba(255,255,255,.05), rgba(255,255,255,0) 70%);
+}
+
+.engine-dial:nth-child(3) .engine-dial-ring { animation-delay: .8s; }
+.engine-dial:nth-child(4) .engine-dial-ring { animation-delay: 1.4s; }
+
+.engine-dial:nth-child(2) .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 10, 31, .98) 56%, transparent 57%),
+    conic-gradient(from 212deg, rgba(93, 239, 192, .95), rgba(104, 127, 245, .84) 76%, rgba(73, 45, 101, .16) 77% 100%);
+}
+
+.engine-dial.ml .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 10, 31, .98) 56%, transparent 57%),
+    conic-gradient(from 212deg, rgba(183, 139, 245, .8), rgba(105, 86, 146, .66) 62%, rgba(73, 45, 101, .16) 63% 100%);
+}
+
+.engine-dial.ml.online .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 10, 31, .98) 56%, transparent 57%),
+    conic-gradient(from 212deg, rgba(91, 238, 186, .96), rgba(119, 111, 244, .82) 74%, rgba(73, 45, 101, .16) 75% 100%);
+}
+
+.engine-dial.ml.queued .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(18, 10, 31, .98) 56%, transparent 57%),
+    conic-gradient(from 212deg, rgba(251, 184, 82, .95), rgba(207, 103, 255, .86) 69%, rgba(73, 45, 101, .16) 70% 100%);
+}
+
+.engine-dial-ring strong {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(22px, 2.15vw, 33px);
+  text-shadow: 0 0 18px rgba(255,255,255,.06);
+}
+
+.engine-dial-ring small {
+  position: relative;
+  z-index: 1;
+  font-size: 9px;
+  color: rgba(233, 216, 246, .58);
+}
+
+.engine-dial-ring i {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+  color: #dca8ff;
+}
+
+.engine-dial.ml .engine-dial-ring strong {
+  font-size: clamp(10px, 1vw, 14px);
+  letter-spacing: .11em;
+}
+
+.engine-dial > span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.engine-dial > small {
+  margin-top: -2px;
+  font-size: 9px;
+  color: rgba(213, 196, 226, .58);
+}
+
+.engine-dial > small b {
+  color: #f1b3ff;
+}
+
+.engine-dials-floor {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 4px;
+  margin-top: 2px;
+}
+
+.engine-dials-floor small {
+  font-size: 8.5px;
+  color: rgba(200, 184, 216, .58);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+
+.engine-dials-bars {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  align-items: end;
+  min-height: 16px;
+}
+
+.engine-dials-bars i {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(116, 242, 201, .96), rgba(118, 122, 247, .76));
+  box-shadow: 0 0 12px rgba(113, 228, 200, .18);
+  animation: fortressEngineEq 1.35s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.engine-dials-bars i:nth-child(2) { animation-delay: .08s; }
+.engine-dials-bars i:nth-child(3) { animation-delay: .16s; }
+.engine-dials-bars i:nth-child(4) { animation-delay: .24s; }
+.engine-dials-bars i:nth-child(5) { animation-delay: .32s; }
+.engine-dials-bars i:nth-child(6) { animation-delay: .4s; }
+.engine-dials-bars i:nth-child(7) { animation-delay: .48s; }
+.engine-dials-bars i:nth-child(8) { animation-delay: .56s; }
+
+.engine-control-deck {
+  padding: 18px;
+  gap: 15px;
+}
+
+.engine-mode-selector {
+  gap: 12px;
+}
+
+.engine-mode-button {
+  min-height: 94px;
+  padding: 14px 16px 13px;
+  border-radius: 18px;
+  border-color: rgba(214, 160, 255, .11);
+  background: linear-gradient(180deg, rgba(53, 23, 81, .56), rgba(20, 9, 33, .8));
+  grid-template-columns: 30px 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  overflow: hidden;
+}
+
+.engine-mode-button::before {
+  content: '';
+  position: absolute;
+  inset: auto 16px 12px 16px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(228, 171, 255, .32), transparent);
+}
+
+.engine-mode-button::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(204, 185, 219, .42);
+  box-shadow: 0 0 10px rgba(204, 185, 219, .14);
+  transition: background .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.engine-mode-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(216, 162, 255, .22);
+  background: linear-gradient(180deg, rgba(69, 30, 104, .62), rgba(22, 9, 36, .82));
+  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+}
+
+.engine-mode-button.active {
+  border-color: rgba(214, 160, 255, .36);
+  background: linear-gradient(145deg, rgba(162, 78, 220, .34), rgba(75, 36, 109, .58));
+  box-shadow: inset 0 0 22px rgba(188, 86, 255, .08), 0 10px 28px rgba(127, 58, 188, .16);
+}
+
+.engine-mode-button.active::after {
+  background: #dca0ff;
+  box-shadow: 0 0 16px rgba(220, 160, 255, .42);
+  transform: scale(1.05);
+}
+
+.engine-mode-button.boost.active {
+  border-color: rgba(239, 164, 255, .5);
+  background: linear-gradient(145deg, rgba(199, 77, 238, .48), rgba(101, 39, 151, .62));
+  box-shadow: inset 0 0 26px rgba(224, 117, 255, .14), 0 0 28px rgba(180, 77, 239, .14);
+}
+
+.engine-mode-button i { font-size: 18px; }
+.engine-mode-button span { font-size: 14px; }
+.engine-mode-button small { font-size: 10px; color: rgba(208, 190, 222, .66); }
+
+.engine-active-profile {
+  grid-template-columns: 54px 1fr;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border-color: rgba(216, 162, 255, .12);
+  background:
+    linear-gradient(110deg, rgba(120, 51, 168, .2), rgba(39, 16, 56, .34) 32%, rgba(17, 8, 28, .5)),
+    rgba(18, 9, 30, .65);
+}
+
+.engine-active-profile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+  transform: translateX(-120%);
+  animation: fortressProfileSweep 7.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.engine-profile-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  color: #f0b8ff;
+  background: linear-gradient(180deg, rgba(143, 66, 187, .28), rgba(70, 31, 102, .26));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 20px rgba(188, 86, 255, .08);
+}
+
+.engine-active-profile span { font-size: 8.5px; }
+.engine-active-profile strong { font-size: 16px; }
+.engine-active-profile p {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.55;
+  color: rgba(223, 207, 236, .7);
+}
+
+.engine-defense-flags {
+  gap: 10px;
+}
+
+.engine-defense-flags span {
+  min-height: 38px;
+  border-radius: 12px;
+  border-color: rgba(114, 236, 192, .16);
+  background: linear-gradient(180deg, rgba(24, 93, 72, .14), rgba(9, 37, 29, .14));
+  font-size: 10px;
+  letter-spacing: .02em;
+}
+
+.engine-defense-flags i { font-size: 9px; }
+
+.engine-control-note {
+  padding-top: 3px;
+  min-height: 34px;
+  font-size: 10px;
+}
+
+.engine-control-note.success,
+.engine-control-note.error {
+  text-shadow: 0 0 10px rgba(255,255,255,.02);
+}
+
+.engine-activation-overlay {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(165, 79, 225, .18), transparent 28%),
+    rgba(11, 4, 20, .9);
+}
+
+.engine-activation-core {
+  width: 80px;
+  height: 80px;
+  box-shadow: 0 0 0 0 rgba(196, 91, 255, .2), 0 0 40px rgba(189, 85, 249, .18);
+}
+
+.engine-activation-core i { font-size: 28px; }
+.engine-activation-overlay > strong { font-size: 12px; }
+.engine-activation-steps span { font-size: 8.5px; }
+
+.mode-fortress_boost .engine-dials,
+.mode-fortress_boost .engine-control-deck {
+  border-color: rgba(230, 156, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), inset 0 -12px 22px rgba(0,0,0,.18), 0 10px 40px rgba(117, 34, 170, .16);
+}
+
+.mode-fortress_boost .engine-mode-button.boost.active::before {
+  background: linear-gradient(90deg, rgba(255, 215, 255, .5), transparent);
+}
+
+.mode-fortress_boost .engine-dials-floor small,
+.mode-fortress_boost .engine-dials-head strong {
+  color: #f0ceff;
+}
+
+.defense-engine-panel.engine-premium-ready .engine-dial,
+.defense-engine-panel.engine-premium-ready .engine-mode-button,
+.defense-engine-panel.engine-premium-ready .engine-active-profile,
+.defense-engine-panel.engine-premium-ready .engine-defense-flags span {
+  animation: fortressPremiumReveal .7s cubic-bezier(.18,.9,.22,1) both;
+}
+
+.defense-engine-panel.engine-premium-ready .engine-dial:nth-child(2) { animation-delay: .03s; }
+.defense-engine-panel.engine-premium-ready .engine-dial:nth-child(3) { animation-delay: .08s; }
+.defense-engine-panel.engine-premium-ready .engine-dial:nth-child(4) { animation-delay: .13s; }
+.defense-engine-panel.engine-premium-ready .engine-mode-button:nth-child(1) { animation-delay: .18s; }
+.defense-engine-panel.engine-premium-ready .engine-mode-button:nth-child(2) { animation-delay: .24s; }
+.defense-engine-panel.engine-premium-ready .engine-mode-button:nth-child(3) { animation-delay: .3s; }
+.defense-engine-panel.engine-premium-ready .engine-active-profile { animation-delay: .36s; }
+.defense-engine-panel.engine-premium-ready .engine-defense-flags span:nth-child(1) { animation-delay: .42s; }
+.defense-engine-panel.engine-premium-ready .engine-defense-flags span:nth-child(2) { animation-delay: .46s; }
+.defense-engine-panel.engine-premium-ready .engine-defense-flags span:nth-child(3) { animation-delay: .5s; }
+.defense-engine-panel.engine-premium-ready .engine-defense-flags span:nth-child(4) { animation-delay: .54s; }
+
+@keyframes fortressPremiumReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes fortressDialFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes fortressDialSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fortressEngineEq {
+  0%, 100% { transform: scaleY(.58); opacity: .72; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes fortressProfileSweep {
+  0%, 82%, 100% { transform: translateX(-120%); opacity: 0; }
+  18% { opacity: .35; }
+  48% { transform: translateX(120%); opacity: .1; }
+}
+
+@media (max-width: 1180px) {
+  .defense-engine-console { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 780px) {
+  .defense-engine-panel {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .engine-dials,
+  .engine-control-deck {
+    border-radius: 20px;
+  }
+
+  .engine-dials-head,
+  .engine-dials-floor {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-dials-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .engine-dials-head small { text-align: left; }
+}
+
+@media (max-width: 700px) {
+  .engine-dials {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px 10px 12px;
+  }
+
+  .engine-dial {
+    padding: 10px 6px 10px;
+    border-radius: 18px;
+  }
+
+  .engine-dial-ring {
+    width: clamp(74px, 24vw, 98px);
+  }
+
+  .engine-dials-floor {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .engine-dials-floor small { text-align: right; }
+
+  .engine-mode-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-mode-button {
+    min-height: 76px;
+    padding: 12px 14px;
+  }
+
+  .engine-mode-button span { font-size: 12.5px; }
+  .engine-mode-button small { font-size: 9px; }
+  .engine-active-profile { grid-template-columns: 46px 1fr; }
+  .engine-profile-icon { width: 46px; height: 46px; }
+  .engine-defense-flags { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 430px) {
+  .engine-dials { grid-template-columns: 1fr; }
+  .engine-dial-ring { width: 82px; }
+  .engine-dials-floor small { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .defense-engine-panel::before,
+  .defense-engine-ambient span,
+  .engine-dial-ring,
+  .engine-dial-ring::before,
+  .engine-dials-bars i,
+  .engine-active-profile::after,
+  .defense-engine-panel.engine-premium-ready .engine-dial,
+  .defense-engine-panel.engine-premium-ready .engine-mode-button,
+  .defense-engine-panel.engine-premium-ready .engine-active-profile,
+  .defense-engine-panel.engine-premium-ready .engine-defense-flags span {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE REFINEMENT PASS 2
+   ========================================================= */
+.defense-engine-console {
+  grid-template-columns: minmax(420px, 1.08fr) minmax(480px, 1.12fr);
+  align-items: stretch;
+}
+
+.engine-dials {
+  overflow: visible;
+  grid-template-columns: repeat(3, minmax(112px, 1fr));
+  gap: 14px;
+  padding: 20px 18px 18px;
+}
+
+.engine-dials-head {
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.engine-dials-head small {
+  max-width: 250px;
+  line-height: 1.55;
+}
+
+.engine-dial {
+  min-height: 286px;
+  padding: 16px 12px 14px;
+  justify-content: start;
+}
+
+.engine-dial-ring {
+  width: clamp(116px, 9vw, 144px);
+}
+
+.engine-dial > span {
+  font-size: 11.5px;
+}
+
+.engine-dial.protection .engine-dial-ring,
+.engine-dial.defenses .engine-dial-ring,
+.engine-dial.ml .engine-dial-ring {
+  position: relative;
+}
+
+.engine-dial.protection .engine-dial-ring::before,
+.engine-dial.defenses .engine-dial-ring::before,
+.engine-dial.ml .engine-dial-ring::before {
+  inset: -7px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgba(255,255,255,.08) transparent rgba(255,255,255,.02) transparent;
+}
+
+.engine-dial.protection .engine-dial-ring::after,
+.engine-dial.defenses .engine-dial-ring::after,
+.engine-dial.ml .engine-dial-ring::after {
+  inset: auto;
+  width: 8px;
+  height: 8px;
+  top: 8%;
+  left: calc(50% - 4px);
+  border-radius: 50%;
+  background: #f2d6ff;
+  box-shadow: 0 0 12px rgba(242, 214, 255, .55);
+  transform-origin: 4px 56px;
+  animation: fortressDialOrbit 4.8s linear infinite;
+}
+
+.engine-dial.defenses .engine-dial-ring::after {
+  background: #95f1d6;
+  box-shadow: 0 0 12px rgba(149, 241, 214, .5);
+  animation-duration: 5.6s;
+}
+
+.engine-dial.ml .engine-dial-ring::after {
+  background: #ffc47a;
+  box-shadow: 0 0 12px rgba(255, 196, 122, .55);
+  animation-duration: 5s;
+}
+
+.engine-dial.ml.online .engine-dial-ring::after {
+  background: #72f0c8;
+  box-shadow: 0 0 12px rgba(114, 240, 200, .55);
+}
+
+.engine-dial-ring strong,
+.engine-dial-ring i,
+.engine-dial-ring small {
+  animation: fortressTelemetryPulse 3.2s ease-in-out infinite;
+}
+
+.engine-dial-ring small { animation-delay: .14s; }
+.engine-dial-ring i { animation-delay: .22s; }
+
+.engine-dials-floor {
+  margin-top: 8px;
+  padding: 12px 12px 6px;
+  gap: 14px;
+}
+
+.engine-dials-bars {
+  min-height: 20px;
+}
+
+.engine-dials-bars i {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.engine-control-deck {
+  justify-content: center;
+}
+
+.engine-mode-button {
+  min-height: 104px;
+}
+
+.engine-mode-button.processing {
+  border-color: rgba(130, 238, 208, .34);
+  background: linear-gradient(180deg, rgba(52, 28, 84, .68), rgba(19, 11, 34, .88));
+  box-shadow: inset 0 0 24px rgba(111, 241, 203, .08), 0 0 28px rgba(89, 211, 178, .08);
+}
+
+.engine-mode-button.processing::before {
+  inset: auto 14px 10px 14px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(107, 241, 203, 0), rgba(107, 241, 203, .95), rgba(225, 162, 255, .92), rgba(107, 241, 203, 0));
+  background-size: 200% 100%;
+  animation: fortressModeProcessingLine 1s linear infinite;
+}
+
+.engine-mode-button.processing::after {
+  background: #74f2ca;
+  box-shadow: 0 0 16px rgba(116, 242, 202, .52);
+  animation: fortressModeProcessingDot .9s ease-in-out infinite;
+}
+
+.engine-mode-button.processing i {
+  color: #baf7e4;
+  animation: fortressModeIconPulse .95s ease-in-out infinite;
+}
+
+.engine-mode-button.processing span,
+.engine-mode-button.processing small {
+  color: #f4f8ff;
+}
+
+.engine-activation-overlay {
+  transition: opacity .22s ease, visibility .22s ease;
+}
+
+.engine-activation-steps {
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.engine-activation-steps span {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 165, 255, .16);
+  background: rgba(39, 16, 59, .38);
+  transition: transform .22s ease, background .22s ease, border-color .22s ease, color .22s ease, box-shadow .22s ease;
+}
+
+.engine-activation-steps span.active {
+  color: #fff7ff;
+  border-color: rgba(234, 169, 255, .34);
+  background: linear-gradient(90deg, rgba(174, 75, 227, .34), rgba(85, 39, 123, .46));
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 0 16px rgba(180, 77, 239, .16);
+}
+
+.engine-activation-steps span.complete {
+  color: #baf4df;
+  border-color: rgba(100, 234, 190, .22);
+  background: linear-gradient(90deg, rgba(24, 93, 72, .28), rgba(14, 48, 38, .2));
+}
+
+.engine-activation-steps span.active i {
+  background: #f1b1ff;
+  box-shadow: 0 0 12px rgba(241, 177, 255, .62);
+}
+
+.engine-activation-steps span.complete i {
+  background: #76edc6;
+  box-shadow: 0 0 10px rgba(118, 237, 198, .56);
+}
+
+.engine-processing .engine-activation-core {
+  animation-duration: .72s;
+}
+
+.engine-control-note span {
+  transition: opacity .2s ease;
+}
+
+@keyframes fortressDialOrbit {
+  from { transform: rotate(0deg) translateY(-54px) rotate(0deg); }
+  to { transform: rotate(360deg) translateY(-54px) rotate(-360deg); }
+}
+
+@keyframes fortressTelemetryPulse {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: .86; filter: brightness(1.12); }
+}
+
+@keyframes fortressModeProcessingLine {
+  from { background-position: 200% 0; }
+  to { background-position: 0 0; }
+}
+
+@keyframes fortressModeProcessingDot {
+  0%, 100% { transform: scale(.85); opacity: .8; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+@keyframes fortressModeIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@media (max-width: 1180px) {
+  .defense-engine-console {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-dial {
+    min-height: 268px;
+  }
+}
+
+@media (max-width: 760px) {
+  .engine-dials {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 16px 12px 14px;
+  }
+
+  .engine-dial {
+    min-height: 228px;
+    padding: 12px 8px 12px;
+  }
+
+  .engine-dials-head small {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .engine-dials {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-dial {
+    min-height: auto;
+    padding-bottom: 16px;
+  }
+
+  .engine-dial-ring {
+    width: 108px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engine-dial.protection .engine-dial-ring::after,
+  .engine-dial.defenses .engine-dial-ring::after,
+  .engine-dial.ml .engine-dial-ring::after,
+  .engine-dial-ring strong,
+  .engine-dial-ring i,
+  .engine-dial-ring small,
+  .engine-mode-button.processing::before,
+  .engine-mode-button.processing::after,
+  .engine-mode-button.processing i {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS THROTTLE ARC STYLE
+   Inspired by the requested fading / glowing moving bar look
+   ========================================================= */
+.engine-dial.protection {
+  --arc-a: rgba(118, 240, 210, .98);
+  --arc-b: rgba(99, 144, 255, .92);
+  --arc-head: rgba(228, 248, 255, .98);
+  --arc-track: rgba(106, 96, 146, .14);
+  --arc-glow: rgba(118, 240, 210, .34);
+  --arc-rotation-start: -30deg;
+  --arc-rotation-end: 24deg;
+}
+
+.engine-dial.defenses {
+  --arc-a: rgba(187, 113, 255, .98);
+  --arc-b: rgba(115, 62, 255, .92);
+  --arc-head: rgba(245, 214, 255, .98);
+  --arc-track: rgba(106, 96, 146, .14);
+  --arc-glow: rgba(189, 113, 255, .32);
+  --arc-rotation-start: -24deg;
+  --arc-rotation-end: 20deg;
+}
+
+.engine-dial.ml {
+  --arc-a: rgba(255, 188, 92, .98);
+  --arc-b: rgba(255, 124, 52, .92);
+  --arc-head: rgba(255, 242, 215, .98);
+  --arc-track: rgba(106, 96, 146, .14);
+  --arc-glow: rgba(255, 166, 80, .36);
+  --arc-rotation-start: -26deg;
+  --arc-rotation-end: 22deg;
+}
+
+.engine-dial.ml.online {
+  --arc-a: rgba(107, 239, 191, .98);
+  --arc-b: rgba(107, 164, 255, .92);
+  --arc-head: rgba(230, 255, 246, .98);
+  --arc-glow: rgba(107, 239, 191, .36);
+}
+
+.engine-dial-ring {
+  position: relative;
+  overflow: visible;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(7, 4, 16, .98) 0 54%, transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), rgba(255,255,255,0) 68%);
+  box-shadow:
+    inset 0 0 32px rgba(0,0,0,.62),
+    inset 0 0 0 1px rgba(255,255,255,.02),
+    0 10px 24px rgba(0,0,0,.22);
+}
+
+.engine-dial-ring::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 212deg,
+      rgba(0,0,0,0) 0deg,
+      rgba(0,0,0,0) 150deg,
+      var(--arc-a) 172deg,
+      var(--arc-a) 196deg,
+      color-mix(in srgb, var(--arc-a) 72%, var(--arc-b)) 220deg,
+      var(--arc-b) 246deg,
+      rgba(255,255,255,.98) 253deg,
+      rgba(255,255,255,0) 258deg,
+      rgba(0,0,0,0) 360deg
+    );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px), #000 calc(100% - 3px), transparent calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px), #000 calc(100% - 3px), transparent calc(100% - 2px));
+  filter: drop-shadow(0 0 10px var(--arc-glow)) drop-shadow(0 0 22px color-mix(in srgb, var(--arc-glow) 72%, transparent));
+  animation: fortressThrottleSweep 2.8s ease-in-out infinite alternate;
+}
+
+.engine-dial-ring::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from 212deg,
+      rgba(0,0,0,0) 0deg 245deg,
+      rgba(255,255,255,0) 246deg,
+      color-mix(in srgb, var(--arc-head) 58%, transparent) 248deg,
+      var(--arc-head) 251deg,
+      rgba(255,255,255,1) 253deg,
+      var(--arc-head) 255deg,
+      rgba(255,255,255,0) 258deg,
+      rgba(0,0,0,0) 360deg
+    );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 17px), #000 calc(100% - 16px), #000 calc(100% - 1px), transparent 100%);
+          mask: radial-gradient(farthest-side, transparent calc(100% - 17px), #000 calc(100% - 16px), #000 calc(100% - 1px), transparent 100%);
+  filter:
+    drop-shadow(0 0 5px var(--arc-head))
+    drop-shadow(0 0 12px var(--arc-head))
+    drop-shadow(0 0 20px var(--arc-glow));
+  animation: fortressThrottleHead 2.8s ease-in-out infinite alternate;
+}
+
+.engine-dial-ring > strong,
+.engine-dial-ring > small,
+.engine-dial-ring > i {
+  position: relative;
+  z-index: 2;
+}
+
+.engine-dial.protection .engine-dial-ring::before,
+.engine-dial.protection .engine-dial-ring::after {
+  animation-duration: 3.2s;
+}
+
+.engine-dial.defenses .engine-dial-ring::before,
+.engine-dial.defenses .engine-dial-ring::after {
+  animation-duration: 2.9s;
+}
+
+.engine-dial.ml .engine-dial-ring::before,
+.engine-dial.ml .engine-dial-ring::after {
+  animation-duration: 2.55s;
+}
+
+.engine-dial.ml.queued .engine-dial-ring::before,
+.engine-dial.ml.queued .engine-dial-ring::after {
+  animation-duration: 1.72s;
+}
+
+.engine-dial.ml.online .engine-dial-ring::before,
+.engine-dial.ml.online .engine-dial-ring::after {
+  animation-duration: 3.65s;
+}
+
+@keyframes fortressThrottleSweep {
+  0% {
+    transform: rotate(var(--arc-rotation-start)) scale(1);
+    opacity: .88;
+    filter: drop-shadow(0 0 8px var(--arc-glow)) drop-shadow(0 0 16px color-mix(in srgb, var(--arc-glow) 60%, transparent));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px var(--arc-glow)) drop-shadow(0 0 28px color-mix(in srgb, var(--arc-glow) 88%, transparent));
+  }
+  100% {
+    transform: rotate(var(--arc-rotation-end)) scale(1.015);
+    opacity: .95;
+    filter: drop-shadow(0 0 11px var(--arc-glow)) drop-shadow(0 0 24px color-mix(in srgb, var(--arc-glow) 78%, transparent));
+  }
+}
+
+@keyframes fortressThrottleHead {
+  0% {
+    transform: rotate(var(--arc-rotation-start)) scale(1);
+    opacity: .82;
+    filter:
+      drop-shadow(0 0 4px var(--arc-head))
+      drop-shadow(0 0 9px var(--arc-head))
+      drop-shadow(0 0 15px var(--arc-glow));
+  }
+  50% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 6px var(--arc-head))
+      drop-shadow(0 0 15px var(--arc-head))
+      drop-shadow(0 0 26px var(--arc-glow));
+  }
+  100% {
+    transform: rotate(var(--arc-rotation-end)) scale(1.012);
+    opacity: .98;
+    filter:
+      drop-shadow(0 0 5px var(--arc-head))
+      drop-shadow(0 0 12px var(--arc-head))
+      drop-shadow(0 0 22px var(--arc-glow));
+  }
+}
+
+.engine-dials[data-engine-live="1"] .engine-dials-head strong {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.engine-dials[data-engine-live="1"] .engine-dials-head strong {
+  text-shadow: 0 0 18px rgba(210, 163, 255, .12);
+  animation: fortressLiveTelemetryText 2.4s ease-in-out infinite;
+}
+
+.engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+  content: '';
+  width: 34px;
+  height: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg,
+      rgba(113, 238, 206, 0),
+      rgba(113, 238, 206, .72) 34%,
+      rgba(209, 151, 255, .95) 62%,
+      rgba(209, 151, 255, 0));
+  background-size: 180% 100%;
+  box-shadow: 0 0 12px rgba(170, 143, 255, .18);
+  animation: fortressTelemetryLine 1.65s ease-in-out infinite alternate;
+}
+
+@keyframes fortressTelemetryLine {
+  0% {
+    transform: scaleX(.72);
+    opacity: .58;
+    background-position: 100% 0;
+    transform-origin: left center;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+    background-position: 0 0;
+    transform-origin: left center;
+  }
+}
+
+@keyframes fortressLiveTelemetryText {
+  0%, 100% { opacity: .92; text-shadow: 0 0 12px rgba(210, 163, 255, .08); }
+  50% { opacity: 1; text-shadow: 0 0 18px rgba(210, 163, 255, .2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engine-dial-ring::before,
+  .engine-dial-ring::after,
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — PURPLE THROTTLE GAUGE PASS
+   Fading violet performance arcs with a bright straight
+   leading edge and irregular engine-rev / throttle movement.
+   ========================================================= */
+.engine-dial.protection,
+.engine-dial.defenses,
+.engine-dial.ml,
+.engine-dial.ml.online,
+.engine-dial.ml.queued,
+.engine-dial.ml.standby,
+.engine-dial.ml.offline {
+  --throttle-purple-deep: rgba(111, 34, 181, .14);
+  --throttle-purple: rgba(177, 77, 255, .98);
+  --throttle-purple-hot: #ce7cff;
+  --throttle-purple-head: #fbecff;
+  --throttle-purple-glow: rgba(190, 88, 255, .64);
+  --throttle-head-radius: clamp(47px, 4.15vw, 61px);
+}
+
+/*
+ * IMPORTANT: these three higher-specificity rules intentionally replace the
+ * older per-dial conic backgrounds. Without them, CORE and INTELLIGENCE keep
+ * part of their old static progress arc visible underneath the live throttle.
+ */
+.engine-dial.protection .engine-dial-ring,
+.engine-dial.defenses .engine-dial-ring,
+.engine-dial.ml .engine-dial-ring,
+.engine-dial.ml.online .engine-dial-ring,
+.engine-dial.ml.queued .engine-dial-ring,
+.engine-dial.ml.standby .engine-dial-ring,
+.engine-dial.ml.offline .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(171, 82, 255, .055), transparent 34%),
+    radial-gradient(circle at 50% 50%, rgba(7, 4, 16, .995) 0 54%, transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(177, 77, 255, .04), rgba(255,255,255,0) 70%);
+  box-shadow:
+    inset 0 0 34px rgba(0,0,0,.66),
+    inset 0 0 0 1px rgba(212, 151, 255, .035),
+    0 10px 24px rgba(0,0,0,.22),
+    0 0 30px rgba(177, 77, 255, .04);
+}
+
+/*
+ * Longer fading purple trail. The visible section starts much earlier than
+ * the previous version, so the rev arc reads as a long performance sweep
+ * instead of a short glowing dash.
+ */
+.engine-dial-ring::before,
+.engine-dial.protection .engine-dial-ring::before,
+.engine-dial.defenses .engine-dial-ring::before,
+.engine-dial.ml .engine-dial-ring::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from 212deg,
+      rgba(151, 48, 235, 0) 0deg 112deg,
+      rgba(151, 48, 235, .018) 124deg,
+      rgba(151, 48, 235, .055) 138deg,
+      rgba(151, 48, 235, .13) 154deg,
+      rgba(158, 52, 242, .25) 174deg,
+      rgba(164, 56, 246, .43) 194deg,
+      rgba(170, 61, 250, .64) 214deg,
+      rgba(178, 69, 255, .82) 232deg,
+      var(--throttle-purple) 246deg,
+      var(--throttle-purple-hot) 253deg,
+      rgba(232, 186, 255, .99) 257deg,
+      rgba(205, 120, 255, .46) 261deg,
+      rgba(164, 56, 246, .10) 266deg,
+      rgba(151, 48, 235, 0) 272deg 360deg
+    );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 17px), #000 calc(100% - 16px), #000 calc(100% - 4px), transparent calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 17px), #000 calc(100% - 16px), #000 calc(100% - 4px), transparent calc(100% - 3px));
+  opacity: .98;
+  filter:
+    drop-shadow(0 0 7px rgba(190, 88, 255, .38))
+    drop-shadow(0 0 18px rgba(176, 63, 255, .24));
+  animation: fortressPurpleThrottleArc 3.05s cubic-bezier(.45,.02,.28,1) infinite;
+  will-change: transform, filter, opacity;
+}
+
+/* Bright straight line at the head of the purple throttle arc. */
+.engine-dial-ring::after,
+.engine-dial.protection .engine-dial-ring::after,
+.engine-dial.defenses .engine-dial-ring::after,
+.engine-dial.ml .engine-dial-ring::after {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 20px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,1) 0%,
+    var(--throttle-purple-head) 18%,
+    #e9b8ff 48%,
+    rgba(196, 92, 255, .98) 75%,
+    rgba(161, 55, 237, .06) 100%
+  );
+  box-shadow:
+    0 0 3px rgba(255,255,255,.98),
+    0 0 9px rgba(229, 181, 255, .96),
+    0 0 19px rgba(194, 91, 255, .82),
+    0 0 31px rgba(157, 48, 237, .48);
+  transform: translate(-50%, -50%) rotate(86deg) translateY(calc(-1 * var(--throttle-head-radius)));
+  transform-origin: 50% 50%;
+  animation: fortressPurpleThrottleHead 3.05s cubic-bezier(.45,.02,.28,1) infinite;
+  will-change: transform, filter, opacity;
+}
+
+/* Each channel revs on a slightly different cadence so the matrix feels live. */
+.engine-dial.protection .engine-dial-ring::before,
+.engine-dial.protection .engine-dial-ring::after {
+  animation-duration: 3.20s;
+  animation-delay: -.15s;
+}
+
+.engine-dial.defenses .engine-dial-ring::before,
+.engine-dial.defenses .engine-dial-ring::after {
+  animation-duration: 2.82s;
+  animation-delay: -.58s;
+}
+
+.engine-dial.ml .engine-dial-ring::before,
+.engine-dial.ml .engine-dial-ring::after {
+  animation-duration: 2.55s;
+  animation-delay: -1.08s;
+}
+
+.engine-dial.ml.queued .engine-dial-ring::before,
+.engine-dial.ml.queued .engine-dial-ring::after {
+  animation-duration: 1.72s;
+}
+
+.engine-dial.ml.online .engine-dial-ring::before,
+.engine-dial.ml.online .engine-dial-ring::after {
+  animation-duration: 2.95s;
+}
+
+/* Profile switching revs all three channels much harder for a short moment. */
+.defense-engine-panel.engine-processing .engine-dial-ring::before,
+.defense-engine-panel.engine-processing .engine-dial-ring::after {
+  animation-duration: .82s !important;
+  filter:
+    drop-shadow(0 0 8px rgba(240, 211, 255, .78))
+    drop-shadow(0 0 22px rgba(196, 91, 255, .78))
+    drop-shadow(0 0 36px rgba(151, 45, 237, .42));
+}
+
+.defense-engine-panel.mode-fortress_boost:not(.engine-processing) .engine-dial-ring::before,
+.defense-engine-panel.mode-fortress_boost:not(.engine-processing) .engine-dial-ring::after {
+  animation-duration: 2.05s;
+}
+
+/* LIVE TELEMETRY gets a longer purple rev indicator with a bright head. */
+.engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+  width: 58px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(149, 47, 229, 0) 0%,
+    rgba(153, 48, 234, .08) 12%,
+    rgba(163, 53, 244, .28) 32%,
+    rgba(175, 63, 252, .62) 56%,
+    #b94fff 76%,
+    #df9fff 90%,
+    #fff5ff 96%,
+    rgba(211, 128, 255, .20) 100%
+  );
+  box-shadow:
+    0 0 8px rgba(213, 143, 255, .52),
+    0 0 18px rgba(178, 70, 255, .28);
+  transform-origin: left center;
+  animation: fortressPurpleTelemetryThrottle 1.95s cubic-bezier(.4,.03,.25,1) infinite;
+}
+
+/* Defense bus now follows the same purple glow instead of the old orange. */
+.engine-dials-bars i {
+  background: linear-gradient(90deg, rgba(133, 38, 211, .14), rgba(168, 55, 245, .66) 55%, #c463ff 84%, #f0caff 96%, #fff5ff 100%);
+  box-shadow: 0 0 9px rgba(185, 75, 255, .26);
+  animation-name: fortressPurpleBusPulse;
+  animation-duration: 1.45s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Selected-mode processing strip uses the same purple throttle language. */
+.engine-mode-button.processing {
+  border-color: rgba(205, 124, 255, .42);
+  box-shadow: inset 0 0 24px rgba(190, 85, 255, .10), 0 0 28px rgba(169, 58, 247, .10);
+}
+
+.engine-mode-button.processing::before {
+  height: 3px;
+  background: linear-gradient(90deg, rgba(139, 42, 215, 0), rgba(166, 51, 241, .34) 34%, #b94fff 68%, #e6adff 91%, rgba(255,255,255,.99) 97%, rgba(190, 91, 255, .14));
+  background-size: 170% 100%;
+  box-shadow: 0 0 9px rgba(196, 95, 255, .38);
+  animation: fortressPurpleModeThrottle .72s cubic-bezier(.4,.03,.25,1) infinite;
+}
+
+.engine-mode-button.processing::after {
+  background: #d27cff;
+  box-shadow: 0 0 5px rgba(244, 221, 255, .88), 0 0 17px rgba(194, 91, 255, .82);
+}
+
+.engine-mode-button.processing i {
+  color: #dfa3ff;
+  filter: drop-shadow(0 0 9px rgba(197, 91, 255, .34));
+}
+
+@keyframes fortressPurpleThrottleArc {
+  0% {
+    transform: rotate(-24deg) scale(.995);
+    opacity: .76;
+    filter: drop-shadow(0 0 6px rgba(181, 69, 255, .28)) drop-shadow(0 0 13px rgba(159, 47, 239, .14));
+  }
+  12% {
+    transform: rotate(4deg) scale(1.002);
+    opacity: .97;
+  }
+  23% {
+    transform: rotate(-5deg) scale(.998);
+    opacity: .86;
+  }
+  42% {
+    transform: rotate(25deg) scale(1.008);
+    opacity: 1;
+    filter: drop-shadow(0 0 9px rgba(216, 136, 255, .56)) drop-shadow(0 0 24px rgba(181, 69, 255, .38));
+  }
+  52% {
+    transform: rotate(14deg) scale(1.002);
+    opacity: .91;
+  }
+  68% {
+    transform: rotate(33deg) scale(1.01);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px rgba(230, 164, 255, .62)) drop-shadow(0 0 28px rgba(164, 51, 245, .44));
+  }
+  82% {
+    transform: rotate(5deg) scale(1.001);
+    opacity: .92;
+  }
+  100% {
+    transform: rotate(-18deg) scale(.997);
+    opacity: .81;
+    filter: drop-shadow(0 0 7px rgba(190, 78, 255, .34)) drop-shadow(0 0 15px rgba(157, 45, 237, .18));
+  }
+}
+
+@keyframes fortressPurpleThrottleHead {
+  0% {
+    transform: translate(-50%, -50%) rotate(86deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .78;
+    filter: brightness(.96);
+  }
+  12% {
+    transform: translate(-50%, -50%) rotate(114deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .99;
+  }
+  23% {
+    transform: translate(-50%, -50%) rotate(105deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .88;
+  }
+  42% {
+    transform: translate(-50%, -50%) rotate(135deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+  52% {
+    transform: translate(-50%, -50%) rotate(124deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .94;
+  }
+  68% {
+    transform: translate(-50%, -50%) rotate(143deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: 1;
+    filter: brightness(1.3);
+  }
+  82% {
+    transform: translate(-50%, -50%) rotate(115deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .93;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(92deg) translateY(calc(-1 * var(--throttle-head-radius)));
+    opacity: .82;
+    filter: brightness(1);
+  }
+}
+
+@keyframes fortressPurpleTelemetryThrottle {
+  0%, 100% { transform: scaleX(.42); opacity: .54; filter: brightness(.9); }
+  20% { transform: scaleX(.78); opacity: .92; }
+  31% { transform: scaleX(.64); opacity: .78; }
+  52% { transform: scaleX(1); opacity: 1; filter: brightness(1.24); }
+  64% { transform: scaleX(.82); opacity: .9; }
+  81% { transform: scaleX(.98); opacity: 1; filter: brightness(1.14); }
+}
+
+@keyframes fortressPurpleBusPulse {
+  0%, 100% { transform: scaleY(.56) scaleX(.88); opacity: .46; filter: brightness(.9); }
+  45% { transform: scaleY(.82) scaleX(.96); opacity: .8; }
+  68% { transform: scaleY(1) scaleX(1); opacity: 1; filter: brightness(1.22); }
+}
+
+@keyframes fortressPurpleModeThrottle {
+  0%, 100% { transform: scaleX(.34); transform-origin: left center; background-position: 100% 0; opacity: .60; }
+  38% { transform: scaleX(.82); transform-origin: left center; opacity: 1; }
+  52% { transform: scaleX(.68); transform-origin: left center; opacity: .86; }
+  76% { transform: scaleX(1); transform-origin: left center; background-position: 0 0; opacity: 1; }
+}
+
+@media (max-width: 560px) {
+  .engine-dial.protection,
+  .engine-dial.defenses,
+  .engine-dial.ml {
+    --throttle-head-radius: 45px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engine-dial-ring::before,
+  .engine-dial-ring::after,
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after,
+  .engine-dials-bars i,
+  .engine-mode-button.processing::before {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — GLOBAL OPERATING PALETTES
+   Standard        = forest green
+   Balanced        = FortressAuth purple
+   Fortress Boost  = blood red
+
+   Security semantics are intentionally NOT recolored: --green, --amber and
+   --red remain the success/warning/danger status colors. Only the operating
+   identity, surfaces, ambient light and interactive accent change by profile.
+   ========================================================= */
+body[data-fortress-theme] {
+  --theme-accent: #b45cff;
+  --theme-accent-2: #d497ff;
+  --theme-accent-rgb: 180, 92, 255;
+  --theme-accent-2-rgb: 212, 151, 255;
+  --theme-surface-rgb: 29, 12, 51;
+  --theme-surface-2-rgb: 53, 24, 78;
+  --theme-deep-rgb: 11, 4, 20;
+  --theme-bg-top: #0b0414;
+  --theme-bg-bottom: #07020d;
+  --theme-ambient-1: #9b4de4;
+  --theme-ambient-2: #7d3abe;
+  --theme-panel: rgba(20, 9, 37, .88);
+  --theme-panel-strong: rgba(29, 12, 51, .96);
+  --theme-panel-soft: rgba(53, 24, 78, .54);
+  --theme-line: rgba(205, 159, 255, .14);
+  --theme-line-strong: rgba(198, 133, 255, .32);
+  --theme-throttle-hot: #f0caff;
+  --theme-throttle-head: #fff5ff;
+
+  /* Existing variable-driven components automatically inherit the profile. */
+  --bg: var(--theme-bg-bottom);
+  --panel: var(--theme-panel);
+  --panel-strong: var(--theme-panel-strong);
+  --panel-soft: var(--theme-panel-soft);
+  --line: var(--theme-line);
+  --line-strong: var(--theme-line-strong);
+  --purple: var(--theme-accent);
+  --purple-2: var(--theme-accent-2);
+}
+
+body[data-fortress-theme="standard"] {
+  --theme-accent: #28996b;
+  --theme-accent-2: #63d9a8;
+  --theme-accent-rgb: 40, 153, 107;
+  --theme-accent-2-rgb: 99, 217, 168;
+  --theme-surface-rgb: 8, 39, 28;
+  --theme-surface-2-rgb: 12, 58, 40;
+  --theme-deep-rgb: 3, 18, 12;
+  --theme-bg-top: #071a12;
+  --theme-bg-bottom: #020b08;
+  --theme-ambient-1: #17784f;
+  --theme-ambient-2: #0d5c3d;
+  --theme-panel: rgba(7, 30, 21, .90);
+  --theme-panel-strong: rgba(8, 39, 28, .97);
+  --theme-panel-soft: rgba(13, 61, 43, .56);
+  --theme-line: rgba(91, 214, 160, .14);
+  --theme-line-strong: rgba(88, 221, 161, .33);
+  --theme-throttle-hot: #a9f0cf;
+  --theme-throttle-head: #eefff7;
+}
+
+body[data-fortress-theme="balanced"] {
+  --theme-accent: #b45cff;
+  --theme-accent-2: #d497ff;
+  --theme-accent-rgb: 180, 92, 255;
+  --theme-accent-2-rgb: 212, 151, 255;
+  --theme-surface-rgb: 29, 12, 51;
+  --theme-surface-2-rgb: 53, 24, 78;
+  --theme-deep-rgb: 11, 4, 20;
+  --theme-bg-top: #0b0414;
+  --theme-bg-bottom: #07020d;
+  --theme-ambient-1: #9b4de4;
+  --theme-ambient-2: #7d3abe;
+  --theme-panel: rgba(20, 9, 37, .88);
+  --theme-panel-strong: rgba(29, 12, 51, .96);
+  --theme-panel-soft: rgba(53, 24, 78, .54);
+  --theme-line: rgba(205, 159, 255, .14);
+  --theme-line-strong: rgba(198, 133, 255, .32);
+  --theme-throttle-hot: #f0caff;
+  --theme-throttle-head: #fff5ff;
+}
+
+body[data-fortress-theme="fortress_boost"] {
+  --theme-accent: #c41738;
+  --theme-accent-2: #ff536c;
+  --theme-accent-rgb: 196, 23, 56;
+  --theme-accent-2-rgb: 255, 83, 108;
+  --theme-surface-rgb: 57, 7, 18;
+  --theme-surface-2-rgb: 83, 10, 27;
+  --theme-deep-rgb: 24, 3, 8;
+  --theme-bg-top: #21050b;
+  --theme-bg-bottom: #0d0104;
+  --theme-ambient-1: #a30928;
+  --theme-ambient-2: #690619;
+  --theme-panel: rgba(40, 5, 13, .91);
+  --theme-panel-strong: rgba(57, 7, 18, .97);
+  --theme-panel-soft: rgba(84, 11, 28, .58);
+  --theme-line: rgba(255, 94, 119, .15);
+  --theme-line-strong: rgba(255, 75, 104, .35);
+  --theme-throttle-hot: #ff9aab;
+  --theme-throttle-head: #fff1f3;
+}
+
+html:has(body[data-fortress-theme="standard"]) { background: #020b08; }
+html:has(body[data-fortress-theme="balanced"]) { background: #07020d; }
+html:has(body[data-fortress-theme="fortress_boost"]) { background: #0d0104; }
+
+body.command-page[data-fortress-theme] {
+  background-color: var(--theme-bg-bottom);
+  background-image:
+    radial-gradient(circle at 14% 0%, rgba(var(--theme-accent-rgb), .19), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(var(--theme-accent-rgb), .12), transparent 26%),
+    linear-gradient(180deg, var(--theme-bg-top) 0%, var(--theme-bg-bottom) 100%);
+  transition: background-color .62s ease, color .35s ease;
+}
+
+body[data-fortress-theme] .ambient-one { background: var(--theme-ambient-1); transition: background-color .62s ease, opacity .62s ease; }
+body[data-fortress-theme] .ambient-two { background: var(--theme-ambient-2); transition: background-color .62s ease, opacity .62s ease; }
+
+/* Engine ignition sweep shown only while profiles change. */
+body.command-page.fortress-theme-switching::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(102deg,
+      transparent 0 32%,
+      rgba(var(--theme-accent-rgb), .025) 38%,
+      rgba(var(--theme-accent-2-rgb), .15) 48%,
+      rgba(255,255,255,.15) 49.3%,
+      rgba(var(--theme-accent-rgb), .10) 51%,
+      transparent 59% 100%);
+  transform: translateX(-70%);
+  animation: fortressThemeIgnition .82s cubic-bezier(.2,.72,.22,1) both;
+}
+
+@keyframes fortressThemeIgnition {
+  0% { opacity: 0; transform: translateX(-72%); }
+  18% { opacity: .78; }
+  68% { opacity: .42; }
+  100% { opacity: 0; transform: translateX(72%); }
+}
+
+/* Shared command-center chrome. These are ambient/profile accents, not status colors. */
+body[data-fortress-theme] .fortress-sidebar,
+body[data-fortress-theme] .command-chrome {
+  background:
+    linear-gradient(180deg, rgba(var(--theme-deep-rgb), .985) 0%, rgba(var(--theme-deep-rgb), .95) 78%, rgba(var(--theme-deep-rgb), 0) 100%);
+  border-color: var(--theme-line);
+  transition: background-color .55s ease, border-color .55s ease, box-shadow .55s ease;
+}
+
+body[data-fortress-theme] .fortress-page-header {
+  background:
+    linear-gradient(135deg, rgba(var(--theme-surface-rgb), .90), rgba(var(--theme-deep-rgb), .94)),
+    radial-gradient(circle at 8% 0%, rgba(var(--theme-accent-rgb), .12), transparent 34%);
+  border-color: var(--theme-line);
+  box-shadow: 0 18px 46px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.025);
+  transition: background-color .55s ease, border-color .55s ease, box-shadow .55s ease;
+}
+
+body[data-fortress-theme] .page-heading-icon,
+body[data-fortress-theme] .sidebar-brand-card .topbar-logo,
+body[data-fortress-theme] .topbar-logo {
+  color: var(--theme-accent-2);
+  border-color: rgba(var(--theme-accent-2-rgb), .20);
+  background: rgba(var(--theme-accent-rgb), .09);
+  box-shadow: 0 12px 30px rgba(var(--theme-accent-rgb), .11), inset 0 0 25px rgba(var(--theme-accent-rgb), .07);
+}
+
+body[data-fortress-theme] .sidebar-brand-card,
+body[data-fortress-theme] .sidebar-status-card,
+body[data-fortress-theme] .sidebar-operator-card,
+body[data-fortress-theme] .metric-card,
+body[data-fortress-theme] .panel,
+body[data-fortress-theme] .page-hero,
+body[data-fortress-theme] .posture-summary-strip > div {
+  border-color: var(--theme-line);
+  background:
+    linear-gradient(145deg, rgba(var(--theme-surface-rgb), .86), rgba(var(--theme-deep-rgb), .94));
+  transition: background-color .55s ease, border-color .55s ease, box-shadow .55s ease;
+}
+
+body[data-fortress-theme] .command-hero {
+  border-color: var(--theme-line);
+  background:
+    linear-gradient(112deg, rgba(var(--theme-surface-2-rgb), .72), rgba(var(--theme-deep-rgb), .92) 58%),
+    radial-gradient(circle at 80% 48%, rgba(var(--theme-accent-rgb), .17), transparent 38%);
+}
+
+body[data-fortress-theme] .command-hero::after {
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-accent-2-rgb), .34), transparent);
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel):hover {
+  border-color: rgba(var(--theme-accent-2-rgb), .15);
+  background: rgba(var(--theme-accent-rgb), .045);
+}
+
+/* Keep the selected navigation row high-contrast and visually stable across
+   Standard / Balanced / Fortress Boost. The operating profile may recolor
+   the ambient dashboard, but it must not turn the active nav item into a
+   tinted panel because that reduces readability and makes the sidebar feel
+   like a warning state. The small rail/icon still inherit the live profile. */
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active {
+  color: #1a0a27;
+  border-color: rgba(239,222,255,.96);
+  background: linear-gradient(145deg,#fffaff 0%,#f6eaff 58%,#ebdbff 100%);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.30),
+    0 0 0 1px rgba(227,199,255,.30),
+    0 0 22px rgba(180,92,255,.14),
+    inset 0 1px 0 rgba(255,255,255,.96);
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy strong {
+  color: #190a27;
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy small {
+  color: #6f5b80;
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active .nav-icon {
+  border-color: rgba(var(--theme-accent-rgb), .38);
+  background: linear-gradient(160deg, rgba(var(--theme-accent-2-rgb), .24), rgba(var(--theme-accent-rgb), .12));
+  color: var(--theme-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.80),
+    0 8px 18px rgba(var(--theme-accent-rgb), .14);
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active .nav-active-rail {
+  background: linear-gradient(180deg, var(--theme-accent-2), var(--theme-accent) 52%, rgba(var(--theme-accent-rgb), .82));
+  box-shadow: 0 0 20px rgba(var(--theme-accent-rgb), .80);
+}
+
+/* Balanced keeps the richer original FortressAuth purple navigation treatment. */
+body[data-fortress-theme="balanced"] .command-nav-links > a:not(.nav-crown-jewel).active {
+  border-color: rgba(239,222,255,.98);
+  background: linear-gradient(145deg,#fffaff 0%,#f5eaff 62%,#ead8ff 100%);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.28),
+    0 0 0 1px rgba(221,187,250,.32),
+    0 0 24px rgba(180,92,255,.18),
+    inset 0 1px 0 rgba(255,255,255,.98);
+}
+
+body[data-fortress-theme="balanced"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-icon {
+  border-color: #ddbbfa;
+  background: linear-gradient(160deg,#f3deff,#ead2ff 72%,#e3c4ff);
+  color: #7c2db5;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.88),
+    0 8px 18px rgba(180,92,255,.18);
+}
+
+body[data-fortress-theme="balanced"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-active-rail {
+  background: linear-gradient(180deg,#efb7ff,#c070ff 54%,#8c3dd1);
+  box-shadow: 0 0 20px rgba(180,92,255,.84);
+}
+
+body[data-fortress-theme] .sidebar-operator-card.operator-management-link.active,
+body[data-fortress-theme] .sidebar-operator-card.operator-management-link:hover {
+  border-color: rgba(var(--theme-accent-2-rgb), .30);
+  background: linear-gradient(145deg, rgba(var(--theme-accent-rgb), .15), rgba(255,255,255,.025));
+  box-shadow: inset 0 -2px 0 rgba(var(--theme-accent-2-rgb), .64), 0 9px 28px rgba(var(--theme-accent-rgb), .10);
+}
+
+/* Keep the active sidebar glyph saturated. The nav-icon already owns the
+   profile color; do not recolor the inner Font Awesome glyph to the lighter
+   accent-2 value, which made the selected icon look washed out. */
+body[data-fortress-theme] .eyebrow,
+body[data-fortress-theme] .hero-copy h1 span,
+body[data-fortress-theme] .panel-symbol,
+body[data-fortress-theme] .metric-icon:not(.success):not(.danger),
+body[data-fortress-theme] .asset-icon,
+body[data-fortress-theme] .page-heading-chips > span:first-child {
+  color: var(--theme-accent-2);
+}
+
+body[data-fortress-theme] .command-nav-links > a:not(.nav-crown-jewel).active .nav-icon i {
+  color: inherit;
+  filter: drop-shadow(0 0 5px rgba(var(--theme-accent-rgb), .22));
+}
+
+body[data-fortress-theme] .metric-icon:not(.success):not(.danger),
+body[data-fortress-theme] .asset-icon {
+  background: rgba(var(--theme-accent-rgb), .09);
+  border-color: rgba(var(--theme-accent-rgb), .16);
+}
+
+body[data-fortress-theme] .panel-heading,
+body[data-fortress-theme] .manage-details div,
+body[data-fortress-theme] .threat-stats span {
+  border-color: rgba(var(--theme-accent-2-rgb), .08);
+}
+
+/* Fortress Defense Engine itself inherits the operating palette. */
+body[data-fortress-theme] .defense-engine-panel {
+  --engine-rgb: var(--theme-accent-rgb);
+  --engine-rgb-2: var(--theme-accent-2-rgb);
+  --engine-accent: var(--theme-accent);
+  --engine-accent-2: var(--theme-accent-2);
+  border-color: rgba(var(--theme-accent-2-rgb), .22);
+  background:
+    linear-gradient(138deg, rgba(var(--theme-surface-2-rgb), .72), rgba(var(--theme-deep-rgb), .97) 46%, rgba(var(--theme-surface-rgb), .70)),
+    radial-gradient(circle at 16% 8%, rgba(var(--theme-accent-rgb), .17), transparent 35%);
+  box-shadow: 0 20px 70px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.035), 0 0 50px rgba(var(--theme-accent-rgb), .055);
+}
+
+body[data-fortress-theme] .defense-engine-panel::before {
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-accent-2-rgb), .32), transparent);
+}
+
+body[data-fortress-theme] .engine-dials,
+body[data-fortress-theme] .engine-control-deck,
+body[data-fortress-theme] .engine-dial,
+body[data-fortress-theme] .engine-active-profile {
+  border-color: rgba(var(--theme-accent-2-rgb), .14);
+  background: linear-gradient(155deg, rgba(var(--theme-surface-rgb), .66), rgba(var(--theme-deep-rgb), .90));
+}
+
+body[data-fortress-theme] .engine-mode-button {
+  border-color: rgba(var(--theme-accent-2-rgb), .13);
+  background: linear-gradient(145deg, rgba(var(--theme-surface-rgb), .52), rgba(var(--theme-deep-rgb), .80));
+}
+
+body[data-fortress-theme] .engine-mode-button:hover:not(:disabled),
+body[data-fortress-theme] .engine-mode-button.active {
+  border-color: rgba(var(--theme-accent-2-rgb), .42);
+  background: linear-gradient(145deg, rgba(var(--theme-accent-rgb), .25), rgba(var(--theme-surface-rgb), .74));
+  box-shadow: inset 0 0 28px rgba(var(--theme-accent-rgb), .10), 0 0 28px rgba(var(--theme-accent-rgb), .08);
+}
+
+body[data-fortress-theme] .engine-mode-button.active i,
+body[data-fortress-theme] .engine-profile-icon,
+body[data-fortress-theme] .engine-control-note i,
+body[data-fortress-theme] .engine-dials-head strong,
+body[data-fortress-theme] .engine-dials-floor small {
+  color: var(--theme-accent-2);
+}
+
+body[data-fortress-theme] .engine-profile-icon {
+  border-color: rgba(var(--theme-accent-2-rgb), .22);
+  background: rgba(var(--theme-accent-rgb), .11);
+}
+
+/* Neutral ring base: all three dials now use one operating-theme treatment. */
+body[data-fortress-theme] .engine-dial.protection .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.defenses .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.ml .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.ml.online .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.ml.queued .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.ml.standby .engine-dial-ring,
+body[data-fortress-theme] .engine-dial.ml.offline .engine-dial-ring {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(var(--theme-accent-rgb), .055), transparent 34%),
+    radial-gradient(circle at 50% 50%, rgba(var(--theme-deep-rgb), .995) 0 54%, transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(var(--theme-accent-rgb), .04), rgba(255,255,255,0) 70%);
+  box-shadow:
+    inset 0 0 34px rgba(0,0,0,.66),
+    inset 0 0 0 1px rgba(var(--theme-accent-2-rgb), .04),
+    0 10px 24px rgba(0,0,0,.22),
+    0 0 32px rgba(var(--theme-accent-rgb), .055);
+}
+
+body[data-fortress-theme] .engine-dial-ring::before,
+body[data-fortress-theme] .engine-dial.protection .engine-dial-ring::before,
+body[data-fortress-theme] .engine-dial.defenses .engine-dial-ring::before,
+body[data-fortress-theme] .engine-dial.ml .engine-dial-ring::before {
+  background:
+    conic-gradient(
+      from 212deg,
+      rgba(var(--theme-accent-rgb), 0) 0deg 104deg,
+      rgba(var(--theme-accent-rgb), .018) 118deg,
+      rgba(var(--theme-accent-rgb), .055) 134deg,
+      rgba(var(--theme-accent-rgb), .13) 151deg,
+      rgba(var(--theme-accent-rgb), .25) 171deg,
+      rgba(var(--theme-accent-rgb), .43) 193deg,
+      rgba(var(--theme-accent-rgb), .64) 216deg,
+      rgba(var(--theme-accent-rgb), .82) 236deg,
+      var(--theme-accent) 250deg,
+      var(--theme-accent-2) 258deg,
+      var(--theme-throttle-hot) 264deg,
+      rgba(var(--theme-accent-2-rgb), .48) 270deg,
+      rgba(var(--theme-accent-rgb), .10) 277deg,
+      rgba(var(--theme-accent-rgb), 0) 285deg 360deg
+    );
+  filter:
+    drop-shadow(0 0 8px rgba(var(--theme-accent-2-rgb), .40))
+    drop-shadow(0 0 20px rgba(var(--theme-accent-rgb), .26));
+}
+
+body[data-fortress-theme] .engine-dial-ring::after,
+body[data-fortress-theme] .engine-dial.protection .engine-dial-ring::after,
+body[data-fortress-theme] .engine-dial.defenses .engine-dial-ring::after,
+body[data-fortress-theme] .engine-dial.ml .engine-dial-ring::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,1) 0%,
+    var(--theme-throttle-head) 18%,
+    var(--theme-throttle-hot) 48%,
+    rgba(var(--theme-accent-2-rgb), .98) 75%,
+    rgba(var(--theme-accent-rgb), .06) 100%
+  );
+  box-shadow:
+    0 0 3px rgba(255,255,255,.98),
+    0 0 9px rgba(var(--theme-accent-2-rgb), .96),
+    0 0 20px rgba(var(--theme-accent-rgb), .82),
+    0 0 34px rgba(var(--theme-accent-rgb), .48);
+}
+
+body[data-fortress-theme] .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+  width: 68px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--theme-accent-rgb), 0) 0%,
+    rgba(var(--theme-accent-rgb), .08) 12%,
+    rgba(var(--theme-accent-rgb), .30) 34%,
+    rgba(var(--theme-accent-rgb), .64) 58%,
+    var(--theme-accent) 77%,
+    var(--theme-accent-2) 91%,
+    var(--theme-throttle-head) 97%,
+    rgba(var(--theme-accent-2-rgb), .18) 100%
+  );
+  box-shadow: 0 0 8px rgba(var(--theme-accent-2-rgb), .54), 0 0 20px rgba(var(--theme-accent-rgb), .30);
+}
+
+body[data-fortress-theme] .engine-dials-bars i {
+  background: linear-gradient(90deg,
+    rgba(var(--theme-accent-rgb), .13),
+    rgba(var(--theme-accent-rgb), .66) 55%,
+    var(--theme-accent) 84%,
+    var(--theme-accent-2) 96%,
+    var(--theme-throttle-head) 100%);
+  box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), .30);
+}
+
+body[data-fortress-theme] .engine-mode-button.processing {
+  border-color: rgba(var(--theme-accent-2-rgb), .44);
+  box-shadow: inset 0 0 24px rgba(var(--theme-accent-rgb), .12), 0 0 30px rgba(var(--theme-accent-rgb), .11);
+}
+
+body[data-fortress-theme] .engine-mode-button.processing::before {
+  background: linear-gradient(90deg,
+    rgba(var(--theme-accent-rgb), 0),
+    rgba(var(--theme-accent-rgb), .34) 34%,
+    var(--theme-accent) 68%,
+    var(--theme-accent-2) 91%,
+    rgba(255,255,255,.99) 97%,
+    rgba(var(--theme-accent-2-rgb), .14));
+  box-shadow: 0 0 10px rgba(var(--theme-accent-rgb), .42);
+}
+
+body[data-fortress-theme] .engine-mode-button.processing::after {
+  background: var(--theme-accent-2);
+  box-shadow: 0 0 5px rgba(255,255,255,.88), 0 0 18px rgba(var(--theme-accent-rgb), .84);
+}
+
+body[data-fortress-theme] .engine-mode-button.processing i {
+  color: var(--theme-accent-2);
+  filter: drop-shadow(0 0 9px rgba(var(--theme-accent-rgb), .38));
+}
+
+/* Mode-specific readiness chrome. Keep semantic success green elsewhere. */
+body[data-fortress-theme="standard"] .defense-engine-ready {
+  color: #b7f5d5;
+  border-color: rgba(99,217,168,.24);
+  background: rgba(40,153,107,.08);
+}
+body[data-fortress-theme="standard"] .defense-engine-ready i {
+  color: #63d9a8;
+  box-shadow: 0 0 14px rgba(99,217,168,.62);
+}
+body[data-fortress-theme="balanced"] .defense-engine-ready {
+  border-color: rgba(212,151,255,.20);
+  background: rgba(180,92,255,.07);
+}
+body[data-fortress-theme="fortress_boost"] .defense-engine-ready {
+  color: #ffd3da;
+  border-color: rgba(255,83,108,.30);
+  background: rgba(196,23,56,.12);
+  box-shadow: 0 0 24px rgba(196,23,56,.09);
+}
+body[data-fortress-theme="fortress_boost"] .defense-engine-ready i {
+  color: #ff536c;
+  box-shadow: 0 0 16px rgba(255,83,108,.75);
+}
+
+/* Fortress Boost gets a subtle high-alert heartbeat without turning warnings
+   into theme decoration. */
+body[data-fortress-theme="fortress_boost"] .ambient-one,
+body[data-fortress-theme="fortress_boost"] .ambient-two {
+  opacity: .17;
+  animation: fortressBoostAmbient 2.2s ease-in-out infinite;
+}
+@keyframes fortressBoostAmbient {
+  0%, 100% { transform: scale(1); opacity: .13; }
+  50% { transform: scale(1.055); opacity: .20; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.command-page.fortress-theme-switching::after,
+  body[data-fortress-theme="fortress_boost"] .ambient-one,
+  body[data-fortress-theme="fortress_boost"] .ambient-two {
+    animation: none !important;
+  }
+}

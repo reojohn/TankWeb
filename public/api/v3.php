@@ -55,6 +55,8 @@ function fortress_v3_header_context(PDO $pdo, int $userId): array
     $ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
     $policy = fortress_security_policy();
     $role = fortress_normalize_role($ctx['userRole'] ?? ($_SESSION['role'] ?? 'superadmin'));
+    $profileMode = fortress_security_profile_mode();
+    $profileDefinition = fortress_security_profile_definition($profileMode);
 
     return [
         'userId' => $userId,
@@ -63,6 +65,8 @@ function fortress_v3_header_context(PDO $pdo, int $userId): array
         'roleLabel' => $role === 'superadmin' ? 'SUPER ADMIN' : 'ADMIN',
         'protectionScore' => (int)($ctx['protectionScore'] ?? 0),
         'protectionLabel' => (string)($ctx['protectionLabel'] ?? 'PROTECTED'),
+        'defenseProfileMode' => $profileMode,
+        'defenseProfileLabel' => (string)($profileDefinition['label'] ?? 'BALANCED'),
         'activeDefenseCount' => (int)($ctx['activeDefenseCount'] ?? 0),
         'defenseTotal' => count((array)($ctx['defenseLayers'] ?? [])),
         'defenseLayers' => array_map(static fn(array $layer): array => [
@@ -316,8 +320,8 @@ try {
                 'enforcementAction'=>$result ? (string)($result['enforcement_action']??($assist?'OBSERVE':'ADVISORY_ONLY')) : ($assist?'WAITING':'ADVISORY_ONLY'),
                 'enforcementStrikes'=>$result ? (int)($result['enforcement_strikes']??0) : 0,
                 'requiredStrikes'=>$result
-                    ? (int)($result['enforcement_required_strikes'] ?? max(2,(int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2)))
-                    : max(2,(int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2)),
+                    ? (int)($result['enforcement_required_strikes'] ?? (int)fortress_ml_enforcement_config()['required_strikes'])
+                    : (int)fortress_ml_enforcement_config()['required_strikes'],
             ],
             'features'=>$features,'probabilities'=>$probs,'history'=>$history,'assistedEnabled'=>$assist,'messages'=>$messages,
         ]]);

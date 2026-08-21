@@ -115,6 +115,7 @@ $stateNeedles = [
     'user_personal_id_reset',
     'user_account_deleted',
     'security_report_generated',
+    'security_profile_changed',
 ];
 
 $meaningfulLines = [];
@@ -158,6 +159,20 @@ try {
 } catch (Throwable $e) {
     $revisionParts[] = 'db-bans=unavailable';
     $revisionParts[] = 'db-ml=unavailable';
+}
+
+// Runtime defense profile is optional until the migration is installed. Keep
+// it in a separate best-effort query so a missing new table never hides the
+// already-working ban or ML revision state.
+try {
+    $profileState = $pdo->query(
+        "SELECT mode, COALESCE(EXTRACT(EPOCH FROM changed_at)::bigint, 0) AS changed_at_epoch
+" .
+        "FROM public.security_runtime_settings WHERE singleton_id = 1 LIMIT 1"
+    )->fetch(PDO::FETCH_ASSOC) ?: [];
+    $revisionParts[] = 'db-profile=' . (string)($profileState['mode'] ?? 'balanced') . ':' . (string)($profileState['changed_at_epoch'] ?? 0);
+} catch (Throwable $e) {
+    $revisionParts[] = 'db-profile=balanced:unavailable';
 }
 
 $revision = substr(hash('sha256', implode('|', $revisionParts)), 0, 24);

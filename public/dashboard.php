@@ -48,6 +48,32 @@ $attackSurface = [
     ['fa-shield-halved', 'Blocked requests', $blockedRequests24h, 'Defense rejections / 24h'],
 ];
 
+$engineState = fortress_security_profile_state($pdo);
+$engineMode = fortress_security_profile_normalize($engineState['mode'] ?? 'balanced');
+$engineDefinition = fortress_security_profile_definition($engineMode);
+$engineCanManage = fortress_normalize_role($userRole ?? ($_SESSION['role'] ?? 'admin')) === 'superadmin';
+$engineCsrf = generate_csrf_token();
+$engineQueue = fortress_ml_queue_status();
+$enginePendingQueue = (int)($engineQueue['pending'] ?? 0);
+$engineMlEnabled = fortress_ml_enabled();
+$engineMlStatus = fortress_ml_service_status();
+$engineMlFresh = is_array($engineMlStatus)
+    && !empty($engineMlStatus['ok'])
+    && (int)($engineMlStatus['ts'] ?? 0) >= time() - 180;
+if (!$engineMlEnabled) {
+    $engineMlLabel = 'DISABLED';
+    $engineMlClass = 'offline';
+} elseif ($engineMlFresh) {
+    $engineMlLabel = 'ONLINE';
+    $engineMlClass = 'online';
+} elseif ($enginePendingQueue > 0) {
+    $engineMlLabel = 'QUEUED';
+    $engineMlClass = 'queued';
+} else {
+    $engineMlLabel = 'STANDBY';
+    $engineMlClass = 'standby';
+}
+
 $activeNav = 'overview';
 audit_log('dashboard_access uid=' . $userId);
 ?>
@@ -123,6 +149,101 @@ audit_log('dashboard_access uid=' . $userId);
                 <div><span>Active blocked IPs</span><strong class="metric-number" data-count="<?= $activeBans ?>"><?= $activeBans ?></strong><small>Database-backed network bans</small></div>
             </article>
         </section>
+
+        <!-- Fortress Defense Engine: server-persisted runtime security profile -->
+        <article class="panel defense-engine-panel mode-<?= e($engineMode) ?>"
+                 data-defense-engine
+                 data-engine-mode="<?= e($engineMode) ?>"
+                 data-engine-csrf="<?= e($engineCsrf) ?>"
+                 data-engine-can-manage="<?= $engineCanManage ? '1' : '0' ?>">
+            <div class="defense-engine-ambient" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="defense-engine-heading">
+                <div>
+                    <span class="eyebrow">RUNTIME SECURITY PROFILE</span>
+                    <h2><i class="fa-solid fa-bolt"></i> Fortress Defense Engine</h2>
+                    <p>Switch the live enforcement profile without changing the authentication flow or lowering core security controls.</p>
+                </div>
+                <span class="defense-engine-ready" data-engine-ready>
+                    <i class="fa-solid fa-circle"></i>
+                    <span data-engine-ready-label><?= $engineMode === 'fortress_boost' ? 'BOOST ACTIVE' : 'ENGINE READY' ?></span>
+                </span>
+            </div>
+
+            <div class="defense-engine-console">
+                <div class="engine-dials" aria-label="Defense engine telemetry" data-engine-live="1">
+                    <div class="engine-dials-head">
+                        <div>
+                            <span>FORTRESS MATRIX</span>
+                            <strong>Live telemetry</strong>
+                        </div>
+                        <small>Protection, layer health, and ML activity rendered in real time.</small>
+                    </div>
+                    <div class="engine-dial protection">
+                        <em class="engine-dial-tag">CORE</em>
+                        <div class="engine-dial-ring"><strong><span data-engine-countup data-engine-countup-target="<?= (int)$protectionScore ?>"><?= (int)$protectionScore ?></span></strong><small>/100</small></div>
+                        <span>Protection</span>
+                    </div>
+                    <div class="engine-dial defenses">
+                        <em class="engine-dial-tag">SHIELD BUS</em>
+                        <div class="engine-dial-ring"><strong><span data-engine-countup data-engine-countup-target="<?= (int)$activeDefenseCount ?>"><?= (int)$activeDefenseCount ?></span></strong><small>/<?= count($defenseLayers) ?></small></div>
+                        <span>Defense layers</span>
+                    </div>
+                    <div class="engine-dial ml <?= e($engineMlClass) ?>">
+                        <em class="engine-dial-tag">INTELLIGENCE</em>
+                        <div class="engine-dial-ring"><i class="fa-solid fa-brain"></i><strong><?= e($engineMlLabel) ?></strong></div>
+                        <span>ML engine</span>
+                        <small>Queue: <b data-engine-queue data-engine-countup data-engine-countup-target="<?= (int)$enginePendingQueue ?>"><?= $enginePendingQueue ?></b></small>
+                    </div>
+                    <div class="engine-dials-floor" aria-hidden="true">
+                        <span>DEFENSE BUS</span>
+                        <div class="engine-dials-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                        <small>secure live signal</small>
+                    </div>
+                </div>
+
+                <div class="engine-control-deck">
+                    <div class="engine-mode-selector" role="group" aria-label="Fortress Defense Engine mode">
+                        <button type="button" class="engine-mode-button <?= $engineMode === 'standard' ? 'active' : '' ?>" data-defense-mode="standard" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <i class="fa-solid fa-shield"></i><span>Standard</span><small>Conservative response</small>
+                        </button>
+                        <button type="button" class="engine-mode-button <?= $engineMode === 'balanced' ? 'active' : '' ?>" data-defense-mode="balanced" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <i class="fa-solid fa-scale-balanced"></i><span>Balanced</span><small>Recommended daily mode</small>
+                        </button>
+                        <button type="button" class="engine-mode-button boost <?= $engineMode === 'fortress_boost' ? 'active' : '' ?>" data-defense-mode="fortress_boost" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <i class="fa-solid fa-bolt"></i><span>Fortress Boost</span><small>High-alert defense</small>
+                        </button>
+                    </div>
+
+                    <div class="engine-active-profile">
+                        <div class="engine-profile-icon"><i class="fa-solid <?= $engineMode === 'fortress_boost' ? 'fa-bolt' : 'fa-shield-halved' ?>" data-engine-profile-icon></i></div>
+                        <div>
+                            <span>ACTIVE PROFILE</span>
+                            <strong data-engine-profile-title><?= e((string)($engineDefinition['title'] ?? 'Balanced')) ?></strong>
+                            <p data-engine-profile-description><?= e((string)($engineDefinition['description'] ?? '')) ?></p>
+                        </div>
+                    </div>
+
+                    <div class="engine-defense-flags">
+                        <span><i class="fa-solid fa-check"></i> Rule Engine</span>
+                        <span><i class="fa-solid fa-check"></i> ML Assist</span>
+                        <span><i class="fa-solid fa-check"></i> IP Defense</span>
+                        <span><i class="fa-solid fa-check"></i> Audit Evidence</span>
+                    </div>
+                    <div class="engine-control-note <?= $engineCanManage ? '' : 'locked' ?>" data-engine-message>
+                        <i class="fa-solid <?= $engineCanManage ? 'fa-circle-info' : 'fa-lock' ?>"></i>
+                        <span><?= $engineCanManage ? 'Profile changes are applied server-side and recorded in Security Logs.' : 'Only a Super Admin can change the active defense profile.' ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="engine-activation-overlay" data-engine-activation aria-hidden="true">
+                <div class="engine-activation-core"><i class="fa-solid fa-shield-halved"></i></div>
+                <strong data-engine-activation-title>INITIALIZING DEFENSE ENGINE</strong>
+                <div class="engine-activation-steps" aria-hidden="true">
+                    <span data-engine-step="rule"><i></i> RULE ENGINE</span><span data-engine-step="ip"><i></i> IP ENFORCEMENT</span><span data-engine-step="ml"><i></i> ML ASSIST</span><span data-engine-step="audit"><i></i> AUDIT TELEMETRY</span>
+                </div>
+            </div>
+        </article>
 
         <!-- 03 Security posture + 04 verification chain -->
         <section class="overview-dual">

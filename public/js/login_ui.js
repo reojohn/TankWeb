@@ -210,8 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (submit) {
             submit.classList.remove('loading', 'submitting');
-            const label = submit.querySelector('span');
-            if (label) label.textContent = 'Continue securely';
+            const label = submit.querySelector('.login-button-label') || submit.querySelector('span');
+            if (label) label.textContent = 'Login';
+            submit.setAttribute('aria-label', 'Login');
         }
 
         setFormLocked(false);
@@ -253,11 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
             shell?.classList.add('is-submitting');
             document.body.classList.add('login-verifying');
 
-            submit.classList.add('loading', 'submitting');
             setFormLocked(true);
 
-            const label = submit.querySelector('span');
-            if (label) label.textContent = 'Verifying credentials';
+            const label = submit.querySelector('.login-button-label') || submit.querySelector('span');
+            if (label) label.textContent = 'Login';
+            submit.setAttribute('aria-label', 'Login');
 
             const formData = new FormData(form);
             formData.set('response_format', 'json');
@@ -368,8 +369,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         { completeAll: true }
                     );
 
-                    if (label) label.textContent = 'Access verified';
-                    submit.classList.remove('loading');
+                    if (label) label.textContent = 'Login';
+                    submit.setAttribute('aria-label', 'Login');
 
                     // Keep the real success state visible long enough to be read.
                     await wait(reduceMotion ? 90 : 300);
@@ -387,8 +388,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     100
                 );
 
-                if (label) label.textContent = 'Access not verified';
-                submit.classList.remove('loading');
+                if (label) label.textContent = 'Login';
+                submit.setAttribute('aria-label', 'Login');
 
                 showAiDefenseToast(publicFailure.title, publicFailure.message);
 
@@ -423,8 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     100
                 );
 
-                if (label) label.textContent = 'Unable to verify';
-                submit.classList.remove('loading');
+                if (label) label.textContent = 'Login';
+                submit.setAttribute('aria-label', 'Login');
 
                 await wait(reduceMotion ? 150 : 900);
 

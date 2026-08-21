@@ -49,7 +49,8 @@ $mlPredictionTime = $mlPredictionTs > 0 ? date('Y-m-d H:i:s', $mlPredictionTs) :
 $mlAssistedEnabled = fortress_ml_assisted_enforcement_enabled();
 $mlEnforcementAction = $mlResult ? (string)($mlResult['enforcement_action'] ?? ($mlAssistedEnabled ? 'OBSERVE' : 'ADVISORY_ONLY')) : ($mlAssistedEnabled ? 'WAITING' : 'ADVISORY_ONLY');
 $mlEnforcementStrikes = $mlResult ? (int)($mlResult['enforcement_strikes'] ?? 0) : 0;
-$mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes'] ?? max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2))) : max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2));
+$mlEffectiveConfig = fortress_ml_enforcement_config();
+$mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes'] ?? (int)$mlEffectiveConfig['required_strikes']) : (int)$mlEffectiveConfig['required_strikes'];
 $mlEnforcementEvidence = $mlResult && is_array($mlResult['enforcement_evidence'] ?? null) ? $mlResult['enforcement_evidence'] : [];
 $mlResponseMode = $mlAssistedEnabled ? 'AI-ASSISTED' : 'ADVISORY';
 

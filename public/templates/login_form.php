@@ -972,28 +972,22 @@
 
 
           <button
-            class="primary-action"
+            class="primary-action image-login-action"
             type="submit"
+            aria-label="Login"
           >
 
-            <span>
-              Continue securely
+            <span class="login-button-label">
+              Login
             </span>
 
-            <svg
-              viewBox="0 0 24 24"
+            <img
+              class="login-button-art"
+              src="/images/login.png?v=20260821"
+              alt=""
               aria-hidden="true"
+              draggable="false"
             >
-
-              <path
-                d="M5 12h13"
-              />
-
-              <path
-                d="M14 7l5 5-5 5"
-              />
-
-            </svg>
 
           </button>
 

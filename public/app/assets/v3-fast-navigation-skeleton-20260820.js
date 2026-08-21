@@ -870,6 +870,7 @@ function AppShell({
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [runtimeDefenseMode, setRuntimeDefenseMode] = useState(null);
   const liveRevision = useRef(null);
   const livePollBusy = useRef(false);
   const meta = pageMap[location.pathname] || pageMap['/overview'];
@@ -882,6 +883,18 @@ function AppShell({
     document.body.className = `command-page fortress-react-v3 ${legacyBodyClass}`.trim();
     setOpen(false);
   }, [location.pathname]);
+  useEffect(() => {
+    if (data?.defenseProfileMode) setRuntimeDefenseMode(data.defenseProfileMode);
+  }, [data?.defenseProfileMode]);
+  useEffect(() => {
+    const onProfileChanged = event => {
+      const mode = event?.detail?.mode;
+      if (mode) setRuntimeDefenseMode(mode);
+      reload();
+    };
+    window.addEventListener('fortress:defense-profile-changed', onProfileChanged);
+    return () => window.removeEventListener('fortress:defense-profile-changed', onProfileChanged);
+  }, [reload]);
   useEffect(() => {
     if (!data) return;
     const id = window.setTimeout(() => {
@@ -973,12 +986,19 @@ function AppShell({
     protectionScore: 0,
     activeDefenseCount: 0,
     defenseTotal: 8,
+    defenseProfileMode: 'balanced',
+    defenseProfileLabel: 'BALANCED',
     policy: {
       alertPollSeconds: 4,
       livePollSeconds: 2,
       sessionIdleSeconds: 900
     }
   };
+  const activeDefenseMode = runtimeDefenseMode || header.defenseProfileMode || 'balanced';
+  useEffect(() => {
+    window.FortressTheme?.apply?.(activeDefenseMode);
+  }, [activeDefenseMode]);
+  const boostActive = activeDefenseMode === 'fortress_boost';
   const runtimeAttrs = {
     'data-alert-poll-seconds': header.policy?.alertPollSeconds || 4,
     'data-live-poll-seconds': header.policy?.livePollSeconds || 2,
@@ -1027,7 +1047,7 @@ function AppShell({
     className: "fa-solid fa-bars"
   })), React.createElement("div", {
     className: "fortress-mobile-title"
-  }, React.createElement("strong", null, meta[0]), React.createElement("span", null, "FortressAuth \xB7 Protection enforced")), React.createElement("div", {
+  }, React.createElement("strong", null, meta[0]), React.createElement("span", null, boostActive ? "FortressAuth \xB7 Fortress Boost active" : "FortressAuth \xB7 Protection enforced")), React.createElement("div", {
     className: "fortress-mobile-actions"
   }, React.createElement("button", {
     className: "fortress-mobile-notifications fortress-notification-toggle",
@@ -1086,7 +1106,7 @@ function AppShell({
     className: "sidebar-status-card"
   }, React.createElement("div", null, React.createElement("span", null, "Workspace status"), React.createElement("strong", null, React.createElement("i", {
     className: "live-dot"
-  }), " Enforced")), React.createElement("div", {
+  }), boostActive ? " Boosted" : " Enforced")), React.createElement("div", {
     className: "sidebar-score"
   }, React.createElement("span", null, "Score"), React.createElement("strong", null, header.protectionScore))), React.createElement(NavLink, {
     className: ({
@@ -1177,10 +1197,10 @@ function AppShell({
   })), React.createElement("div", null, React.createElement("div", {
     className: "page-heading-chips"
   }, React.createElement("span", null, "FORTRESSAUTH"), React.createElement("span", {
-    className: "status-chip"
+    className: `status-chip ${boostActive ? 'boost-active' : ''}`
   }, React.createElement("i", {
-    className: "live-dot"
-  }), " PROTECTION ENFORCED")), React.createElement("h1", null, meta[0]), React.createElement("p", null, meta[1], " \xB7 ", header.activeDefenseCount, "/", header.defenseTotal, " defense layers operational"))), React.createElement("div", {
+    className: boostActive ? 'fa-solid fa-bolt' : 'live-dot'
+  }), boostActive ? " FORTRESS BOOST ACTIVE" : " PROTECTION ENFORCED")), React.createElement("h1", null, meta[0]), React.createElement("p", null, meta[1], " \xB7 ", header.activeDefenseCount, "/", header.defenseTotal, " defense layers operational"))), React.createElement("div", {
     className: "page-heading-actions"
   }, React.createElement("div", {
     className: "header-score-card"

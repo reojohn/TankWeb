@@ -26,6 +26,48 @@ function fortress_ml_env_float(string $name, float $default, float $minimum = 0.
     return max($minimum, min($maximum, (float)$raw));
 }
 
+function fortress_ml_enforcement_config(): array
+{
+    $config = [
+        'strike_risk' => fortress_ml_env_float('ML_ASSISTED_STRIKE_RISK', 65.0, 30.0, 100.0),
+        'repeat_risk' => fortress_ml_env_float('ML_ASSISTED_REPEAT_BLOCK_RISK', 72.0, 30.0, 100.0),
+        'block_risk' => fortress_ml_env_float('ML_ASSISTED_IMMEDIATE_BLOCK_RISK', 85.0, 30.0, 100.0),
+        'min_confidence' => fortress_ml_env_float('ML_ASSISTED_MIN_CONFIDENCE', 0.82, 0.50, 1.0),
+        'repeat_confidence' => fortress_ml_env_float('ML_ASSISTED_REPEAT_CONFIDENCE', 0.85, 0.50, 1.0),
+        'block_confidence' => fortress_ml_env_float('ML_ASSISTED_BLOCK_CONFIDENCE', 0.90, 0.50, 1.0),
+        'window_seconds' => max(120, min(3600, (int)(getenv('ML_ASSISTED_STRIKE_WINDOW_SECONDS') ?: 600))),
+        'required_strikes' => max(2, min(5, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2))),
+        'ban_seconds' => max(60, min(86400, (int)(getenv('ML_ASSISTED_BAN_SECONDS') ?: 600))),
+    ];
+
+    foreach (fortress_security_profile_ml_overrides(fortress_security_profile_mode()) as $key => $value) {
+        if (array_key_exists($key, $config)) {
+            $config[$key] = $value;
+        }
+    }
+
+    // Keep the risk/confidence ladder internally consistent even if deployment
+    // environment values are unusual.
+    $config['strike_risk'] = max(30.0, min(100.0, (float)$config['strike_risk']));
+    $config['repeat_risk'] = max($config['strike_risk'], min(100.0, (float)$config['repeat_risk']));
+    $config['block_risk'] = max($config['repeat_risk'], min(100.0, (float)$config['block_risk']));
+    $config['min_confidence'] = max(0.50, min(1.0, (float)$config['min_confidence']));
+    $config['repeat_confidence'] = max($config['min_confidence'], min(1.0, (float)$config['repeat_confidence']));
+    $config['block_confidence'] = max($config['repeat_confidence'], min(1.0, (float)$config['block_confidence']));
+    $config['window_seconds'] = max(120, min(3600, (int)$config['window_seconds']));
+    $config['required_strikes'] = max(2, min(5, (int)$config['required_strikes']));
+    $config['ban_seconds'] = max(60, min(86400, (int)$config['ban_seconds']));
+
+    return $config;
+}
+
+function fortress_ml_queue_replay_limit(): int
+{
+    $configured = max(1, min(5, (int)(getenv('ML_QUEUE_REPLAY_LIMIT') ?: 2)));
+    $profile = fortress_security_profile_queue_replay_limit(fortress_security_profile_mode());
+    return $profile === null ? $configured : $profile;
+}
+
 function fortress_ml_assisted_enforcement_enabled(): bool
 {
     // The model never blocks by itself. When enabled, PHP requires model confidence
@@ -141,14 +183,15 @@ function fortress_ml_enforcement_decision(string $ip, array $features, array $re
     $enabled = fortress_ml_assisted_enforcement_enabled();
     $exempt = fortress_ml_enforcement_exempt($ip);
 
-    $strikeRisk = fortress_ml_env_float('ML_ASSISTED_STRIKE_RISK', 65.0, 30.0, 100.0);
-    $repeatRisk = fortress_ml_env_float('ML_ASSISTED_REPEAT_BLOCK_RISK', 72.0, $strikeRisk, 100.0);
-    $blockRisk = fortress_ml_env_float('ML_ASSISTED_IMMEDIATE_BLOCK_RISK', 85.0, $repeatRisk, 100.0);
-    $minConfidence = fortress_ml_env_float('ML_ASSISTED_MIN_CONFIDENCE', 0.82, 0.50, 1.0);
-    $repeatConfidence = fortress_ml_env_float('ML_ASSISTED_REPEAT_CONFIDENCE', 0.85, $minConfidence, 1.0);
-    $blockConfidence = fortress_ml_env_float('ML_ASSISTED_BLOCK_CONFIDENCE', 0.90, $repeatConfidence, 1.0);
-    $windowSeconds = max(120, min(3600, (int)(getenv('ML_ASSISTED_STRIKE_WINDOW_SECONDS') ?: 600)));
-    $requiredStrikes = max(2, min(5, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2)));
+    $mlConfig = fortress_ml_enforcement_config();
+    $strikeRisk = (float)$mlConfig['strike_risk'];
+    $repeatRisk = (float)$mlConfig['repeat_risk'];
+    $blockRisk = (float)$mlConfig['block_risk'];
+    $minConfidence = (float)$mlConfig['min_confidence'];
+    $repeatConfidence = (float)$mlConfig['repeat_confidence'];
+    $blockConfidence = (float)$mlConfig['block_confidence'];
+    $windowSeconds = (int)$mlConfig['window_seconds'];
+    $requiredStrikes = (int)$mlConfig['required_strikes'];
 
     $maliciousClass = $classification !== '' && $classification !== 'NORMAL';
     $eligibleStrike = $enabled && !$exempt && $maliciousClass
@@ -1264,7 +1307,7 @@ function fortress_ml_evaluate_request(): void
     if (!empty($decision['block'])) {
         global $pdo;
         if (isset($pdo) && $pdo instanceof PDO) {
-            $banSeconds = max(60, min(86400, (int)(getenv('ML_ASSISTED_BAN_SECONDS') ?: 600)));
+            $banSeconds = (int)fortress_ml_enforcement_config()['ban_seconds'];
             ban_ip($pdo, $ip, $banSeconds);
             audit_log(
                 'ml_assisted_block class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
@@ -1284,7 +1327,7 @@ function fortress_ml_evaluate_request(): void
 
     // The successful live call proves the ML service is awake. Replay a small
     // bounded number of saved snapshots without delaying normal navigation.
-    $replayLimit = max(1, min(5, (int)(getenv('ML_QUEUE_REPLAY_LIMIT') ?: 2)));
+    $replayLimit = fortress_ml_queue_replay_limit();
     fortress_ml_process_queue($replayLimit);
 }
 
