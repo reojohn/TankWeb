@@ -71,11 +71,11 @@ export default function AppShell({ children }) {
     const warm = () => {
       if (cancelled) return;
       warmLegacyPages(queue);
+      // Current Operator now has a silent v3 fragment endpoint, so it can be
+      // warmed safely without creating a false user_management_access event.
+      prefetchCurrentOperator();
 
-      // Current Operator and Crown Jewel are intentionally excluded from
-      // background warming. Their original v2 PHP pages write meaningful
-      // audit evidence when they are opened, so preloading them would create
-      // false access/objective events before the user actually navigates.
+      // Crown Jewel remains excluded because opening it is the pentest objective.
     };
 
     // Begin warming almost immediately after bootstrap. Running the ordinary
@@ -190,10 +190,13 @@ export default function AppShell({ children }) {
     navigate(path);
   };
 
-  const openOperator = async (event) => {
+  const openOperator = (event) => {
     if (location.pathname === '/operator') return;
     event.preventDefault();
-    await prefetchCurrentOperator();
+    // Start fetching immediately, but never hold the route transition hostage.
+    // CurrentOperator will join the same in-flight request and paint a skeleton
+    // if the warmed copy is not ready yet.
+    prefetchCurrentOperator();
     navigate('/operator');
   };
 
@@ -253,6 +256,9 @@ export default function AppShell({ children }) {
           <NavLink
             className={({isActive}) => `sidebar-operator-card operator-management-link ${isActive ? 'active' : ''}`}
             to="/operator"
+            onMouseEnter={prefetchCurrentOperator}
+            onFocus={prefetchCurrentOperator}
+            onPointerDown={prefetchCurrentOperator}
             onClick={openOperator}
           >
             <span className="sidebar-operator-icon"><i className="fa-solid fa-user-shield" /></span>

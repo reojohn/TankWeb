@@ -542,10 +542,13 @@ async function requestOperatorHtml({
     return operatorCache.html;
   }
   if (!force && operatorInflight) return operatorInflight;
-  operatorInflight = fetch('/user_management.php', {
+  operatorInflight = fetch('/api/v3_fragment.php?page=operator', {
     credentials: 'same-origin',
+    cache: 'no-store',
     headers: {
-      'X-Fortress-React': '1'
+      Accept: 'text/html',
+      'X-Fortress-React': '1',
+      'X-Fortress-Live-Refresh': '1'
     }
   }).then(async response => {
     if (response.status === 401 || response.status === 403 || response.url.includes('/login.php')) {
@@ -554,7 +557,7 @@ async function requestOperatorHtml({
     }
     const text = await response.text();
     if (!response.ok) throw new Error('Operator workspace failed to load.');
-    const html = extractContent(text);
+    const html = text.trim();
     operatorCache = {
       at: Date.now(),
       html
@@ -567,6 +570,21 @@ async function requestOperatorHtml({
 }
 function prefetchCurrentOperator() {
   return requestOperatorHtml().catch(() => '');
+}
+async function touchOperatorRoute() {
+  try {
+    const response = await fetch('/api/v3_touch.php?page=operator', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        'X-Fortress-React': '1'
+      }
+    });
+    if (response.status === 401 || response.status === 403) window.location.href = '/login.php';
+  } catch (_) {
+    // Navigation remains usable even if the audit heartbeat is temporarily unavailable.
+  }
 }
 function loadScript(src, id) {
   document.getElementById(id)?.remove();
@@ -628,6 +646,7 @@ function CurrentOperator() {
     }
   };
   useEffect(() => {
+    touchOperatorRoute();
     load();
   }, []);
   useEffect(() => {
@@ -695,7 +714,20 @@ function CurrentOperator() {
       node.removeEventListener('submit', submit);
     };
   }, [html]);
-  return React.createElement(React.Fragment, null, error ? React.createElement("section", {
+  return React.createElement(React.Fragment, null, loading && !html ? React.createElement("section", {
+    className: "v3-route-skeleton",
+    "aria-label": "Loading Current Operator",
+    "aria-busy": "true",
+    role: "status"
+  }, React.createElement("span", {
+    className: "sr-only"
+  }, "Loading Current Operator"), React.createElement("div", {
+    className: "v3-skeleton-metrics"
+  }, [0, 1, 2, 3].map(item => React.createElement("span", {
+    key: item
+  }))), React.createElement("div", {
+    className: "v3-skeleton-panels"
+  }, React.createElement("span", null), React.createElement("span", null))) : null, error ? React.createElement("section", {
     className: "panel v3-error-panel"
   }, React.createElement("i", {
     className: "fa-solid fa-triangle-exclamation"
@@ -866,8 +898,10 @@ function AppShell({
     const warm = () => {
       if (cancelled) return;
       warmLegacyPages(queue);
-      // Deliberately do not warm Current Operator or Crown Jewel here.
-      // Their v2 PHP pages record meaningful access/objective audit evidence.
+      // Safe silent fragment warm-up for Current Operator. The real route
+      // entry is audited separately by /api/v3_touch.php?page=operator.
+      prefetchCurrentOperator();
+      // Crown Jewel remains excluded because opening it is the pentest objective.
     };
     timerId = window.setTimeout(warm, 60);
     return () => {
@@ -958,10 +992,10 @@ function AppShell({
     prefetchLegacyPage(page, legacyUrl);
     navigate(path);
   };
-  const openOperator = async event => {
+  const openOperator = event => {
     if (location.pathname === '/operator') return;
     event.preventDefault();
-    await prefetchCurrentOperator();
+    prefetchCurrentOperator();
     navigate('/operator');
   };
   const openVault = async event => {
@@ -1059,6 +1093,9 @@ function AppShell({
       isActive
     }) => `sidebar-operator-card operator-management-link ${isActive ? 'active' : ''}`,
     to: "/operator",
+    onMouseEnter: prefetchCurrentOperator,
+    onFocus: prefetchCurrentOperator,
+    onPointerDown: prefetchCurrentOperator,
     onClick: openOperator
   }, React.createElement("span", {
     className: "sidebar-operator-icon"

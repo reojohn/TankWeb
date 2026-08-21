@@ -35,6 +35,7 @@ $routes = [
     'admin_logs' => ['/admin_logs.php', 'security_logs_viewed uid=' . $userId],
     'blocked_ips' => ['/blocked_ips.php', 'blocked_ips_viewed uid=' . $userId],
     'security_controls' => ['/security_controls.php', 'security_controls_viewed uid=' . $userId],
+    'operator' => ['/user_management.php', 'user_management_access uid=' . $userId],
 ];
 
 if (!isset($routes[$page])) {
