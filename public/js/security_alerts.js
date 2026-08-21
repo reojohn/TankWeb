@@ -469,9 +469,12 @@
       renderPanel();
 
       if (!state.historyLoaded) {
+        // Initial history is a snapshot, not a newly detected attack. Never
+        // replay an old security event as a fresh toast after a hard refresh
+        // or on a second device whose local notification cache is empty. New
+        // events that arrive after this cursor is established are still
+        // toasted by poll() below.
         state.historyLoaded = true;
-        const firstUnread = state.notifications.find((item) => !readIds.has(item.id));
-        if (firstUnread) queueToast(firstUnread);
       } else {
         const newestUnseen = events.find((item) => item.id && !knownIds.has(item.id) && !readIds.has(item.id));
         if (newestUnseen) queueToast(newestUnseen);

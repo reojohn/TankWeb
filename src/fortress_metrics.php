@@ -17,10 +17,48 @@ function fortress_benign_recon_paths(): array
     return [
         '/favicon.ico',
         '/robots.txt',
+        '/site.webmanifest',
+        '/manifest.webmanifest',
+        '/manifest.json',
+        '/browserconfig.xml',
         '/apple-touch-icon.png',
         '/apple-touch-icon-precomposed.png',
         '/fortress.png',
+        '/.well-known/traffic-advice',
     ];
+}
+
+function fortress_is_benign_recon_path(string $path): bool
+{
+    $path = strtolower(rawurldecode(trim($path)));
+    if ($path === '') return false;
+
+    if (in_array($path, fortress_benign_recon_paths(), true)) {
+        return true;
+    }
+
+    $basename = strtolower((string)basename($path));
+
+    // iOS and Android can ask for size-specific touch icons and can derive
+    // those requests from /app/ instead of the origin root.
+    if (preg_match('/^apple-touch-icon(?:-[0-9]+x[0-9]+)?(?:-precomposed)?\.png$/i', $basename) === 1) {
+        return true;
+    }
+
+    if (in_array($basename, [
+        'favicon.ico', 'robots.txt', 'site.webmanifest', 'manifest.webmanifest',
+        'manifest.json', 'browserconfig.xml',
+    ], true)) {
+        return true;
+    }
+
+    // Chromium-family browsers/devtools can generate this discovery request
+    // themselves. It is not an attacker probing a protected application path.
+    if (str_starts_with($path, '/.well-known/appspecific/')) {
+        return true;
+    }
+
+    return false;
 }
 
 function fortress_is_benign_recon_event_line(string $line): bool
@@ -33,14 +71,13 @@ function fortress_is_benign_recon_event_line(string $line): bool
         return false;
     }
 
-    $path = strtolower(rawurldecode(trim((string)$match[1])));
-    return in_array($path, fortress_benign_recon_paths(), true);
+    return fortress_is_benign_recon_path((string)$match[1]);
 }
 
 /** SQL predicate used only with trusted internal column names. */
 function fortress_sql_non_benign_recon_predicate(string $eventColumn = 'event_key', string $pathColumn = 'request_path'): string
 {
-    return "NOT (" . $eventColumn . " = 'reconnaissance_probe' AND LOWER(COALESCE(" . $pathColumn . ", '')) IN ('/favicon.ico','/robots.txt','/apple-touch-icon.png','/apple-touch-icon-precomposed.png','/fortress.png'))";
+    return "NOT (" . $eventColumn . " = 'reconnaissance_probe' AND (LOWER(COALESCE(" . $pathColumn . ", '')) IN ('/favicon.ico','/robots.txt','/site.webmanifest','/manifest.webmanifest','/manifest.json','/browserconfig.xml','/apple-touch-icon.png','/apple-touch-icon-precomposed.png','/fortress.png','/.well-known/traffic-advice') OR LOWER(COALESCE(" . $pathColumn . ", '')) LIKE '/.well-known/appspecific/%'))";
 }
 
 function fortress_read_lines(string $path): array

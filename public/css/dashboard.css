@@ -11277,3 +11277,523 @@ body[data-fortress-theme="fortress_boost"] .ambient-two {
     animation: none !important;
   }
 }
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — COMPACT MOBILE 1 x 3 LAYOUT
+   Keep the three telemetry cards and the three profile cards
+   side-by-side on phones so the overview does not become
+   unnecessarily tall.
+   ========================================================= */
+@media (max-width: 560px) {
+  .defense-engine-panel {
+    padding: 14px 10px;
+  }
+
+  .defense-engine-heading {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .defense-engine-heading h2 {
+    font-size: clamp(20px, 6.3vw, 26px);
+  }
+
+  .defense-engine-ready {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 8.5px;
+    white-space: nowrap;
+  }
+
+  /* TELEMETRY: always 1 row x 3 cards on mobile. */
+  .engine-dials {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 12px 7px 10px;
+  }
+
+  .engine-dials-head {
+    margin-bottom: 2px;
+  }
+
+  .engine-dials-head strong {
+    font-size: 12px;
+  }
+
+  .engine-dials-head small {
+    display: none;
+  }
+
+  .engine-dial {
+    min-width: 0;
+    min-height: 166px;
+    gap: 7px;
+    padding: 10px 4px 9px;
+    border-radius: 15px;
+  }
+
+  .engine-dial-tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 6.6px;
+    letter-spacing: .12em;
+  }
+
+  .engine-dial-ring {
+    width: clamp(64px, 20vw, 76px);
+  }
+
+  .engine-dial.protection,
+  .engine-dial.defenses,
+  .engine-dial.ml {
+    --throttle-head-radius: 31px;
+  }
+
+  .engine-dial-ring strong {
+    font-size: clamp(18px, 5.6vw, 24px);
+  }
+
+  .engine-dial-ring small {
+    font-size: 7px;
+  }
+
+  .engine-dial-ring i {
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+
+  .engine-dial.ml .engine-dial-ring strong {
+    font-size: clamp(8px, 2.4vw, 10px);
+    letter-spacing: .07em;
+  }
+
+  .engine-dial > span {
+    font-size: 8.5px;
+    line-height: 1.15;
+  }
+
+  .engine-dial > small {
+    margin-top: -2px;
+    font-size: 7.5px;
+  }
+
+  /* Keep the defense bus on one compact line as well. */
+  .engine-dials-floor {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 8px 4px 2px;
+  }
+
+  .engine-dials-floor > span,
+  .engine-dials-floor small {
+    font-size: 6.5px;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .engine-dials-bars {
+    gap: 3px;
+    min-height: 12px;
+  }
+
+  .engine-dials-bars i {
+    height: 9px;
+  }
+
+  .engine-control-deck {
+    padding: 12px 8px;
+    gap: 10px;
+  }
+
+  /* PROFILE SELECTOR: Standard / Balanced / Fortress Boost = 1 x 3. */
+  .engine-mode-selector {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .engine-mode-button {
+    min-width: 0;
+    min-height: 104px;
+    padding: 11px 5px 12px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    justify-items: center;
+    align-content: center;
+    row-gap: 5px;
+    text-align: center;
+    border-radius: 14px;
+  }
+
+  .engine-mode-button i {
+    grid-row: auto;
+    font-size: 16px;
+  }
+
+  .engine-mode-button span {
+    font-size: 10px;
+    line-height: 1.08;
+  }
+
+  .engine-mode-button small {
+    font-size: 7px;
+    line-height: 1.15;
+  }
+
+  .engine-mode-button::before {
+    inset: auto 8px 8px 8px;
+  }
+
+  .engine-mode-button::after {
+    width: 6px;
+    height: 6px;
+    right: 7px;
+    top: 7px;
+  }
+
+  .engine-active-profile {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 9px;
+    padding: 11px;
+  }
+
+  .engine-profile-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .engine-active-profile p {
+    font-size: 8px;
+  }
+
+  .engine-defense-flags {
+    gap: 6px;
+  }
+
+  .engine-defense-flags span {
+    min-height: 34px;
+    padding: 0 6px;
+    font-size: 7.5px;
+  }
+
+  .engine-control-note {
+    font-size: 7.5px;
+    line-height: 1.35;
+  }
+}
+
+/* Extra-small phones still keep the requested 1 x 3 layout. */
+@media (max-width: 360px) {
+  .defense-engine-panel {
+    padding-inline: 7px;
+  }
+
+  .engine-dials {
+    gap: 4px;
+    padding-inline: 5px;
+  }
+
+  .engine-dial {
+    min-height: 154px;
+    padding-inline: 2px;
+  }
+
+  .engine-dial-ring {
+    width: 58px;
+  }
+
+  .engine-dial.protection,
+  .engine-dial.defenses,
+  .engine-dial.ml {
+    --throttle-head-radius: 28px;
+  }
+
+  .engine-mode-selector {
+    gap: 4px;
+  }
+
+  .engine-mode-button {
+    min-height: 98px;
+    padding-inline: 3px;
+  }
+
+  .engine-mode-button span {
+    font-size: 9px;
+  }
+
+  .engine-mode-button small {
+    font-size: 6.5px;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — FINAL MOBILE TELEMETRY CENTER
+   Applies across the same mobile/tablet range as the React
+   AppShell (<= 900px), not only narrow phones.
+   The complete "LIVE TELEMETRY + animated signal" unit is
+   centered while the 1 x 3 telemetry layout remains intact.
+   ========================================================= */
+@media (max-width: 900px) {
+  /* The heading spans all three telemetry columns. */
+  .engine-dials .engine-dials-head {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    margin: 0 0 4px !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+
+  /* Center the Fortress Matrix / Live Telemetry wrapper. */
+  .engine-dials .engine-dials-head > div {
+    width: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+
+  .engine-dials .engine-dials-head > div > span {
+    width: auto !important;
+    display: block !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  /* Center LIVE TELEMETRY and its animated signal as one unit. */
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong {
+    position: relative !important;
+    width: auto !important;
+    max-width: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    text-align: center !important;
+    transform: none !important;
+  }
+
+  /* Keep the signal bar in normal flow so it participates in centering. */
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+    position: static !important;
+    display: block !important;
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 3px !important;
+    margin: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform-origin: left center !important;
+  }
+
+  /* Hide the desktop helper copy on phones. */
+  .engine-dials .engine-dials-head > small {
+    display: none !important;
+  }
+
+  /* Keep each telemetry card internally centered. */
+  .engine-dials .engine-dial {
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .engine-dials .engine-dial-ring {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — AUTHORITATIVE MOBILE FIX
+   2026-08-21
+
+   IMPORTANT:
+   This is intentionally the final rule in dashboard.css.
+
+   1) LIVE TELEMETRY + its animated signal are centered as ONE
+      visual unit. The signal remains in normal flex flow, so it
+      cannot pull the complete heading to the right.
+
+   2) On mobile/tablet the INTELLIGENCE white endpoint is rendered
+      directly inside the SAME rotating conic arc as the purple
+      throttle trail. There is no separate floating pseudo-element,
+      so the endpoint cannot become detached from the arc.
+   ========================================================= */
+
+@media (max-width: 900px) {
+  /* Heading spans the complete three-card telemetry row. */
+  .engine-dials .engine-dials-head {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    margin: 0 0 4px !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+
+  /* Give the heading content the full available row width so its
+     child can be mathematically centered against the telemetry box. */
+  .engine-dials .engine-dials-head > div {
+    width: 100% !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+
+  .engine-dials .engine-dials-head > div > span {
+    width: max-content !important;
+    max-width: 100% !important;
+    display: block !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  /* Center LIVE TELEMETRY + signal as ONE visual object. */
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong {
+    position: relative !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    text-align: center !important;
+    transform: none !important;
+  }
+
+  /* CRITICAL:
+     The signal stays in normal flex flow. Do NOT absolutely position
+     this pseudo-element on mobile, otherwise the visual unit shifts. */
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+    content: "" !important;
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 3px !important;
+    margin: 0 !important;
+    transform-origin: left center !important;
+  }
+
+  .engine-dials .engine-dials-head > small {
+    display: none !important;
+  }
+
+  .engine-dials .engine-dial {
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .engine-dials .engine-dial-ring {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* ---------------------------------------------------------
+     INTELLIGENCE gauge endpoint
+     ---------------------------------------------------------
+     Hide ONLY the ML/Intelligence separate moving head on mobile.
+     The bright endpoint below is part of ::before's conic gradient,
+     therefore it rotates with the arc and can never drift away.
+     --------------------------------------------------------- */
+  body[data-fortress-theme] .engine-dial.ml .engine-dial-ring::after,
+  body[data-fortress-theme] .engine-dial.ml.online .engine-dial-ring::after,
+  body[data-fortress-theme] .engine-dial.ml.queued .engine-dial-ring::after,
+  body[data-fortress-theme] .engine-dial.ml.standby .engine-dial-ring::after,
+  body[data-fortress-theme] .engine-dial.ml.offline .engine-dial-ring::after {
+    content: none !important;
+    display: none !important;
+    animation: none !important;
+  }
+
+  body[data-fortress-theme] .engine-dial.ml .engine-dial-ring::before,
+  body[data-fortress-theme] .engine-dial.ml.online .engine-dial-ring::before,
+  body[data-fortress-theme] .engine-dial.ml.queued .engine-dial-ring::before,
+  body[data-fortress-theme] .engine-dial.ml.standby .engine-dial-ring::before,
+  body[data-fortress-theme] .engine-dial.ml.offline .engine-dial-ring::before {
+    background:
+      conic-gradient(
+        from 212deg,
+        rgba(var(--theme-accent-rgb), 0) 0deg 104deg,
+        rgba(var(--theme-accent-rgb), .018) 118deg,
+        rgba(var(--theme-accent-rgb), .055) 134deg,
+        rgba(var(--theme-accent-rgb), .13) 151deg,
+        rgba(var(--theme-accent-rgb), .25) 171deg,
+        rgba(var(--theme-accent-rgb), .43) 193deg,
+        rgba(var(--theme-accent-rgb), .64) 216deg,
+        rgba(var(--theme-accent-rgb), .82) 236deg,
+        var(--theme-accent) 250deg,
+        var(--theme-accent-2) 258deg,
+        var(--theme-throttle-hot) 262deg,
+
+        /* Connected bright throttle head. */
+        var(--theme-throttle-head) 263deg,
+        #ffffff 265deg,
+        var(--theme-throttle-head) 267deg,
+
+        rgba(var(--theme-accent-2-rgb), .78) 269deg,
+        rgba(var(--theme-accent-rgb), .28) 273deg,
+        rgba(var(--theme-accent-rgb), .10) 277deg,
+        rgba(var(--theme-accent-rgb), 0) 283deg 360deg
+      ) !important;
+  }
+}
+
+/* Narrow-phone tuning: keep the complete centered unit comfortably
+   inside the telemetry panel without changing the requested 1 x 3 cards. */
+@media (max-width: 560px) {
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong {
+    gap: 8px !important;
+  }
+
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+    flex-basis: 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong {
+    gap: 6px !important;
+  }
+
+  .engine-dials[data-engine-live="1"] .engine-dials-head strong::after {
+    flex-basis: 24px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+  }
+}
