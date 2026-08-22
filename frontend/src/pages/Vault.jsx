@@ -96,5 +96,17 @@ export default function Vault() {
     return <main className="vault-shell"><section className="vault-stage-card"><div className="vault-copy"><h1>Vault unavailable</h1><p>{error}</p><button type="button" onClick={() => navigate('/overview')}>Return to command center</button></div></section></main>;
   }
 
+  if (!html) {
+    return (
+      <main className="vault-shell">
+        <section className="v3-route-skeleton" aria-label="Opening Fortress Vault" aria-busy="true" role="status">
+          <span className="sr-only">Verifying protected objective</span>
+          <div className="v3-skeleton-metrics">{[0, 1, 2, 3].map((item) => <span key={item} />)}</div>
+          <div className="v3-skeleton-panels"><span /><span /></div>
+        </section>
+      </main>
+    );
+  }
+
   return <div ref={root} className="v3-vault-parity" dangerouslySetInnerHTML={{ __html: html }} />;
 }

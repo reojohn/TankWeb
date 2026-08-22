@@ -837,6 +837,24 @@ function Vault() {
       onClick: () => navigate('/overview')
     }, "Return to command center"))));
   }
+  if (!html) {
+    return React.createElement("main", {
+      className: "vault-shell"
+    }, React.createElement("section", {
+      className: "v3-route-skeleton",
+      "aria-label": "Opening Fortress Vault",
+      "aria-busy": "true",
+      role: "status"
+    }, React.createElement("span", {
+      className: "sr-only"
+    }, "Verifying protected objective"), React.createElement("div", {
+      className: "v3-skeleton-metrics"
+    }, [0, 1, 2, 3].map(item => React.createElement("span", {
+      key: item
+    }))), React.createElement("div", {
+      className: "v3-skeleton-panels"
+    }, React.createElement("span", null), React.createElement("span", null))));
+  }
   return React.createElement("div", {
     ref: root,
     className: "v3-vault-parity",
@@ -1018,9 +1036,12 @@ function AppShell({
     prefetchCurrentOperator();
     navigate('/operator');
   };
-  const openVault = async event => {
+  const openVault = event => {
+    if (location.pathname === '/vault') return;
     event.preventDefault();
-    await prefetchVault();
+    // Kick off the protected request without holding the route transition.
+    // Vault joins the same in-flight request and paints a loading skeleton.
+    prefetchVault();
     navigate('/vault');
   };
   const refreshWorkspace = () => {

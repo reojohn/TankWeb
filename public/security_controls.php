@@ -52,9 +52,11 @@ $aiBanSeconds = (int)$aiConfig['ban_seconds'];
 $runtimeDefenseMode = fortress_security_profile_mode();
 $runtimeDefenseDefinition = fortress_security_profile_definition($runtimeDefenseMode);
 
+$secondFactorControlName = (string)($defenseLayers[1][0] ?? 'Personal ID 2FA');
+
 $controlDetails = [
     'Password authentication' => ['Credential hashing', 'Operational', $successfulPassword24h . ' accepted / ' . $failedAttempts24h . ' rejected in 24h'],
-    'QR-based 2FA' => [
+    $secondFactorControlName => [
         $schoolIdFactorType === 'generated_qr' ? 'Administrator-issued QR possession factor' : 'Personal ID QR possession factor',
         $schoolIdRequired ? ($schoolIdEnabled ? 'Operational' : 'Attention') : 'Disabled',
         $schoolIdRequired
@@ -65,7 +67,7 @@ $controlDetails = [
     'Brute-force defense' => ['Attempt threshold + temporary ban', 'Operational', $bruteforce24h . ' threshold triggers in 24h'],
     'Suspicious input detection' => ['SQLi, XSS, traversal, shell patterns', 'Operational', $suspiciousRequests24h . ' suspicious detections in 24h'],
     'IP ban enforcement' => ['Database + middleware network restriction', 'Operational', $activeBans . ' active database-backed bans'],
-    'Session protection' => ['Strict cookie + regeneration + idle timeout', 'Operational', '15-minute inactivity policy enforced'],
+    'Session protection' => ['Strict cookie + regeneration + idle timeout', 'Operational', fortress_policy_minutes((int)$policy['session_idle_seconds']) . ' inactivity policy enforced'],
     'Audit logging' => ['Append-only application security evidence', 'Operational', $totalAuditEvents . ' audit events retained in the current log'],
 ];
 

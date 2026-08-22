@@ -110,7 +110,19 @@ try {
             ['icon'=>'fa-terminal','label'=>'Shell-style payloads','value'=>(int)$ctx['shellAttack24h'],'note'=>'Command-pattern detections / 24h'],
             ['icon'=>'fa-spider','label'=>'Honeypot triggers','value'=>(int)$ctx['honeypot24h'],'note'=>'Honeypot events / 24h'],
             ['icon'=>'fa-gauge-high','label'=>'Rate-limit pressure','value'=>(int)$ctx['bruteforce24h'],'note'=>'Brute-force triggers / 24h'],
-            ['icon'=>'fa-shield-halved','label'=>'Blocked requests','value'=>(int)$ctx['blockedRequests24h'],'note'=>'Defense rejections / 24h'],
+            ['icon'=>'fa-shield-halved','label'=>'Blocked requests','value'=>(int)$ctx['blockedRequests24h'],'note'=>'Combined defense rejections / 24h'],
+        ];
+        $attackSurfaceMore = [
+            ['icon'=>'fa-key','label'=>'Password rejection','value'=>(int)$ctx['failedAttempts24h'],'note'=>'First-factor failures / 24h'],
+            ['icon'=>'fa-id-card','label'=>'Personal ID rejection','value'=>(int)$ctx['schoolIdFailures24h'],'note'=>'Possession-factor failures / 24h'],
+            ['icon'=>'fa-shield-halved','label'=>'CSRF rejection','value'=>(int)$ctx['csrfAttack24h'],'note'=>'Anti-CSRF rejections / 24h'],
+            ['icon'=>'fa-shield','label'=>'CSP violations','value'=>(int)$ctx['cspViolation24h'],'note'=>'Browser CSP reports / 24h'],
+            ['icon'=>'fa-magnifying-glass','label'=>'Recon / 404 probes','value'=>(int)$ctx['reconProbe24h'],'note'=>'Path-probe detections / 24h'],
+            ['icon'=>'fa-robot','label'=>'Scanner fingerprints','value'=>(int)$ctx['scanner24h'],'note'=>'Scanner-style user agents / 24h'],
+            ['icon'=>'fa-code-branch','label'=>'HTTP method abuse','value'=>(int)$ctx['methodAnomaly24h'],'note'=>'Blocked or anomalous methods / 24h'],
+            ['icon'=>'fa-file-circle-exclamation','label'=>'Oversized requests','value'=>(int)$ctx['oversizedRequest24h'],'note'=>'Abnormal request sizes / 24h'],
+            ['icon'=>'fa-ban','label'=>'Banned-source hits','value'=>(int)$ctx['bannedRequest24h'],'note'=>'Blocked banned clients / 24h'],
+            ['icon'=>'fa-door-open','label'=>'Forced Browsing','value'=>(int)$ctx['forcedBrowsing24h'],'note'=>'Unauthorized page access / 24h'],
         ];
 
         fortress_v3_json(['ok'=>true,'data'=>[
@@ -142,6 +154,7 @@ try {
                 'sessionStartDisplay' => (string)$ctx['sessionStartDisplay'],
             ],
             'attackSurface' => $attackSurface,
+            'attackSurfaceMore' => $attackSurfaceMore,
             'recentEvents' => array_map(fn(string $line): array => fortress_v3_event($line, $username), (array)$ctx['recentLines']),
             'recentAuth' => array_map(fn(string $line): array => fortress_v3_event($line, $username), (array)$ctx['recentAuthLines']),
             'timeline' => array_map(fn(string $line): array => fortress_v3_event($line, $username), (array)$ctx['timeline']),
@@ -228,7 +241,7 @@ try {
     if ($view === 'threats') {
         $ctx=fortress_build_security_context($pdo,$userId,['include_all_time_threats'=>true,'include_top_threat_sources'=>true]);
         $username=(string)$ctx['usernameRaw'];
-        $needles=['ml_assisted_block','ml_assisted_strike','ml_threat_prediction','malicious_input_detected','shell_attack_detected','request_threat_detected','csp_violation_reported','scanner_user_agent_detected','sensitive_path_probe','reconnaissance_probe','csrf_validation_failed','http_method_blocked','http_method_anomaly','endpoint_method_rejected','oversized_request_detected','oversized_uri_detected','banned_ip_attempt','banned_ip_middleware_block','bruteforce_detected','ip_banned','school_id_qr_failed','school_id_qr_locked','school_id_qr_rate_limited','password_factor_failed','auth_rejected','honeypot_triggered'];
+        $needles=['automated_recon_blocked_source_attempt','automated_recon_block','automated_recon_detected','unsafe_redirect_blocked','ml_assisted_block','ml_assisted_strike','ml_threat_prediction','malicious_input_detected','shell_attack_detected','request_threat_detected','csp_violation_reported','scanner_user_agent_detected','sensitive_path_probe','reconnaissance_probe','csrf_validation_failed','http_method_blocked','http_method_anomaly','endpoint_method_rejected','oversized_request_detected','oversized_uri_detected','banned_ip_attempt','banned_ip_middleware_block','bruteforce_detected','ip_banned','school_id_qr_failed','school_id_qr_locked','school_id_qr_rate_limited','password_factor_failed','auth_rejected','honeypot_triggered'];
         $history=fortress_recent_security_event_lines($pdo,$needles,120)?:[];
         $all=(array)$ctx['threatCategoryAllTime'];
         $defs=[

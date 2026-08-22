@@ -251,3 +251,33 @@ html,body,#root,.fortress-react-shell{max-width:100%;overflow-x:hidden}
     right: 4px !important;
   }
 }
+
+/* =========================================================
+   MOBILE DRAWER STACKING FIX — Aug 22 2026
+   The command shell had z-index:1, which created a stacking context.
+   On mobile the fixed command bar lives above that context, so it could
+   cover the drawer brand/logo even though the sidebar itself used a
+   larger z-index. Remove that parent stacking context only on mobile so
+   the intended order is restored: sidebar > overlay > command bar.
+   Desktop layout is untouched.
+   ========================================================= */
+@media (max-width: 900px) {
+  .command-shell.fortress-react-shell {
+    z-index: auto !important;
+  }
+
+  .fortress-sidebar {
+    z-index: 1000 !important;
+  }
+
+  .fortress-sidebar-overlay,
+  .fortress-sidebar-overlay.open {
+    z-index: 950 !important;
+  }
+
+  body.fortress-react-v3 > .fortress-mobile-bar,
+  body.fortress-react-v3 > #root > .fortress-mobile-bar,
+  #root > .fortress-mobile-bar {
+    z-index: 900 !important;
+  }
+}

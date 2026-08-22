@@ -31,9 +31,11 @@ for ($i = 6; $i >= 0; $i--) {
     $dailyBlocked[$key] = 0;
 }
 
-$categoryCounts = ['Authentication'=>0,'Identity'=>0,'Network'=>0,'Threat'=>0,'Session'=>0,'System'=>0];
+$categoryCounts = ['Authentication'=>0,'Identity'=>0,'Network'=>0,'Threat'=>0,'Session'=>0,'System'=>0,'Accounts'=>0,'Configuration'=>0,'Documentation'=>0];
 $outcomeCounts = ['PASSED'=>0,'REJECTED'=>0,'BLOCKED'=>0,'RECORDED'=>0,'CLOSED'=>0];
 $cutoff30d = new DateTimeImmutable('-30 days');
+$factorPassed30d = 0;
+$factorRejected30d = 0;
 $dbAnalytics = fortress_analytics_30d_db($pdo);
 
 if (is_array($dbAnalytics)) {
@@ -56,6 +58,9 @@ if (is_array($dbAnalytics)) {
         if (!isset($outcomeCounts[$outcome])) $outcomeCounts[$outcome] = 0;
         $outcomeCounts[$outcome] += $count;
     }
+    $factorSummary = (array)($dbAnalytics['factor_summary'] ?? []);
+    $factorPassed30d = (int)($factorSummary['passed'] ?? 0);
+    $factorRejected30d = (int)($factorSummary['rejected'] ?? 0);
 } else {
     // Database outage fallback: preserve the previous raw-line reconstruction.
     foreach ($auditLines as $line) {
@@ -78,6 +83,13 @@ if (is_array($dbAnalytics)) {
             $outcome = fortress_event_outcome($line);
             if (!isset($outcomeCounts[$outcome])) $outcomeCounts[$outcome] = 0;
             $outcomeCounts[$outcome]++;
+
+            $eventKey = fortress_event_key($line);
+            if (in_array($eventKey, ['password_factor_success', 'school_id_qr_success'], true)) {
+                $factorPassed30d++;
+            } elseif (in_array($eventKey, ['password_factor_failed', 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'], true)) {
+                $factorRejected30d++;
+            }
         }
     }
 }
@@ -92,10 +104,9 @@ $outcomeLabels = array_keys($outcomeCounts);
 $outcomeValues = array_values($outcomeCounts);
 
 $totalOutcomes = array_sum($outcomeValues);
-$successfulOutcomes = (int)($outcomeCounts['PASSED'] ?? 0);
-$rejectedOutcomes = (int)($outcomeCounts['REJECTED'] ?? 0) + (int)($outcomeCounts['BLOCKED'] ?? 0);
-$successRate = ($successfulOutcomes + $rejectedOutcomes) > 0
-    ? (int)round(($successfulOutcomes / ($successfulOutcomes + $rejectedOutcomes)) * 100)
+$factorDecisionCount30d = $factorPassed30d + $factorRejected30d;
+$successRate = $factorDecisionCount30d > 0
+    ? (int)round(($factorPassed30d / $factorDecisionCount30d) * 100)
     : 0;
 
 // Radar values are a relative current-pressure profile. The busiest recorded
@@ -125,8 +136,8 @@ $weekSeries = [
 $categorySeries = [['label'=>'Events','values'=>$categoryValues,'color'=>'#b45cff']];
 $pressureSeries = [['label'=>'Relative pressure','values'=>$pressureValues,'color'=>'#d497ff']];
 
-$pieColors = ['#61f7bd','#77c9ff','#ffc86a','#ff6c93','#d497ff','#7f89ff'];
-$spiralColors = ['#56d8ff','#a78bfa','#4ade80','#ff637d','#fbbf24','#60a5fa'];
+$pieColors = ['#61f7bd','#77c9ff','#ffc86a','#ff6c93','#d497ff','#7f89ff','#52e6a5','#ff9ee7','#9ad7ff'];
+$spiralColors = ['#56d8ff','#a78bfa','#4ade80','#ff637d','#fbbf24','#60a5fa','#52e6a5','#ff9ee7','#9ad7ff'];
 $outcomeColors = ['#52e6a5','#ff6b8a','#ffb84d','#5cc8ff','#b983ff'];
 
 $mostActiveCategory = 'No recorded category';
@@ -167,7 +178,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
 </section>
 
 <section class="analytics-summary-grid">
-    <article class="metric-card"><div class="metric-icon success"><i class="fa-solid fa-percent"></i></div><div><span>30-day factor success</span><strong><?= $successRate ?>%</strong><small>Passed vs rejected/blocked factor outcomes</small></div></article>
+    <article class="metric-card"><div class="metric-icon success"><i class="fa-solid fa-percent"></i></div><div><span>30-day factor success</span><strong><?= $successRate ?>%</strong><small>Password + Personal ID factor checks only</small></div></article>
     <article class="metric-card"><div class="metric-icon"><i class="fa-solid fa-chart-line"></i></div><div><span>Audit events retained</span><strong class="metric-number" data-count="<?= $totalAuditEvents ?>"><?= $totalAuditEvents ?></strong><small>Current audit evidence volume</small></div></article>
     <article class="metric-card"><div class="metric-icon danger"><i class="fa-solid fa-shield-virus"></i></div><div><span>Threat pressure</span><strong><?= e($threatLevel) ?></strong><small><?= $threatPoints ?> current pressure points</small></div></article>
     <article class="metric-card"><div class="metric-icon success"><i class="fa-solid fa-shield-halved"></i></div><div><span>Defense integrity</span><strong><?= $activeDefenseCount ?>/<?= count($defenseLayers) ?></strong><small><?= e($protectionLabel) ?></small></div></article>
@@ -181,7 +192,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     </article>
 
     <article class="panel analytics-card span-6 analytics-card-compact">
-        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY DISTRIBUTION</span><h2>Security Category Spiral</h2><p>Concentric activity rings compare authentication, identity, network, threat, session, and system event volume.</p></div><i class="fa-solid fa-circle-notch panel-symbol"></i></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY DISTRIBUTION</span><h2>Security Category Spiral</h2><p>Concentric activity rings compare all recorded FortressAuth security event categories.</p></div><i class="fa-solid fa-circle-notch panel-symbol"></i></div>
         <div class="analytics-chart-wrap small spiral-chart-wrap"><canvas data-security-chart="spiral" data-chart-title="Security Category Spiral" role="img" aria-label="Interactive concentric security category activity rings" data-labels='<?= e(json_encode($categoryLabels)) ?>' data-values='<?= e(json_encode($categoryValues)) ?>' data-colors='<?= e(json_encode($spiralColors)) ?>'></canvas></div>
         <div class="analytics-insight-strip"><div><span>Most active</span><strong><?= e($mostActiveCategory) ?></strong></div><div><span>Total categorized</span><strong><?= array_sum($categoryValues) ?></strong></div><div><span>Window</span><strong>30 days</strong></div></div>
     </article>
@@ -193,7 +204,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     </article>
 
     <article class="panel analytics-card span-4">
-        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY VOLUME</span><h2>Security Event Volume</h2><p>Thirty-day volume across the six FortressAuth security event categories.</p></div></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY VOLUME</span><h2>Security Event Volume</h2><p>Thirty-day volume across the FortressAuth security event categories.</p></div></div>
         <div class="analytics-chart-wrap"><canvas data-security-chart="bar" data-chart-title="Security Event Volume" role="img" aria-label="Interactive security event volume bar chart" data-labels='<?= e(json_encode($categoryLabels)) ?>' data-series='<?= e(json_encode($categorySeries)) ?>' data-colors='<?= e(json_encode($spiralColors)) ?>'></canvas></div>
     </article>
 

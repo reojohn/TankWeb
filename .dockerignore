@@ -13,3 +13,6 @@ data/*
 
 # ML engine is a separate deployment/build context
 ml-service
+
+# Local React source validation build
+react-build

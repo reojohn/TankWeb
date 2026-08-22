@@ -11797,3 +11797,166 @@ body[data-fortress-theme="fortress_boost"] .ambient-two {
     max-width: 24px !important;
   }
 }
+
+
+/* =========================================================
+   Final mobile evidence + verification refinements — Aug 22 2026
+   - Overview verification flow: readable 2x2 + protected row
+   - Access/Threat evidence: bounded inner scrolling on phones
+   Desktop/tablet layouts remain unchanged.
+   ========================================================= */
+@media (max-width: 720px) {
+  .command-page .verification-chain {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .command-page .verification-chain::before,
+  .command-page .chain-connector {
+    display: none !important;
+  }
+
+  .command-page .verification-chain .chain-node {
+    min-width: 0;
+    min-height: 88px;
+    padding: 10px 8px;
+  }
+
+  .command-page .verification-chain .chain-node strong {
+    font-size: 11px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .command-page .verification-chain .chain-node small {
+    font-size: 9.5px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .command-page .verification-chain .chain-node.protected {
+    grid-column: 1 / -1;
+    min-height: 78px;
+  }
+
+  /* Keep record-heavy pages useful without turning the entire route into an
+     extremely tall document. Both axes remain independently touch-scrollable. */
+  .command-page .mobile-bounded-table {
+    max-height: clamp(360px, 58dvh, 520px);
+    overflow: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid rgba(205,159,255,.07);
+    border-bottom: 1px solid rgba(205,159,255,.07);
+  }
+
+  .command-page .mobile-bounded-table .security-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #160a24;
+    box-shadow: 0 1px 0 rgba(205,159,255,.10);
+  }
+}
+
+@media (max-width: 340px) {
+  .command-page .verification-chain {
+    grid-template-columns: 1fr !important;
+  }
+
+  .command-page .verification-chain .chain-node.protected {
+    grid-column: auto;
+  }
+}
+
+
+/* =========================================================
+   Overview Request Defense — expandable 24-hour category view
+   Keeps the six compact summary cards visible by default and reveals the
+   remaining Threat Center categories on demand. Threats remains all-time.
+   ========================================================= */
+.request-defense-details {
+  margin: 0 14px 14px;
+  border: 1px solid rgba(205,159,255,.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+  overflow: hidden;
+}
+
+.request-defense-details > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: #cbbad9;
+  cursor: pointer;
+  list-style: none;
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: .045em;
+  user-select: none;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.request-defense-details > summary::-webkit-details-marker { display: none; }
+.request-defense-details > summary::marker { content: ""; }
+.request-defense-details > summary:hover,
+.request-defense-details[open] > summary {
+  color: #fff;
+  background: rgba(180,92,255,.045);
+}
+.request-defense-details > summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.request-defense-summary-open { display: none !important; }
+.request-defense-details[open] .request-defense-summary-closed { display: none !important; }
+.request-defense-details[open] .request-defense-summary-open { display: inline-flex !important; }
+.request-defense-chevron {
+  color: #8f7b9f;
+  font-size: 10px;
+  transition: transform .18s ease;
+}
+.request-defense-details[open] .request-defense-chevron { display: none; }
+.request-defense-extra-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 14px 0;
+  border-top: 1px solid rgba(205,159,255,.07);
+}
+.request-defense-extra-heading small {
+  max-width: 560px;
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+}
+.request-defense-extra-grid { padding-top: 12px; }
+
+@media (max-width: 720px) {
+  .request-defense-details { margin: 0 12px 12px; }
+  .request-defense-details > summary {
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 11px 12px;
+    font-size: 11px;
+  }
+  .request-defense-extra-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px 12px 0;
+  }
+  .request-defense-extra-heading small {
+    max-width: none;
+    text-align: left;
+  }
+}

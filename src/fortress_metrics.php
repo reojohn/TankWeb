@@ -74,6 +74,25 @@ function fortress_is_benign_recon_event_line(string $line): bool
     return fortress_is_benign_recon_path((string)$match[1]);
 }
 
+/**
+ * Match one exact request-monitor issue token from an audit line. Request
+ * events also contain a path= field, so generic substring searches for
+ * "path" can misclassify unrelated SQLi/XSS/shell events as traversal.
+ */
+function fortress_audit_line_has_issue(string $line, string $issue): bool
+{
+    if ($issue === '' || preg_match('/(?:^|\s)issues=([^\s]+)/i', $line, $match) !== 1) {
+        return false;
+    }
+
+    $tokens = array_filter(array_map(
+        static fn(string $token): string => strtolower(trim($token)),
+        explode(',', (string)$match[1])
+    ));
+
+    return in_array(strtolower($issue), $tokens, true);
+}
+
 /** SQL predicate used only with trusted internal column names. */
 function fortress_sql_non_benign_recon_predicate(string $eventColumn = 'event_key', string $pathColumn = 'request_path'): string
 {
@@ -261,6 +280,25 @@ function fortress_event_key(string $line): string
         'automated_recon_blocked_source_attempt',
         'automated_recon_block',
         'automated_recon_detected',
+        'access_activity_viewed',
+        'ai_threat_intelligence_viewed',
+        'blocked_ips_viewed',
+        'failed_attempt_history_retained',
+        'ip_unblocked',
+        'login_attempt',
+        'ml_assisted_enforcement_deferred',
+        'ml_queue_replayed',
+        'optional_2fa_schema_pending',
+        'school_id_account_lookup_failed',
+        'security_analytics_viewed',
+        'security_controls_viewed',
+        'security_logs_viewed',
+        'security_profile_changed',
+        'session_expired',
+        'threat_center_viewed',
+        'unsafe_redirect_blocked',
+        'user_password_changed_during_edit',
+        'user_profile_viewed',
         'ml_assisted_block',
         'ml_assisted_strike',
         'ml_threat_prediction',
@@ -309,7 +347,6 @@ function fortress_event_key(string $line): string
         'school_id_manage_access',
         'dashboard_access',
         'login_page_accessed',
-        'login_attempt recorded',
         'security_report_generated',
         'user_management_access',
         'user_account_created',
@@ -347,9 +384,31 @@ function fortress_event_title(string $line): string
     }
 
     $map = [
+        'automated_recon_blocked_source_attempt' => 'Blocked reconnaissance source retried',
+        'automated_recon_block' => 'Automated reconnaissance source blocked',
+        'automated_recon_detected' => 'Automated reconnaissance detected',
+        'access_activity_viewed' => 'Access Activity opened',
+        'ai_threat_intelligence_viewed' => 'AI Defense opened',
+        'blocked_ips_viewed' => 'Blocked IPs opened',
+        'failed_attempt_history_retained' => 'Failed-attempt history retained',
+        'ip_unblocked' => 'IP address unblocked',
+        'login_attempt' => 'Authentication attempt recorded',
+        'ml_assisted_enforcement_deferred' => 'AI-assisted enforcement deferred',
+        'ml_queue_replayed' => 'Queued ML analysis replayed',
+        'optional_2fa_schema_pending' => 'Optional 2FA schema update pending',
+        'school_id_account_lookup_failed' => 'Personal ID account lookup failed',
+        'security_analytics_viewed' => 'Security Analytics opened',
+        'security_controls_viewed' => 'Security Controls opened',
+        'security_logs_viewed' => 'Security Logs opened',
+        'security_profile_changed' => 'Fortress defense profile changed',
+        'session_expired' => 'Administrator session expired',
+        'threat_center_viewed' => 'Threat Center opened',
+        'unsafe_redirect_blocked' => 'Unsafe redirect blocked',
+        'user_password_changed_during_edit' => 'Administrator password changed during edit',
+        'user_profile_viewed' => 'Administrator profile viewed',
         'ml_assisted_block' => 'AI-assisted temporary ban enforced',
         'ml_assisted_strike' => 'AI-assisted threat strike recorded',
-        'ml_threat_prediction' => 'ML behavioral threat prediction',
+        'ml_threat_prediction' => 'ML behavioral threat detection',
         'request_threat_detected' => 'Suspicious request payload detected',
         'csp_violation_reported' => 'Browser CSP violation blocked',
         'scanner_user_agent_detected' => 'Scanner fingerprint detected',
@@ -395,9 +454,7 @@ function fortress_event_title(string $line): string
         'school_id_manage_access' => 'Personal ID controls opened',
         'dashboard_access' => 'Protected dashboard accessed',
         'login_page_accessed' => 'Login gateway viewed',
-        'login_attempt recorded' => 'Authentication attempt recorded',
         'security_report_generated' => 'Security documentation report generated',
-        'security_profile_changed' => 'Fortress defense profile changed',
         'user_management_access' => 'User management opened',
         'user_account_created' => 'Administrator account created',
         'user_account_updated' => 'Administrator account updated',
@@ -429,14 +486,14 @@ function fortress_event_title(string $line): string
 function fortress_event_category(string $line): string
 {
     $key = fortress_event_key($line);
-    if (in_array($key, ['ml_threat_prediction', 'ml_assisted_strike', 'ml_assisted_block', 'auth_rejected', 'honeypot_triggered'], true)) return 'Threat';
+    if (in_array($key, ['automated_recon_blocked_source_attempt', 'automated_recon_block', 'automated_recon_detected', 'ml_threat_prediction', 'ml_assisted_strike', 'ml_assisted_block', 'ml_assisted_enforcement_deferred', 'ml_queue_replayed', 'auth_rejected', 'honeypot_triggered', 'unsafe_redirect_blocked'], true)) return 'Threat';
     if (fortress_line_has_any($key, ['request_threat', 'csp_violation', 'scanner_user_agent', 'sensitive_path_probe', 'reconnaissance_probe', 'csrf_validation_failed', 'http_method_', 'endpoint_method_rejected', 'oversized_'])) return 'Threat';
     if (str_contains($key, 'school_id')) return 'Identity';
-    if (str_contains($key, 'password') || str_starts_with($key, 'login_') || $key === 'login_attempt recorded') return 'Authentication';
+    if (str_contains($key, 'password_factor') || str_starts_with($key, 'login_') || $key === 'login_attempt' || $key === 'failed_attempt_history_retained') return 'Authentication';
     if ($key === 'security_report_generated') return 'Documentation';
-    if ($key === 'security_profile_changed') return 'Configuration';
+    if (in_array($key, ['security_profile_changed', 'current_user_security_policy_changed'], true)) return 'Configuration';
     if (str_starts_with($key, 'user_')) return 'Accounts';
-    if (fortress_line_has_any($key, ['bruteforce', 'ip_banned', 'banned_ip'])) return 'Network';
+    if (fortress_line_has_any($key, ['bruteforce', 'ip_banned', 'ip_unblocked', 'banned_ip'])) return 'Network';
     if (fortress_line_has_any($key, ['malicious', 'shell_attack'])) return 'Threat';
     if ($key === 'vault_flag_viewed') return 'System';
     if (fortress_line_has_any($key, ['logout', 'session', 'dashboard'])) return 'Session';
@@ -445,10 +502,31 @@ function fortress_event_category(string $line): string
 
 function fortress_event_outcome(string $line): string
 {
-    if (fortress_line_has_any($line, ['ml_assisted_block', 'malicious_input_detected', 'shell_attack_detected', 'banned_ip_attempt', 'banned_ip_middleware_block', 'ip_banned', 'csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked', 'endpoint_method_rejected', 'sensitive_path_probe', 'reconnaissance_probe', 'auth_rejected', 'school_id_qr_rate_limited', 'honeypot_triggered'])) return 'BLOCKED';
-    if (fortress_line_has_any($line, ['failed', 'rejected', 'locked', 'bruteforce_detected'])) return 'REJECTED';
-    if (fortress_line_has_any($line, ['success', 'verified', 'registered', 'factor_success'])) return 'PASSED';
-    if (fortress_line_has_any($line, ['logout', 'session_timeout'])) return 'CLOSED';
+    $key = fortress_event_key($line);
+
+    if (in_array($key, [
+        'ml_assisted_block', 'malicious_input_detected', 'shell_attack_detected',
+        'banned_ip_attempt', 'banned_ip_middleware_block', 'ip_banned',
+        'csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked',
+        'endpoint_method_rejected', 'sensitive_path_probe', 'reconnaissance_probe',
+        'auth_rejected', 'school_id_qr_rate_limited', 'honeypot_triggered',
+        'automated_recon_block', 'automated_recon_blocked_source_attempt',
+        'unsafe_redirect_blocked',
+    ], true)) return 'BLOCKED';
+
+    if (in_array($key, [
+        'password_factor_failed', 'school_id_qr_failed', 'school_id_qr_locked',
+        'school_id_account_lookup_failed', 'login_failed', 'login_disabled_account',
+        'bruteforce_detected', 'user_management_denied',
+    ], true)) return 'REJECTED';
+
+    if (in_array($key, [
+        'password_factor_success', 'school_id_qr_success', 'school_id_qr_registered',
+        'login_success',
+    ], true)) return 'PASSED';
+
+    if (in_array($key, ['logout', 'dashboard_session_timeout', 'session_expired'], true)) return 'CLOSED';
+
     return 'RECORDED';
 }
 
@@ -469,6 +547,25 @@ function fortress_event_description(string $line): string
             || str_contains($line, 'reason=incomplete_primary_auth')
         )
     ) return 'An unauthenticated or incompletely authenticated client tried to open a real protected FortressAuth resource directly and was blocked.';
+    if (str_contains($line, 'automated_recon_blocked_source_attempt')) return 'A source already blocked for automated reconnaissance attempted another request and was stopped again.';
+    if (str_contains($line, 'automated_recon_block')) return 'Repeated reconnaissance crossed the configured threshold and the source was temporarily blocked.';
+    if (str_contains($line, 'automated_recon_detected')) return 'Reconnaissance behavior crossed the automated detection threshold and was recorded for enforcement tracking.';
+    if (str_contains($line, 'unsafe_redirect_blocked')) return 'A redirect target failed FortressAuth safety validation and the redirect was blocked.';
+    if (str_contains($line, 'ml_assisted_enforcement_deferred')) return 'The ML layer detected risk, but deterministic corroboration was insufficient for automatic blocking, so enforcement was deferred.';
+    if (str_contains($line, 'ml_queue_replayed')) return 'A previously queued ML analysis was replayed after the model service became available.';
+    if (str_contains($line, 'access_activity_viewed')) return 'An authenticated administrator opened the Access Activity evidence view.';
+    if (str_contains($line, 'ai_threat_intelligence_viewed')) return 'An authenticated administrator opened the AI Defense intelligence view.';
+    if (str_contains($line, 'blocked_ips_viewed')) return 'An authenticated administrator opened the current network-ban view.';
+    if (str_contains($line, 'security_analytics_viewed')) return 'An authenticated administrator opened the Security Analytics view.';
+    if (str_contains($line, 'security_controls_viewed')) return 'An authenticated administrator opened the Security Controls view.';
+    if (str_contains($line, 'security_logs_viewed')) return 'An authenticated administrator opened the Security Logs evidence view.';
+    if (str_contains($line, 'threat_center_viewed')) return 'An authenticated administrator opened the Threat Center.';
+    if (str_contains($line, 'failed_attempt_history_retained')) return 'Authentication failure evidence was retained according to the FortressAuth audit policy.';
+    if (str_contains($line, 'ip_unblocked')) return 'An authorized action removed a source address from the active ban list.';
+    if (str_contains($line, 'optional_2fa_schema_pending')) return 'The application detected that the optional second-factor database policy is not yet fully available.';
+    if (str_contains($line, 'school_id_account_lookup_failed')) return 'FortressAuth could not resolve the account required for the Personal ID verification step.';
+    if (str_contains($line, 'user_password_changed_during_edit')) return 'The administrator password was changed while the account record was being edited.';
+    if (str_contains($line, 'user_profile_viewed')) return 'An authenticated administrator opened an account profile.';
     if (str_contains($line, 'ml_assisted_block')) return 'The AI-assisted defense layer temporarily banned a source only after a high-confidence malicious model result was corroborated by deterministic security evidence.';
     if (str_contains($line, 'ml_assisted_strike')) return 'The hybrid ML engine recorded an enforcement strike because a malicious model classification was corroborated by deterministic FortressAuth evidence.';
     if (str_contains($line, 'ml_threat_prediction')) return 'The hybrid ML engine combined XGBoost attack classification, autoencoder anomaly detection, and deterministic rule evidence into a behavioral risk assessment used by the guarded AI-assisted defense policy.';
@@ -497,6 +594,9 @@ function fortress_event_description(string $line): string
     if ($issuedQr && str_contains($line, 'school_id_qr_registered')) return 'A new administrator-issued QR credential was securely registered for this account.';
     if ($issuedQr && str_contains($line, 'user_2fa_enabled')) return 'An administrator changed the target account policy to require Password + administrator-issued QR authentication.';
     if ($issuedQr && str_contains($line, 'user_2fa_replaced')) return "An administrator regenerated the target account's issued QR credential while keeping 2FA enabled.";
+    if (str_contains($line, 'school_id_qr_locked')) return 'Personal ID verification was temporarily locked after repeated unsuccessful possession checks.';
+    if (str_contains($line, 'school_id_enrollment_required')) return 'The account requires a second factor, but no usable Personal ID credential is enrolled yet.';
+    if (str_contains($line, 'school_id_verification_required')) return 'The password factor was accepted and FortressAuth required the configured Personal ID possession check before opening the protected workspace.';
     if (str_contains($line, 'school_id_qr_rate_limited')) return 'Repeated Personal ID verification attempts exceeded the configured account or IP rate limit.';
     if (str_contains($line, 'school_id_qr_failed')) return 'The scanned Personal ID did not match the registered credential.';
     if (str_contains($line, 'school_id_qr_success')) return 'The registered physical Personal ID completed the possession check.';
@@ -508,10 +608,12 @@ function fortress_event_description(string $line): string
     if (str_contains($line, 'user_2fa_disabled')) return 'An administrator changed the target account policy to password-only authentication and revoked any stored Personal ID QR credential.';
     if (str_contains($line, 'user_2fa_replaced')) return 'An administrator replaced the target account\'s registered Personal ID QR credential while keeping 2FA enabled.';
     if (str_contains($line, 'current_user_security_policy_changed')) return 'The current administrator changed a credential or 2FA policy and the existing session was revoked.';
+    if (str_contains($line, 'login_page_accessed')) return 'A client opened the FortressAuth login gateway.';
+    if (str_contains($line, 'login_attempt')) return 'A login submission reached the authentication gateway and was recorded without storing credential contents.';
     if (str_contains($line, 'password_factor_success')) return 'The first authentication factor was accepted.';
     if (str_contains($line, 'password_factor_failed') || str_contains($line, 'login_failed')) return 'A password authentication attempt was rejected.';
     if (str_contains($line, 'login_success')) return 'A fully verified administrator session was established.';
-    if (str_contains($line, 'logout') || str_contains($line, 'session_timeout')) return 'The protected administrator session was closed.';
+    if (str_contains($line, 'logout') || str_contains($line, 'session_timeout') || str_contains($line, 'session_expired')) return 'The protected administrator session was closed.';
     if (str_contains($line, 'dashboard_access')) return 'A fully verified session entered the protected command center.';
     if (str_contains($line, 'school_id_manage_access')) return 'The protected Personal ID management area was opened.';
     if (str_contains($line, 'security_report_generated')) return 'An authenticated administrator generated a documentation export from the Current Operator reporting center. Secret credentials are excluded from the report.';
@@ -558,18 +660,24 @@ function fortress_is_meaningful_event(string $line): bool
 {
     return fortress_line_has_any($line, [
         'automated_recon_block', 'automated_recon_detected', 'automated_recon_blocked_source_attempt',
-        'ml_assisted_block', 'ml_assisted_strike', 'ml_threat_prediction',
-        'school_id_qr_reset', 'school_id_reverification_started', 'school_id_qr_registered',
+        'ml_assisted_block', 'ml_assisted_strike', 'ml_assisted_enforcement_deferred', 'ml_queue_replayed', 'ml_threat_prediction',
+        'request_threat_detected', 'csp_violation_reported', 'scanner_user_agent_detected',
+        'sensitive_path_probe', 'reconnaissance_probe', 'csrf_validation_failed',
+        'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected',
+        'oversized_request_detected', 'oversized_uri_detected', 'unsafe_redirect_blocked',
+        'issued_qr_missing', 'issued_qr_self_enrollment_blocked',
+        'school_id_account_lookup_failed', 'school_id_qr_reset', 'school_id_reverification_started', 'school_id_qr_registered',
         'school_id_qr_success', 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
-        'school_id_2fa_not_required', 'user_2fa_enabled', 'user_2fa_disabled', 'user_2fa_replaced',
-        'current_user_security_policy_changed',
-        'password_factor_success', 'password_factor_failed', 'login_success', 'login_failed',
-        'bruteforce_detected', 'ip_banned', 'malicious_input_detected', 'shell_attack_detected',
-        'banned_ip_attempt',
-        'auth_rejected', 'logout', 'dashboard_session_timeout', 'dashboard_access',
-        'security_report_generated', 'security_profile_changed', 'user_management_access', 'user_account_created', 'user_account_updated',
-        'user_account_enabled', 'user_account_disabled', 'user_password_reset',
-        'user_personal_id_reset', 'user_account_deleted', 'login_disabled_account',
+        'school_id_enrollment_required', 'school_id_verification_required', 'school_id_2fa_not_required',
+        'user_2fa_enabled', 'user_2fa_disabled', 'user_2fa_replaced', 'current_user_security_policy_changed',
+        'password_factor_success', 'password_factor_failed', 'login_success', 'login_failed', 'login_disabled_account',
+        'bruteforce_detected', 'ip_banned', 'ip_unblocked', 'malicious_input_detected', 'shell_attack_detected',
+        'banned_ip_attempt', 'banned_ip_middleware_block', 'auth_rejected', 'honeypot_triggered',
+        'logout', 'dashboard_session_timeout', 'session_expired',
+        'security_report_generated', 'security_profile_changed', 'optional_2fa_schema_pending',
+        'user_management_denied', 'user_account_created', 'user_account_updated',
+        'user_role_changed', 'user_account_enabled', 'user_account_disabled', 'user_password_changed_during_edit',
+        'user_password_reset', 'user_personal_id_reset', 'user_account_deleted',
         'vault_flag_viewed',
     ]);
 }
@@ -645,7 +753,7 @@ function fortress_security_metrics_24h_db(PDO $pdo): ?array
                   )
             )
             SELECT
-                (SELECT COALESCE(MAX(id), 0)::bigint FROM public.security_events) AS total_audit_events,
+                (SELECT COUNT(*)::bigint FROM public.security_events) AS total_audit_events,
                 COUNT(*) FILTER (WHERE event_key = 'password_factor_failed') AS failed_passwords,
                 COUNT(*) FILTER (WHERE event_key = 'password_factor_success') AS successful_passwords,
                 COUNT(*) FILTER (WHERE event_key = 'school_id_qr_success') AS school_id_success,
@@ -662,19 +770,19 @@ function fortress_security_metrics_24h_db(PDO $pdo): ?array
                 COUNT(*) FILTER (WHERE event_key IN ('banned_ip_attempt', 'banned_ip_middleware_block')) AS banned_request_hits,
                 COUNT(*) FILTER (
                     WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%sql_attack%')
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%sqli%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,sqli,%')
                 ) AS sql_attacks,
                 COUNT(*) FILTER (
                     WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%xss_attack%')
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%xss%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,xss,%')
                 ) AS xss_attacks,
                 COUNT(*) FILTER (
                     WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%path_traversal%')
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%path%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,path,%')
                 ) AS path_attacks,
                 COUNT(*) FILTER (
                     WHERE event_key = 'shell_attack_detected'
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%shell%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,shell,%')
                 ) AS shell_attacks,
                 COUNT(*) FILTER (WHERE event_key = 'csrf_validation_failed') AS csrf_attacks,
                 COUNT(*) FILTER (WHERE event_key = 'csp_violation_reported') AS csp_violations,
@@ -811,23 +919,24 @@ function fortress_recent_security_event_lines(PDO $pdo, array $eventKeys, int $l
 function fortress_analytics_30d_db(PDO $pdo): ?array
 {
     $categoryCase = "CASE
-        WHEN event_key IN ('ml_threat_prediction','ml_assisted_strike','ml_assisted_block','auth_rejected','honeypot_triggered') THEN 'Threat'
+        WHEN event_key IN ('ml_threat_prediction','ml_assisted_strike','ml_assisted_block','ml_assisted_enforcement_deferred','ml_queue_replayed','auth_rejected','honeypot_triggered','unsafe_redirect_blocked') OR event_key LIKE 'automated_recon_%' THEN 'Threat'
         WHEN event_key LIKE 'request_threat%' OR event_key LIKE 'csp_violation%' OR event_key LIKE 'scanner_user_agent%' OR event_key IN ('sensitive_path_probe','reconnaissance_probe','csrf_validation_failed','endpoint_method_rejected') OR event_key LIKE 'http_method_%' OR event_key LIKE 'oversized_%' THEN 'Threat'
         WHEN event_key LIKE '%school_id%' THEN 'Identity'
-        WHEN event_key LIKE '%password%' OR event_key LIKE 'login_%' OR event_key = 'login_attempt recorded' THEN 'Authentication'
+        WHEN event_key LIKE '%password_factor%' OR event_key LIKE 'login_%' OR event_key IN ('login_attempt','login_attempt recorded','failed_attempt_history_retained') THEN 'Authentication'
         WHEN event_key = 'security_report_generated' THEN 'Documentation'
+        WHEN event_key IN ('security_profile_changed', 'current_user_security_policy_changed') THEN 'Configuration'
         WHEN event_key LIKE 'user_%' THEN 'Accounts'
-        WHEN event_key LIKE '%bruteforce%' OR event_key = 'ip_banned' OR event_key LIKE '%banned_ip%' THEN 'Network'
+        WHEN event_key LIKE '%bruteforce%' OR event_key IN ('ip_banned','ip_unblocked') OR event_key LIKE '%banned_ip%' THEN 'Network'
         WHEN event_key LIKE '%malicious%' OR event_key LIKE '%shell_attack%' THEN 'Threat'
         WHEN event_key = 'vault_flag_viewed' THEN 'System'
         WHEN event_key LIKE '%logout%' OR event_key LIKE '%session%' OR event_key LIKE '%dashboard%' THEN 'Session'
         ELSE 'System'
     END";
     $outcomeCase = "CASE
-        WHEN event_key IN ('ml_assisted_block','malicious_input_detected','shell_attack_detected','banned_ip_attempt','banned_ip_middleware_block','ip_banned','csrf_validation_failed','csp_violation_reported','http_method_blocked','endpoint_method_rejected','sensitive_path_probe','reconnaissance_probe','auth_rejected','school_id_qr_rate_limited','honeypot_triggered') THEN 'BLOCKED'
-        WHEN event_key LIKE '%failed%' OR event_key LIKE '%rejected%' OR event_key LIKE '%locked%' OR event_key = 'bruteforce_detected' THEN 'REJECTED'
-        WHEN event_key LIKE '%success%' OR event_key LIKE '%verified%' OR event_key LIKE '%registered%' OR event_key LIKE '%factor_success%' THEN 'PASSED'
-        WHEN event_key = 'logout' OR event_key LIKE '%session_timeout%' THEN 'CLOSED'
+        WHEN event_key IN ('ml_assisted_block','malicious_input_detected','shell_attack_detected','banned_ip_attempt','banned_ip_middleware_block','ip_banned','csrf_validation_failed','csp_violation_reported','http_method_blocked','endpoint_method_rejected','sensitive_path_probe','reconnaissance_probe','auth_rejected','school_id_qr_rate_limited','honeypot_triggered','automated_recon_block','automated_recon_blocked_source_attempt','unsafe_redirect_blocked') THEN 'BLOCKED'
+        WHEN event_key IN ('password_factor_failed','school_id_qr_failed','school_id_qr_locked','school_id_account_lookup_failed','login_failed','login_disabled_account','bruteforce_detected','user_management_denied') THEN 'REJECTED'
+        WHEN event_key IN ('password_factor_success','school_id_qr_success','school_id_qr_registered','login_success') THEN 'PASSED'
+        WHEN event_key IN ('logout','dashboard_session_timeout','session_expired') THEN 'CLOSED'
         ELSE 'RECORDED'
     END";
 
@@ -855,9 +964,22 @@ function fortress_analytics_30d_db(PDO $pdo): ?array
              GROUP BY 1, 2"
         );
 
+        // Keep the factor-success KPI scoped to authentication factors only.
+        // Defense blocks, reconnaissance, and other threat outcomes must not
+        // lower a metric that is explicitly labeled as factor success.
+        $factorStmt = $pdo->query(
+            "SELECT
+                COUNT(*) FILTER (WHERE event_key IN ('password_factor_success', 'school_id_qr_success'))::int AS passed,
+                COUNT(*) FILTER (WHERE event_key IN ('password_factor_failed', 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'))::int AS rejected
+             FROM public.security_events
+             WHERE occurred_at >= NOW() - INTERVAL '30 days'"
+        );
+        $factorSummary = $factorStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
         return [
             'daily' => $dailyStmt->fetchAll(PDO::FETCH_ASSOC) ?: [],
             'summary' => $summaryStmt->fetchAll(PDO::FETCH_ASSOC) ?: [],
+            'factor_summary' => $factorSummary,
         ];
     } catch (Throwable $e) {
         error_log('FortressAuth 30-day analytics query failed: ' . $e->getMessage());
@@ -871,13 +993,14 @@ function fortress_audit_category_counts_db(PDO $pdo): ?array
         $stmt = $pdo->query(
             "SELECT
                 CASE
-                    WHEN event_key IN ('ml_threat_prediction','ml_assisted_strike','ml_assisted_block','auth_rejected','honeypot_triggered') THEN 'Threat'
+                    WHEN event_key IN ('ml_threat_prediction','ml_assisted_strike','ml_assisted_block','ml_assisted_enforcement_deferred','ml_queue_replayed','auth_rejected','honeypot_triggered','unsafe_redirect_blocked') OR event_key LIKE 'automated_recon_%' THEN 'Threat'
                     WHEN event_key LIKE 'request_threat%' OR event_key LIKE 'csp_violation%' OR event_key LIKE 'scanner_user_agent%' OR event_key IN ('sensitive_path_probe','reconnaissance_probe','csrf_validation_failed','endpoint_method_rejected') OR event_key LIKE 'http_method_%' OR event_key LIKE 'oversized_%' THEN 'Threat'
                     WHEN event_key LIKE '%school_id%' THEN 'Identity'
-                    WHEN event_key LIKE '%password%' OR event_key LIKE 'login_%' OR event_key = 'login_attempt recorded' THEN 'Authentication'
+                    WHEN event_key LIKE '%password_factor%' OR event_key LIKE 'login_%' OR event_key IN ('login_attempt','login_attempt recorded','failed_attempt_history_retained') THEN 'Authentication'
                     WHEN event_key = 'security_report_generated' THEN 'Documentation'
+                    WHEN event_key IN ('security_profile_changed', 'current_user_security_policy_changed') THEN 'Configuration'
                     WHEN event_key LIKE 'user_%' THEN 'Accounts'
-                    WHEN event_key LIKE '%bruteforce%' OR event_key = 'ip_banned' OR event_key LIKE '%banned_ip%' THEN 'Network'
+                    WHEN event_key LIKE '%bruteforce%' OR event_key IN ('ip_banned','ip_unblocked') OR event_key LIKE '%banned_ip%' THEN 'Network'
                     WHEN event_key LIKE '%malicious%' OR event_key LIKE '%shell_attack%' THEN 'Threat'
                     WHEN event_key = 'vault_flag_viewed' THEN 'System'
                     WHEN event_key LIKE '%logout%' OR event_key LIKE '%session%' OR event_key LIKE '%dashboard%' THEN 'Session'
@@ -934,19 +1057,19 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
                 COUNT(*) FILTER (WHERE event_key IN ('school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited')) AS personal_id_rejection,
                 COUNT(*) FILTER (
                     WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%sql_attack%')
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%sqli%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,sqli,%')
                 ) AS sql_injection,
                 COUNT(*) FILTER (
                     WHERE (event_key = 'malicious_input_detected' AND (COALESCE(issues, '') ILIKE '%xss_attack%' OR COALESCE(issues, '') ILIKE '%path_traversal%'))
-                       OR (event_key = 'request_threat_detected' AND (COALESCE(raw_line, '') ILIKE '%xss%' OR COALESCE(raw_line, '') ILIKE '%path%'))
+                       OR (event_key = 'request_threat_detected' AND (((',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,xss,%') OR ((',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,path,%')))
                 ) AS xss_traversal,
                 COUNT(*) FILTER (
                     WHERE event_key = 'shell_attack_detected'
-                       OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%shell%')
+                       OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,shell,%')
                 ) AS shell_payload,
                 COUNT(*) FILTER (WHERE event_key = 'csrf_validation_failed') AS csrf_rejection,
                 COUNT(*) FILTER (WHERE event_key = 'csp_violation_reported') AS csp_violations,
-                COUNT(*) FILTER (WHERE event_key IN ('sensitive_path_probe', 'reconnaissance_probe', 'automated_recon_detected', 'automated_recon_block')) AS recon_probes,
+                COUNT(*) FILTER (WHERE event_key IN ('sensitive_path_probe', 'reconnaissance_probe')) AS recon_probes,
                 COUNT(*) FILTER (WHERE event_key = 'scanner_user_agent_detected') AS scanner_fingerprints,
                 COUNT(*) FILTER (WHERE event_key IN ('http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected')) AS http_method_abuse,
                 COUNT(*) FILTER (WHERE event_key IN ('oversized_request_detected', 'oversized_uri_detected')) AS oversized_requests,
@@ -960,7 +1083,7 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
                 'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
                 'malicious_input_detected', 'request_threat_detected', 'shell_attack_detected',
                 'csrf_validation_failed', 'csp_violation_reported',
-                'sensitive_path_probe', 'reconnaissance_probe', 'automated_recon_detected', 'automated_recon_block',
+                'sensitive_path_probe', 'reconnaissance_probe',
                 'scanner_user_agent_detected',
                 'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected',
                 'oversized_request_detected', 'oversized_uri_detected',
@@ -1052,15 +1175,15 @@ function fortress_all_time_threat_category_totals(PDO $pdo, array $auditLines, a
 
         if (
             (str_contains($line, 'malicious_input_detected') && str_contains($line, 'issues=') && str_contains($line, 'sql_attack'))
-            || (str_contains($line, 'request_threat_detected') && str_contains($line, 'sqli'))
+            || (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'sqli'))
         ) $totals['sqlInjection']++;
 
         if (
             (str_contains($line, 'malicious_input_detected') && str_contains($line, 'issues=') && (str_contains($line, 'xss_attack') || str_contains($line, 'path_traversal')))
-            || (str_contains($line, 'request_threat_detected') && (str_contains($line, 'xss') || str_contains($line, 'path')))
+            || (str_contains($line, 'request_threat_detected') && (fortress_audit_line_has_issue($line, 'xss') || fortress_audit_line_has_issue($line, 'path')))
         ) $totals['xssTraversal']++;
 
-        if (str_contains($line, 'shell_attack_detected') || (str_contains($line, 'request_threat_detected') && str_contains($line, 'shell'))) $totals['shellPayload']++;
+        if (str_contains($line, 'shell_attack_detected') || (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'shell'))) $totals['shellPayload']++;
         if (str_contains($line, 'csrf_validation_failed')) $totals['csrfRejection']++;
         if (str_contains($line, 'csp_violation_reported')) $totals['cspViolations']++;
         if (fortress_line_has_any($line, ['sensitive_path_probe', 'reconnaissance_probe'])) $totals['reconProbes']++;
@@ -1141,6 +1264,7 @@ function fortress_build_security_context(PDO $pdo, int $userId, array $options =
     $schoolIdFactorType = fortress_second_factor_type_value($user);
     $schoolIdUpdatedAt = $user['school_id_qr_updated_at'] ?? null;
     $schoolIdVerified = $schoolIdRequired && !empty($_SESSION['school_id_verified']);
+    $secondFactorLayerName = $schoolIdFactorType === 'generated_qr' ? 'Issued QR 2FA' : 'Personal ID 2FA';
 
     // These header/posture values depend only on the already-validated account
     // and static security controls, so they can be returned without touching
@@ -1148,7 +1272,7 @@ function fortress_build_security_context(PDO $pdo, int $userId, array $options =
     $defenseLayers = [
         ['Password authentication', true, 'Primary credential verification', 20, 'fa-key'],
         [
-            'QR-based 2FA',
+            $secondFactorLayerName,
             $schoolIdRequired && $schoolIdEnabled && $schoolIdVerified,
             $schoolIdRequired
                 ? ($schoolIdFactorType === 'generated_qr'
@@ -1337,16 +1461,16 @@ function fortress_build_security_context(PDO $pdo, int $userId, array $options =
         if (str_contains($line, 'issues=') && str_contains($line, 'sql_attack')) $sqlAttack24h++;
         if (str_contains($line, 'issues=') && str_contains($line, 'xss_attack')) $xssAttack24h++;
         if (str_contains($line, 'issues=') && str_contains($line, 'path_traversal')) $pathAttack24h++;
-        if (str_contains($line, 'shell_attack_detected') || (str_contains($line, 'request_threat_detected') && str_contains($line, 'shell'))) $shellAttack24h++;
+        if (str_contains($line, 'shell_attack_detected') || (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'shell'))) $shellAttack24h++;
         if (str_contains($line, 'csrf_validation_failed')) $csrfAttack24h++;
         if (str_contains($line, 'csp_violation_reported')) $cspViolation24h++;
         if (str_contains($line, 'sensitive_path_probe') || str_contains($line, 'reconnaissance_probe')) $reconProbe24h++;
         if (str_contains($line, 'scanner_user_agent_detected')) $scanner24h++;
         if (fortress_line_has_any($line, ['http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected'])) $methodAnomaly24h++;
         if (fortress_line_has_any($line, ['oversized_request_detected', 'oversized_uri_detected'])) $oversizedRequest24h++;
-        if (str_contains($line, 'request_threat_detected') && str_contains($line, 'sqli')) $sqlAttack24h++;
-        if (str_contains($line, 'request_threat_detected') && str_contains($line, 'xss')) $xssAttack24h++;
-        if (str_contains($line, 'request_threat_detected') && str_contains($line, 'path')) $pathAttack24h++;
+        if (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'sqli')) $sqlAttack24h++;
+        if (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'xss')) $xssAttack24h++;
+        if (str_contains($line, 'request_threat_detected') && fortress_audit_line_has_issue($line, 'path')) $pathAttack24h++;
     }
 
     $honeypot24h = 0;

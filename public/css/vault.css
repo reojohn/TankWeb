@@ -453,3 +453,21 @@ button:not(:disabled):focus-visible,
   .vault-visual{transform:scale(.82);transform-origin:center}
 }
 
+
+/* Crown Jewel mobile evidence cards: keep the 4 evidence cards in a 2x2 grid. */
+@media (max-width: 620px) {
+  .vault-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px;
+  }
+
+  .vault-evidence-grid article {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .vault-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

@@ -984,11 +984,27 @@
         });
       });
 
+      const chartTitle = String(canvas.dataset.chartTitle || '');
+      const mobileCategoryLabels = {
+        Authentication: 'Auth',
+        Identity: 'ID',
+        Network: 'Net',
+        Threat: 'Threat',
+        Session: 'Session',
+        System: 'System',
+        Accounts: 'Acct',
+        Configuration: 'Config',
+        Documentation: 'Docs',
+      };
+      const displayLabel = (width < 540 && chartTitle === 'Security Event Volume')
+        ? (mobileCategoryLabels[String(label)] || String(label).slice(0, 7))
+        : String(label);
+
       ctx.fillStyle = 'rgba(196,180,210,.74)';
       ctx.font = '800 8px Inter, Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText(String(label), center, top + graphHeight + 14);
+      ctx.fillText(displayLabel, center, top + graphHeight + 14);
     });
 
     return hitRegions;

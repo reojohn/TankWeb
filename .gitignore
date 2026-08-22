@@ -56,3 +56,6 @@ data/audit.log
 
 # Vercel generated static output
 /vercel-dist/
+
+# Local React source validation build
+/react-build/

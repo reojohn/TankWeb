@@ -114,7 +114,7 @@ audit_log('access_activity_viewed uid=' . $userId);
                 <select data-table-category="accessHistory" aria-label="Filter access activity"><option value="all">All results</option><option value="passed">Passed</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select>
             </div>
         </div>
-        <div class="responsive-table-wrap">
+        <div class="responsive-table-wrap mobile-bounded-table access-history-table-wrap">
             <table class="security-table" data-table="accessHistory">
                 <thead><tr><th>Timestamp</th><th>Operator</th><th>Source IP</th><th>Authentication event</th><th>Factor</th><th>Result</th></tr></thead>
                 <tbody>

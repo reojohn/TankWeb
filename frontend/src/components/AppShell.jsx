@@ -223,9 +223,13 @@ export default function AppShell({ children }) {
     navigate('/operator');
   };
 
-  const openVault = async (event) => {
+  const openVault = (event) => {
+    if (location.pathname === '/vault') return;
     event.preventDefault();
-    await prefetchVault();
+    // Start the protected vault request immediately, but do not block the SPA
+    // route transition on network/PHP latency. Vault joins this same in-flight
+    // request and shows its loading state until the protected content arrives.
+    prefetchVault();
     navigate('/vault');
   };
 

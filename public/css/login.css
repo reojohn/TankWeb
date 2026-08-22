@@ -783,9 +783,11 @@ svg {
 
 @media (max-width: 640px) {
   .ai-login-toast {
-    top: auto;
+    /* Keep the AI Defense notice at the TOP on phones.
+       safe-area-inset-top prevents it from colliding with a notch/status area. */
+    top: max(16px, env(safe-area-inset-top, 0px));
     right: 16px;
-    bottom: 16px;
+    bottom: auto;
     left: 16px;
     width: auto;
     grid-template-columns: 96px 1fr;

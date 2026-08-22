@@ -45,7 +45,23 @@ $attackSurface = [
     ['fa-terminal', 'Shell-style payloads', $shellAttack24h, 'Command-pattern detections / 24h'],
     ['fa-spider', 'Honeypot triggers', $honeypot24h, 'Honeypot events / 24h'],
     ['fa-gauge-high', 'Rate-limit pressure', $bruteforce24h, 'Brute-force triggers / 24h'],
-    ['fa-shield-halved', 'Blocked requests', $blockedRequests24h, 'Defense rejections / 24h'],
+    ['fa-shield-halved', 'Blocked requests', $blockedRequests24h, 'Combined defense rejections / 24h'],
+];
+
+// The Threat Center keeps persistent all-time totals. Overview intentionally
+// mirrors the remaining threat categories with rolling 24-hour values so the
+// two views can be compared without implying that their time windows match.
+$attackSurfaceMore = [
+    ['fa-key', 'Password rejection', $failedAttempts24h, 'First-factor failures / 24h'],
+    ['fa-id-card', 'Personal ID rejection', $schoolIdFailures24h, 'Possession-factor failures / 24h'],
+    ['fa-shield-halved', 'CSRF rejection', $csrfAttack24h, 'Anti-CSRF rejections / 24h'],
+    ['fa-shield', 'CSP violations', $cspViolation24h, 'Browser CSP reports / 24h'],
+    ['fa-magnifying-glass', 'Recon / 404 probes', $reconProbe24h, 'Path-probe detections / 24h'],
+    ['fa-robot', 'Scanner fingerprints', $scanner24h, 'Scanner-style user agents / 24h'],
+    ['fa-code-branch', 'HTTP method abuse', $methodAnomaly24h, 'Blocked or anomalous methods / 24h'],
+    ['fa-file-circle-exclamation', 'Oversized requests', $oversizedRequest24h, 'Abnormal request sizes / 24h'],
+    ['fa-ban', 'Banned-source hits', $bannedRequest24h, 'Blocked banned clients / 24h'],
+    ['fa-door-open', 'Forced Browsing', $forcedBrowsing24h, 'Unauthorized page access / 24h'],
 ];
 
 $engineState = fortress_security_profile_state($pdo);
@@ -391,7 +407,11 @@ audit_log('dashboard_access uid=' . $userId);
         <!-- 09 Attack surface / request security -->
         <article class="panel request-defense-panel">
             <div class="panel-heading">
-                <div><span class="eyebrow">ATTACK SURFACE / REQUEST SECURITY</span><h2>Request Defense</h2><p>Only events actually recorded by the existing security controls are counted here.</p></div>
+                <div>
+                    <span class="eyebrow">ATTACK SURFACE / REQUEST SECURITY</span>
+                    <h2>Request Defense</h2>
+                    <p>Rolling 24-hour detections are shown here. The Threat Center keeps the corresponding persistent all-time totals.</p>
+                </div>
                 <a class="text-link" href="/threats.php">Open Threat Center <i class="fa-solid fa-arrow-right"></i></a>
             </div>
             <div class="attack-grid">
@@ -399,6 +419,23 @@ audit_log('dashboard_access uid=' . $userId);
                     <div class="attack-card"><span class="attack-icon"><i class="fa-solid <?= e($item[0]) ?>"></i></span><div><strong class="metric-number" data-count="<?= (int)$item[2] ?>"><?= (int)$item[2] ?></strong><span><?= e($item[1]) ?></span><small><?= e($item[3]) ?></small></div></div>
                 <?php endforeach; ?>
             </div>
+
+            <details class="request-defense-details">
+                <summary>
+                    <span class="request-defense-summary-closed"><i class="fa-solid fa-layer-group"></i> Show all 24-hour categories</span>
+                    <span class="request-defense-summary-open"><i class="fa-solid fa-chevron-up"></i> Hide additional categories</span>
+                    <i class="fa-solid fa-chevron-down request-defense-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="request-defense-extra-heading">
+                    <span class="eyebrow">ADDITIONAL THREAT CENTER CATEGORIES / 24H</span>
+                    <small>Together with the cards above, these mirror every threat category using the rolling 24-hour window.</small>
+                </div>
+                <div class="attack-grid request-defense-extra-grid">
+                    <?php foreach ($attackSurfaceMore as $item): ?>
+                        <div class="attack-card"><span class="attack-icon"><i class="fa-solid <?= e($item[0]) ?>"></i></span><div><strong class="metric-number" data-count="<?= (int)$item[2] ?>"><?= (int)$item[2] ?></strong><span><?= e($item[1]) ?></span><small><?= e($item[3]) ?></small></div></div>
+                    <?php endforeach; ?>
+                </div>
+            </details>
         </article>
 
         <!-- Defense layers now full-width so the right side never leaves a large blank column. -->
