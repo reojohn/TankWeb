@@ -16,6 +16,23 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
+$backgroundOperatorRead = defined('FORTRESS_BACKGROUND_REQUEST')
+    && FORTRESS_BACKGROUND_REQUEST === true
+    && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'GET';
+$backgroundFlash = null;
+$backgroundGeneratedQrHandoff = null;
+
+if ($backgroundOperatorRead) {
+    // Preserve one-shot UI messages before releasing the session. Unsetting
+    // them while the session is still writable keeps the normal flash/handoff
+    // semantics, while the rest of this relatively heavy page can render
+    // without preventing /logout.php from acquiring the session immediately.
+    $backgroundFlash = $_SESSION['user_management_flash'] ?? null;
+    unset($_SESSION['user_management_flash']);
+    $backgroundGeneratedQrHandoff = $_SESSION['generated_qr_handoff'] ?? null;
+    unset($_SESSION['generated_qr_handoff']);
+    fortress_release_session_read_lock();
+}
 $schemaReady = fortress_ensure_user_management_schema($pdo)
     && fortress_optional_2fa_policy_available($pdo);
 $generatedQrReady = fortress_second_factor_type_available($pdo);
@@ -642,10 +659,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$flash = $_SESSION['user_management_flash'] ?? null;
-unset($_SESSION['user_management_flash']);
-$generatedQrHandoff = $_SESSION['generated_qr_handoff'] ?? null;
-unset($_SESSION['generated_qr_handoff']);
+if ($backgroundOperatorRead) {
+    $flash = $backgroundFlash;
+    $generatedQrHandoff = $backgroundGeneratedQrHandoff;
+} else {
+    $flash = $_SESSION['user_management_flash'] ?? null;
+    unset($_SESSION['user_management_flash']);
+    $generatedQrHandoff = $_SESSION['generated_qr_handoff'] ?? null;
+    unset($_SESSION['generated_qr_handoff']);
+}
 if (is_array($generatedQrHandoff)) {
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');

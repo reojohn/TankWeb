@@ -33,9 +33,12 @@ export default function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [runtimeDefenseMode, setRuntimeDefenseMode] = useState(null);
   const liveRevision = useRef(null);
   const livePollBusy = useRef(false);
+  const livePollController = useRef(null);
+  const logoutStarted = useRef(false);
   const meta = pageMap[location.pathname] || pageMap['/overview'];
 
   useEffect(() => {
@@ -115,14 +118,17 @@ export default function AppShell({ children }) {
     const pollSeconds = Math.max(2, Number(data?.policy?.livePollSeconds || 2));
 
     const pollSecurityRevision = async () => {
-      if (cancelled || document.hidden || livePollBusy.current) return;
+      if (cancelled || logoutStarted.current || document.hidden || livePollBusy.current) return;
       livePollBusy.current = true;
+      const controller = new AbortController();
+      livePollController.current = controller;
 
       try {
         const response = await fetch('/security_live_state.php', {
           method: 'GET',
           credentials: 'same-origin',
           cache: 'no-store',
+          signal: controller.signal,
           headers: {
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
@@ -162,10 +168,14 @@ export default function AppShell({ children }) {
         // Pull the matching notification immediately instead of waiting for
         // the normal notification interval.
         window.FortressSecurityAlerts?.pollNow?.();
-      } catch (_) {
-        // Live synchronization is enhancement-only. A temporary failure must
-        // never interrupt the authenticated workspace.
+      } catch (error) {
+        // Live synchronization is enhancement-only. A temporary failure or a
+        // logout-triggered abort must never interrupt the workspace.
+        if (error?.name !== 'AbortError') {
+          // Intentionally quiet: the next poll can recover automatically.
+        }
       } finally {
+        if (livePollController.current === controller) livePollController.current = null;
         livePollBusy.current = false;
       }
     };
@@ -179,6 +189,8 @@ export default function AppShell({ children }) {
 
     return () => {
       cancelled = true;
+      livePollController.current?.abort?.();
+      livePollController.current = null;
       if (timerId !== null) window.clearInterval(timerId);
       document.removeEventListener('visibilitychange', onVisibility);
     };
@@ -238,7 +250,31 @@ export default function AppShell({ children }) {
     navigate('/vault');
   };
 
+  const handleLogout = (event) => {
+    event?.preventDefault?.();
+    if (logoutStarted.current) return;
+
+    logoutStarted.current = true;
+    setLoggingOut(true);
+    setOpen(false);
+
+    // Stop UI-only background work immediately. The server-side endpoints also
+    // release their read-only session locks after authentication, so logout is
+    // never forced to wait behind telemetry or fragment rendering.
+    livePollController.current?.abort?.();
+    window.FortressSecurityAlerts?.destroy?.();
+    window.dispatchEvent(new CustomEvent('fortress:logout-start'));
+    document.documentElement.classList.add('fortress-logout-starting');
+
+    // A tiny tactile beat lets the pressed/locking animation paint before the
+    // browser moves to the secure server-side logout endpoint.
+    window.setTimeout(() => {
+      window.location.assign('/logout.php');
+    }, 110);
+  };
+
   const refreshWorkspace = () => {
+    if (logoutStarted.current) return;
     reload();
     window.dispatchEvent(new CustomEvent('fortress:v3-route-refresh'));
   };
@@ -260,7 +296,7 @@ export default function AppShell({ children }) {
         <div className="fortress-mobile-actions">
           <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
           <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
-          <a className="fortress-mobile-logout" href="/logout.php" aria-label="Log out"><i className="fa-solid fa-arrow-right-from-bracket" /></a>
+          <a className={`fortress-mobile-logout ${loggingOut ? 'is-logging-out' : ''}`} href="/logout.php" aria-label={loggingOut ? 'Securing session' : 'Log out'} aria-busy={loggingOut ? 'true' : 'false'} onClick={handleLogout}><i className={`fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`} /><span className="logout-click-wave" aria-hidden="true" /></a>
         </div>
       </div>
       <div className={`fortress-sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
@@ -342,7 +378,7 @@ export default function AppShell({ children }) {
               <div className="header-score-card"><span>Protection</span><strong>{header.protectionScore}/100</strong></div>
               <button className="icon-action fortress-notification-toggle" type="button" data-notification-toggle title="Security notifications" aria-label="Open security notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
               <button className="icon-action" type="button" onClick={refreshWorkspace} title="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
-              <a className="logout-mini" href="/logout.php"><i className="fa-solid fa-arrow-right-from-bracket" /><span>Log out</span></a>
+              <a className={`logout-mini ${loggingOut ? 'is-logging-out' : ''}`} href="/logout.php" aria-label={loggingOut ? 'Securing session' : 'Log out'} aria-busy={loggingOut ? 'true' : 'false'} onClick={handleLogout}><span className="logout-mini-icon"><i className={`fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`} /></span><span className="logout-mini-label">{loggingOut ? 'Securing…' : 'Log out'}</span><span className="logout-click-wave" aria-hidden="true" /></a>
             </div>
           </header>
 

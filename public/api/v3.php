@@ -24,6 +24,14 @@ require_admin_auth();
 
 $userId = (int)($_SESSION['uid'] ?? 0);
 $view = strtolower(trim((string)($_GET['view'] ?? 'bootstrap')));
+$requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+// Normal React data GETs can be expensive, but they do not need to keep the
+// session writable. The vault is the one GET view that intentionally stores
+// per-session breach state, so it keeps the lock until its own work completes.
+if ($requestMethod === 'GET' && $view !== 'vault') {
+    fortress_release_session_read_lock();
+}
 
 function fortress_v3_json(array $payload, int $status = 200): never
 {

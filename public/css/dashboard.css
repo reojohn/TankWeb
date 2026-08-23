@@ -12400,3 +12400,145 @@ body[data-fortress-theme="fortress_boost"] .ambient-two {
 @media (max-width: 900px) {
   .header-engine-card { display: none; }
 }
+
+/* =========================================================
+   FortressAuth instant logout interaction — Aug 23 2026
+   The server revokes the session normally; these rules only
+   make the click feel immediate while /logout.php takes over.
+   ========================================================= */
+.fortress-page-header .logout-mini,
+.fortress-mobile-logout {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fortress-page-header .logout-mini {
+  transition:
+    transform .16s cubic-bezier(.2,.8,.2,1),
+    border-color .2s ease,
+    background .2s ease,
+    box-shadow .2s ease,
+    color .2s ease;
+}
+
+.fortress-page-header .logout-mini:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,108,147,.42);
+  background: linear-gradient(135deg,rgba(255,108,147,.12),rgba(176,86,255,.07));
+  box-shadow: 0 9px 26px rgba(255,78,126,.10), inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.fortress-page-header .logout-mini:active,
+.fortress-mobile-logout:active {
+  transform: translateY(1px) scale(.94);
+  filter: brightness(1.14) saturate(1.12);
+}
+
+.logout-mini-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.logout-mini-icon > i,
+.fortress-mobile-logout > i {
+  position: relative;
+  z-index: 2;
+  transition: transform .22s cubic-bezier(.2,.9,.2,1), filter .22s ease;
+}
+
+.fortress-page-header .logout-mini:hover .logout-mini-icon > i {
+  transform: translateX(2px);
+  filter: drop-shadow(0 0 7px rgba(255,126,160,.36));
+}
+
+.logout-mini-label {
+  position: relative;
+  z-index: 2;
+  min-width: 48px;
+  text-align: left;
+}
+
+.logout-click-wave {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(.2);
+  background: radial-gradient(circle,rgba(255,180,200,.52) 0,rgba(255,92,139,.20) 42%,transparent 72%);
+}
+
+.fortress-page-header .logout-mini.is-logging-out,
+.fortress-mobile-logout.is-logging-out {
+  pointer-events: none;
+  color: #fff !important;
+  border-color: rgba(255,118,153,.54) !important;
+  background: linear-gradient(135deg,rgba(255,92,137,.19),rgba(164,75,234,.13)) !important;
+  box-shadow: 0 0 0 1px rgba(255,120,157,.08), 0 0 24px rgba(255,78,126,.17) !important;
+  animation: fortressLogoutButtonLock .42s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.fortress-page-header .logout-mini.is-logging-out .logout-click-wave,
+.fortress-mobile-logout.is-logging-out .logout-click-wave {
+  animation: fortressLogoutClickWave .55s cubic-bezier(.16,.84,.44,1) both;
+}
+
+.fortress-page-header .logout-mini.is-logging-out .logout-mini-icon > i,
+.fortress-mobile-logout.is-logging-out > i {
+  animation: fortressLogoutIconLock .42s cubic-bezier(.2,.8,.2,1) both;
+  filter: drop-shadow(0 0 8px rgba(255,151,180,.46));
+}
+
+html.fortress-logout-starting .fortress-page-header .icon-action,
+html.fortress-logout-starting .fortress-mobile-refresh,
+html.fortress-logout-starting .fortress-mobile-notifications {
+  pointer-events: none;
+}
+
+@keyframes fortressLogoutClickWave {
+  0% { opacity: .9; transform: scale(.2); }
+  65% { opacity: .38; }
+  100% { opacity: 0; transform: scale(9); }
+}
+
+@keyframes fortressLogoutButtonLock {
+  0% { transform: scale(1); }
+  45% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fortressLogoutIconLock {
+  0% { transform: scale(.82) rotate(-8deg); }
+  55% { transform: scale(1.12) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@media (max-width: 900px) {
+  .fortress-mobile-logout {
+    transition: transform .16s cubic-bezier(.2,.8,.2,1), border-color .2s ease, background .2s ease, box-shadow .2s ease !important;
+  }
+
+  .fortress-mobile-logout:hover {
+    box-shadow: 0 7px 19px rgba(255,78,126,.10) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fortress-page-header .logout-mini,
+  .fortress-mobile-logout,
+  .logout-mini-icon > i,
+  .fortress-mobile-logout > i,
+  .logout-click-wave {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}

@@ -14,6 +14,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 require_admin_auth();
 
+// Authentication has completed and this endpoint is read-only. Free the PHP
+// session lock before file/database polling so an explicit logout is never
+// blocked by a telemetry request that happened to start first.
+fortress_release_session_read_lock();
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 

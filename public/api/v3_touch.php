@@ -51,5 +51,8 @@ $_SESSION['last_activity'] = time();
 $_SERVER['REQUEST_URI'] = $routes[$page][0];
 audit_log($routes[$page][1]);
 
+// Persist the heartbeat, then release the session lock before returning.
+fortress_release_session_read_lock();
+
 http_response_code(204);
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');

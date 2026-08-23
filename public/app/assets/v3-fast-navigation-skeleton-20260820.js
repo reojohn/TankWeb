@@ -912,9 +912,12 @@ function AppShell({
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [runtimeDefenseMode, setRuntimeDefenseMode] = useState(null);
   const liveRevision = useRef(null);
   const livePollBusy = useRef(false);
+  const livePollController = useRef(null);
+  const logoutStarted = useRef(false);
   const meta = pageMap[location.pathname] || pageMap['/overview'];
   useEffect(() => {
     const legacyBodyClass = {
@@ -969,13 +972,16 @@ function AppShell({
     let timerId = null;
     const pollSeconds = Math.max(2, Number(data?.policy?.livePollSeconds || 2));
     const pollSecurityRevision = async () => {
-      if (cancelled || document.hidden || livePollBusy.current) return;
+      if (cancelled || logoutStarted.current || document.hidden || livePollBusy.current) return;
       livePollBusy.current = true;
+      const controller = new AbortController();
+      livePollController.current = controller;
       try {
         const response = await fetch('/security_live_state.php', {
           method: 'GET',
           credentials: 'same-origin',
           cache: 'no-store',
+          signal: controller.signal,
           headers: {
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
@@ -1004,9 +1010,14 @@ function AppShell({
           detail: { revision }
         }));
         window.FortressSecurityAlerts?.pollNow?.();
-      } catch (_) {
-        // Live synchronization is enhancement-only.
+      } catch (error) {
+        // Live synchronization is enhancement-only. AbortError is expected
+        // when the operator explicitly starts logout.
+        if (error?.name !== 'AbortError') {
+          // Intentionally quiet; the next poll can recover automatically.
+        }
       } finally {
+        if (livePollController.current === controller) livePollController.current = null;
         livePollBusy.current = false;
       }
     };
@@ -1018,6 +1029,8 @@ function AppShell({
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
+      livePollController.current?.abort?.();
+      livePollController.current = null;
       if (timerId !== null) window.clearInterval(timerId);
       document.removeEventListener('visibilitychange', onVisibility);
     };
@@ -1068,7 +1081,22 @@ function AppShell({
     prefetchVault();
     navigate('/vault');
   };
+  const handleLogout = event => {
+    event?.preventDefault?.();
+    if (logoutStarted.current) return;
+    logoutStarted.current = true;
+    setLoggingOut(true);
+    setOpen(false);
+    livePollController.current?.abort?.();
+    window.FortressSecurityAlerts?.destroy?.();
+    window.dispatchEvent(new CustomEvent('fortress:logout-start'));
+    document.documentElement.classList.add('fortress-logout-starting');
+    window.setTimeout(() => {
+      window.location.assign('/logout.php');
+    }, 110);
+  };
   const refreshWorkspace = () => {
+    if (logoutStarted.current) return;
     reload();
     window.dispatchEvent(new CustomEvent('fortress:v3-route-refresh'));
   };
@@ -1113,11 +1141,16 @@ function AppShell({
   }, React.createElement("i", {
     className: "fa-solid fa-arrows-rotate"
   })), React.createElement("a", {
-    className: "fortress-mobile-logout",
+    className: `fortress-mobile-logout ${loggingOut ? 'is-logging-out' : ''}`,
     href: "/logout.php",
-    "aria-label": "Log out"
+    "aria-label": loggingOut ? "Securing session" : "Log out",
+    "aria-busy": loggingOut ? "true" : "false",
+    onClick: handleLogout
   }, React.createElement("i", {
-    className: "fa-solid fa-arrow-right-from-bracket"
+    className: `fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`
+  }), React.createElement("span", {
+    className: "logout-click-wave",
+    "aria-hidden": "true"
   })))), document.body), React.createElement("div", {
     className: `fortress-sidebar-overlay ${open ? 'open' : ''}`,
     onClick: () => setOpen(false)
@@ -1279,11 +1312,21 @@ function AppShell({
   }, React.createElement("i", {
     className: "fa-solid fa-arrows-rotate"
   })), React.createElement("a", {
-    className: "logout-mini",
-    href: "/logout.php"
+    className: `logout-mini ${loggingOut ? 'is-logging-out' : ''}`,
+    href: "/logout.php",
+    "aria-label": loggingOut ? "Securing session" : "Log out",
+    "aria-busy": loggingOut ? "true" : "false",
+    onClick: handleLogout
+  }, React.createElement("span", {
+    className: "logout-mini-icon"
   }, React.createElement("i", {
-    className: "fa-solid fa-arrow-right-from-bracket"
-  }), React.createElement("span", null, "Log out")))), React.createElement("div", {
+    className: `fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`
+  })), React.createElement("span", {
+    className: "logout-mini-label"
+  }, loggingOut ? "Securing…" : "Log out"), React.createElement("span", {
+    className: "logout-click-wave",
+    "aria-hidden": "true"
+  })))), React.createElement("div", {
     id: "fortress-security-runtime",
     hidden: true,
     ...runtimeAttrs

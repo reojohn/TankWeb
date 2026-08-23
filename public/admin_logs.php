@@ -9,6 +9,13 @@ require_once __DIR__ . '/../src/fortress_metrics.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
+
+// React v3 fragment/live-refresh requests only read session state after auth.
+// Release PHP's per-session lock before the heavier metrics/database work so
+// /logout.php can revoke the session immediately instead of queuing behind it.
+if (defined('FORTRESS_BACKGROUND_REQUEST') && FORTRESS_BACKGROUND_REQUEST === true) {
+    fortress_release_session_read_lock();
+}
 $userId = (int)($_SESSION['uid'] ?? 0);
 $ctx = fortress_build_security_context($pdo, $userId, ['audit_limit' => 500]);
 extract($ctx, EXTR_SKIP);
