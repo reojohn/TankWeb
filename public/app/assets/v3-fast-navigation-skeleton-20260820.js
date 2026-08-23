@@ -125,7 +125,9 @@ function useFortressView(view) {
 
 /* ---- components/LegacyParityPage.jsx ---- */
 const parityFragmentCache = new Map();
+// Forced refreshes supersede older background fragment work.
 const parityInflight = new Map();
+const parityRequestSequence = new Map();
 const legacyRouteMap = {
   '/dashboard.php': '/overview',
   '/access_activity.php': '/activity',
@@ -188,10 +190,16 @@ async function requestFragment(page, legacyUrl = '', {
   const key = cacheKey(page, legacyUrl);
   const cached = parityFragmentCache.get(key);
   if (!force && cached) return cached.html;
-  if (parityInflight.has(key)) return parityInflight.get(key);
+  const existing = parityInflight.get(key);
+  if (!force && existing) return existing.promise;
+  if (force && existing?.controller) existing.controller.abort();
+  const controller = new AbortController();
+  const requestId = (parityRequestSequence.get(key) || 0) + 1;
+  parityRequestSequence.set(key, requestId);
   const promise = fetch(buildFragmentUrl(page, legacyUrl), {
     credentials: 'same-origin',
     cache: 'no-store',
+    signal: controller.signal,
     headers: {
       Accept: 'text/html',
       'X-Fortress-React': '1',
@@ -204,13 +212,21 @@ async function requestFragment(page, legacyUrl = '', {
     }
     const html = await response.text();
     if (!response.ok) throw new Error(html || 'Unable to load FortressAuth page content.');
-    parityFragmentCache.set(key, {
-      at: Date.now(),
-      html
-    });
+    if (parityRequestSequence.get(key) === requestId) {
+      parityFragmentCache.set(key, {
+        at: Date.now(),
+        html
+      });
+    }
     return html;
-  }).finally(() => parityInflight.delete(key));
-  parityInflight.set(key, promise);
+  }).finally(() => {
+    if (parityInflight.get(key)?.requestId === requestId) parityInflight.delete(key);
+  });
+  parityInflight.set(key, {
+    promise,
+    controller,
+    requestId
+  });
   return promise;
 }
 async function touchPage(page) {
@@ -260,6 +276,7 @@ function LegacyParityPage({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const pendingAnchor = useRef('');
+  const loadRevision = useRef(0);
   const renderFullLegacyResponse = async (response, requestedUrl) => {
     if (response.status === 401 || response.status === 403 || response.url.includes('/login.php')) {
       window.location.href = '/login.php';
@@ -279,6 +296,7 @@ function LegacyParityPage({
     force = false,
     url = currentLegacyUrl.current
   } = {}) => {
+    const revision = ++loadRevision.current;
     const key = cacheKey(page, url);
     const cached = parityFragmentCache.get(key)?.html || '';
     setError('');
@@ -290,6 +308,7 @@ function LegacyParityPage({
       requestFragment(page, url, {
         force: true
       }).then(next => {
+        if (loadRevision.current !== revision) return;
         currentLegacyUrl.current = url;
         if (next && next !== cached) setHtml(next);
       }).catch(() => {});
@@ -301,15 +320,20 @@ function LegacyParityPage({
       const next = await requestFragment(page, url, {
         force
       });
+      if (loadRevision.current !== revision) return next;
       currentLegacyUrl.current = url;
       setHtml(next);
       return next;
     } catch (e) {
-      setError(e?.message || String(e));
+      if (loadRevision.current === revision && e?.name !== 'AbortError') {
+        setError(e?.message || String(e));
+      }
       return '';
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (loadRevision.current === revision) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
   useEffect(() => {

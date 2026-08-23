@@ -1,0 +1,15 @@
+FortressAuth v3 - Engine first-click race fix
+
+Changed files:
+- frontend/src/components/LegacyParityPage.jsx
+- public/app/assets/v3-fast-navigation-skeleton-20260820.js
+- public/app/index.html
+
+Fix:
+- Forced route refreshes now supersede/abort older stale fragment requests.
+- Only the newest fragment load may repaint the React legacy bridge.
+- AbortError from an intentionally superseded request is not shown as a UI error.
+- Runtime asset query bumped to 20260823-1353 to bypass immutable browser/Vercel cache.
+
+No authentication, CSRF, authorization, session, rate limiting, ML enforcement,
+or backend security policy was weakened or bypassed.

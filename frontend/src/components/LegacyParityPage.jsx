@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const parityFragmentCache = new Map();
+// Each in-flight entry owns an AbortController and request id so a forced
+// refresh can supersede older stale-while-revalidate work instead of joining it.
 const parityInflight = new Map();
+const parityRequestSequence = new Map();
 
 const legacyRouteMap = {
   '/dashboard.php': '/overview',
@@ -70,11 +73,23 @@ async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
   const key = cacheKey(page, legacyUrl);
   const cached = parityFragmentCache.get(key);
   if (!force && cached) return cached.html;
-  if (parityInflight.has(key)) return parityInflight.get(key);
+
+  const existing = parityInflight.get(key);
+  if (!force && existing) return existing.promise;
+
+  // A forced refresh represents newer server state (for example immediately
+  // after changing the defense engine). Abort an older background fragment
+  // request so it cannot repaint the page with stale profile HTML afterwards.
+  if (force && existing?.controller) existing.controller.abort();
+
+  const controller = new AbortController();
+  const requestId = (parityRequestSequence.get(key) || 0) + 1;
+  parityRequestSequence.set(key, requestId);
 
   const promise = fetch(buildFragmentUrl(page, legacyUrl), {
     credentials: 'same-origin',
     cache: 'no-store',
+    signal: controller.signal,
     headers: { Accept: 'text/html', 'X-Fortress-React': '1', 'X-Fortress-Live-Refresh': '1' },
   }).then(async (response) => {
     if (response.status === 401 || response.status === 403) {
@@ -83,11 +98,15 @@ async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
     }
     const html = await response.text();
     if (!response.ok) throw new Error(html || 'Unable to load FortressAuth page content.');
-    parityFragmentCache.set(key, { at: Date.now(), html });
+    if (parityRequestSequence.get(key) === requestId) {
+      parityFragmentCache.set(key, { at: Date.now(), html });
+    }
     return html;
-  }).finally(() => parityInflight.delete(key));
+  }).finally(() => {
+    if (parityInflight.get(key)?.requestId === requestId) parityInflight.delete(key);
+  });
 
-  parityInflight.set(key, promise);
+  parityInflight.set(key, { promise, controller, requestId });
   return promise;
 }
 
@@ -137,6 +156,7 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const pendingAnchor = useRef('');
+  const loadRevision = useRef(0);
 
   const renderFullLegacyResponse = async (response, requestedUrl) => {
     if (response.status === 401 || response.status === 403 || response.url.includes('/login.php')) {
@@ -155,13 +175,14 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
   };
 
   const load = async ({ force = false, url = currentLegacyUrl.current } = {}) => {
+    const revision = ++loadRevision.current;
     const key = cacheKey(page, url);
     const cached = parityFragmentCache.get(key)?.html || '';
     setError('');
 
     // Stale-while-revalidate: a cached page is painted immediately. The PHP
     // fragment refresh happens silently afterwards and only replaces the DOM
-    // when newer server output arrives. Navigation never waits for Render.
+    // when it is still the newest load for this component.
     if (cached && !force) {
       currentLegacyUrl.current = url;
       setHtml(cached);
@@ -170,12 +191,13 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
 
       requestFragment(page, url, { force: true })
         .then((next) => {
+          if (loadRevision.current !== revision) return;
           currentLegacyUrl.current = url;
           if (next && next !== cached) setHtml(next);
         })
         .catch(() => {
           // Keep the known-good cached page visible if a background refresh
-          // fails. Live security polling will try again on the next revision.
+          // fails or is intentionally superseded by a newer forced refresh.
         });
       return cached;
     }
@@ -184,15 +206,20 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
     setRefreshing(Boolean(html));
     try {
       const next = await requestFragment(page, url, { force });
+      if (loadRevision.current !== revision) return next;
       currentLegacyUrl.current = url;
       setHtml(next);
       return next;
     } catch (e) {
-      setError(e?.message || String(e));
+      if (loadRevision.current === revision && e?.name !== 'AbortError') {
+        setError(e?.message || String(e));
+      }
       return '';
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (loadRevision.current === revision) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
