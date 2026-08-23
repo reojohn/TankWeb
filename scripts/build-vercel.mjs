@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,6 +6,40 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..');
 const publicDir = path.join(root, 'public');
 const out = path.join(root, 'vercel-dist');
+
+// Keep the Vercel shell's frontend dependencies in sync with the local app
+// entry file. The Vercel shell still performs its server-side auth check
+// first; only the static CSS/JS references are mirrored from public/app/index.html.
+const localAppIndex = await readFile(path.join(publicDir, 'app', 'index.html'), 'utf8');
+
+function collectTagUrls(html, pattern) {
+  return [...html.matchAll(pattern)].map((match) => match[1]);
+}
+
+const appStyles = collectTagUrls(
+  localAppIndex,
+  /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi,
+);
+const appScripts = collectTagUrls(
+  localAppIndex,
+  /<script\s+[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi,
+);
+
+if (appStyles.length === 0 || appScripts.length === 0) {
+  throw new Error('Unable to read FortressAuth frontend dependencies from public/app/index.html');
+}
+
+function assertSameOriginStaticUrls(label, urls, allowedPrefixes) {
+  for (const url of urls) {
+    if (!allowedPrefixes.some((prefix) => url.startsWith(prefix))) {
+      throw new Error(`Unexpected ${label} dependency in public/app/index.html: ${url}`);
+    }
+  }
+}
+
+// Fail the build rather than silently publishing an unexpected external asset.
+assertSameOriginStaticUrls('stylesheet', appStyles, ['/css/']);
+assertSameOriginStaticUrls('script', appScripts, ['/app/vendor/', '/app/assets/', '/js/']);
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
@@ -99,14 +133,7 @@ const appIndex = `<!doctype html>
           return;
         }
 
-        const css = [
-          '/css/all.min.css',
-          '/css/dashboard.css',
-          '/css/ai_threat_intelligence.css',
-          '/css/vault.css',
-          '/css/user_management_profile.css',
-          '/css/v3-react.css'
-        ];
+        const css = ${JSON.stringify(appStyles)};
 
         css.forEach((href) => {
           const link = document.createElement('link');
@@ -117,19 +144,7 @@ const appIndex = `<!doctype html>
 
         document.body.className = 'command-page fortress-react-v3';
 
-        const scripts = [
-          '/app/vendor/react.production.min.js',
-          '/app/vendor/react-dom.production.min.js',
-          '/app/vendor/remix-router.umd.min.js',
-          '/app/vendor/react-router.production.min.js',
-          '/app/vendor/react-router-dom.production.min.js',
-          '/app/assets/v3-fast-navigation-skeleton-20260820.js?v=20260822-1124',
-          '/js/dashboard.js',
-          '/js/security_alerts.js',
-          '/js/ai_threat_intelligence.js',
-          '/js/vault.js',
-          '/js/auto_logout.js'
-        ];
+        const scripts = ${JSON.stringify(appScripts)};
 
         const loadScript = (src) => new Promise((resolve, reject) => {
           const script = document.createElement('script');
