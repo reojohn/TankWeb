@@ -1224,6 +1224,16 @@ function AppShell({
   }), boostActive ? " FORTRESS BOOST ACTIVE" : " PROTECTION ENFORCED")), React.createElement("h1", null, meta[0]), React.createElement("p", null, meta[1], " \xB7 ", header.activeDefenseCount, "/", header.defenseTotal, " defense layers operational"))), React.createElement("div", {
     className: "page-heading-actions"
   }, React.createElement("div", {
+    className: `header-engine-card ${activeDefenseMode === 'standard' ? 'standard' : activeDefenseMode === 'fortress_boost' ? 'fortress-boost' : 'balanced'}`,
+    title: `Active defense profile: ${activeDefenseMode === 'standard' ? 'Standard' : activeDefenseMode === 'fortress_boost' ? 'Fortress Boost' : 'Balanced'}`
+  }, React.createElement("span", {
+    className: "header-engine-image"
+  }, React.createElement("img", {
+    src: activeDefenseMode === 'standard' ? '/images/standard.png' : activeDefenseMode === 'fortress_boost' ? '/images/fortressboost.png' : '/images/balanced.png',
+    alt: ""
+  })), React.createElement("span", {
+    className: "header-engine-copy"
+  }, React.createElement("small", null, "Engine"), React.createElement("strong", null, activeDefenseMode === 'standard' ? 'Standard' : activeDefenseMode === 'fortress_boost' ? 'Fortress Boost' : 'Balanced'))), React.createElement("div", {
     className: "header-score-card"
   }, React.createElement("span", null, "Protection"), React.createElement("strong", null, header.protectionScore, "/100")), React.createElement("button", {
     className: "icon-action fortress-notification-toggle",

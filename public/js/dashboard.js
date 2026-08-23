@@ -61,19 +61,19 @@
         title: 'Standard',
         label: 'ENGINE READY',
         description: 'Normal layered protection with conservative automated response thresholds.',
-        icon: 'fa-shield-halved',
+        iconPath: '/images/standard.png',
       },
       balanced: {
         title: 'Balanced',
         label: 'ENGINE READY',
         description: 'Current FortressAuth policy with strong protection and measured automated enforcement.',
-        icon: 'fa-scale-balanced',
+        iconPath: '/images/balanced.png',
       },
       fortress_boost: {
         title: 'Fortress Boost',
         label: 'BOOST ACTIVE',
         description: 'High-alert defense profile with faster corroborated blocking and accelerated ML replay.',
-        icon: 'fa-bolt',
+        iconPath: '/images/fortressboost.png',
       },
     };
 
@@ -180,7 +180,10 @@
       if (profileTitle) profileTitle.textContent = selected.title;
       if (profileDescription) profileDescription.textContent = selected.description;
       if (readyLabel) readyLabel.textContent = selected.label;
-      if (profileIcon) profileIcon.className = `fa-solid ${selected.icon}`;
+      if (profileIcon instanceof HTMLImageElement) {
+        profileIcon.src = selected.iconPath || '/images/balanced.png';
+        profileIcon.alt = `${selected.title} profile icon`;
+      }
       if (mode === 'fortress_boost') {
         defenseEngine.classList.remove('engine-boost-pulse');
         // Force a new animation when Boost is re-engaged after another profile.

@@ -196,6 +196,11 @@ export default function AppShell({ children }) {
   }, [activeDefenseMode]);
 
   const boostActive = activeDefenseMode === 'fortress_boost';
+  const defenseProfileVisual = activeDefenseMode === 'standard'
+    ? { label: 'Standard', image: '/images/standard.png', className: 'standard' }
+    : activeDefenseMode === 'fortress_boost'
+      ? { label: 'Fortress Boost', image: '/images/fortressboost.png', className: 'fortress-boost' }
+      : { label: 'Balanced', image: '/images/balanced.png', className: 'balanced' };
 
   const runtimeAttrs = {
     'data-alert-poll-seconds': header.policy?.alertPollSeconds || 4,
@@ -330,6 +335,10 @@ export default function AppShell({ children }) {
               <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className={`status-chip ${boostActive ? 'boost-active' : ''}`}><i className={boostActive ? 'fa-solid fa-bolt' : 'live-dot'} /> {boostActive ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED'}</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
             </div>
             <div className="page-heading-actions">
+              <div className={`header-engine-card ${defenseProfileVisual.className}`} title={`Active defense profile: ${defenseProfileVisual.label}`}>
+                <span className="header-engine-image"><img src={defenseProfileVisual.image} alt="" /></span>
+                <span className="header-engine-copy"><small>Engine</small><strong>{defenseProfileVisual.label}</strong></span>
+              </div>
               <div className="header-score-card"><span>Protection</span><strong>{header.protectionScore}/100</strong></div>
               <button className="icon-action fortress-notification-toggle" type="button" data-notification-toggle title="Security notifications" aria-label="Open security notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
               <button className="icon-action" type="button" onClick={refreshWorkspace} title="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>

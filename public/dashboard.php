@@ -219,19 +219,22 @@ audit_log('dashboard_access uid=' . $userId);
 
                 <div class="engine-control-deck">
                     <div class="engine-mode-selector" role="group" aria-label="Fortress Defense Engine mode">
-                        <button type="button" class="engine-mode-button <?= $engineMode === 'standard' ? 'active' : '' ?>" data-defense-mode="standard" <?= $engineCanManage ? '' : 'disabled' ?>>
-                            <i class="fa-solid fa-shield"></i><span>Standard</span><small>Conservative response</small>
+                        <button type="button" class="engine-mode-button mode-standard <?= $engineMode === 'standard' ? 'active' : '' ?>" data-defense-mode="standard" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <span class="engine-mode-visual" aria-hidden="true"><img src="/images/standard.png" alt="" class="engine-mode-image" /></span>
+                            <span class="engine-mode-copy"><span class="engine-mode-title">Standard</span><small class="engine-mode-description">Conservative response</small></span>
                         </button>
-                        <button type="button" class="engine-mode-button <?= $engineMode === 'balanced' ? 'active' : '' ?>" data-defense-mode="balanced" <?= $engineCanManage ? '' : 'disabled' ?>>
-                            <i class="fa-solid fa-scale-balanced"></i><span>Balanced</span><small>Recommended daily mode</small>
+                        <button type="button" class="engine-mode-button mode-balanced <?= $engineMode === 'balanced' ? 'active' : '' ?>" data-defense-mode="balanced" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <span class="engine-mode-visual" aria-hidden="true"><img src="/images/balanced.png" alt="" class="engine-mode-image" /></span>
+                            <span class="engine-mode-copy"><span class="engine-mode-title">Balanced</span><small class="engine-mode-description">Recommended daily mode</small></span>
                         </button>
-                        <button type="button" class="engine-mode-button boost <?= $engineMode === 'fortress_boost' ? 'active' : '' ?>" data-defense-mode="fortress_boost" <?= $engineCanManage ? '' : 'disabled' ?>>
-                            <i class="fa-solid fa-bolt"></i><span>Fortress Boost</span><small>High-alert defense</small>
+                        <button type="button" class="engine-mode-button mode-fortress-boost boost <?= $engineMode === 'fortress_boost' ? 'active' : '' ?>" data-defense-mode="fortress_boost" <?= $engineCanManage ? '' : 'disabled' ?>>
+                            <span class="engine-mode-visual" aria-hidden="true"><img src="/images/fortressboost.png" alt="" class="engine-mode-image" /></span>
+                            <span class="engine-mode-copy"><span class="engine-mode-title">Fortress Boost</span><small class="engine-mode-description">High-alert defense</small></span>
                         </button>
                     </div>
 
                     <div class="engine-active-profile">
-                        <div class="engine-profile-icon"><i class="fa-solid <?= $engineMode === 'fortress_boost' ? 'fa-bolt' : 'fa-shield-halved' ?>" data-engine-profile-icon></i></div>
+                        <div class="engine-profile-icon"><img src="<?= e($engineMode === 'standard' ? '/images/standard.png' : ($engineMode === 'fortress_boost' ? '/images/fortressboost.png' : '/images/balanced.png')) ?>" alt="" class="engine-profile-image" data-engine-profile-icon /></div>
                         <div>
                             <span>ACTIVE PROFILE</span>
                             <strong data-engine-profile-title><?= e((string)($engineDefinition['title'] ?? 'Balanced')) ?></strong>
