@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeholder = document.getElementById('scanner-placeholder');
     const verificationCard = document.getElementById('verification-card');
     const secondProgress = document.querySelector('.progress-item.active');
-    const secondProgressText = secondProgress ? secondProgress.querySelector('div span') : null;
+    const secondProgressText = document.getElementById('factor-progress-status') || (secondProgress ? secondProgress.querySelector('.progress-copy span') : null);
 
     // The verification page exposes only the second-factor type as a data attribute.
     // Derive the user-facing labels here so both Personal ID and administrator-issued
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         verificationCard?.classList.remove('verification-error', 'verification-success');
         verificationCard?.classList.add('scanner-live');
 
-        setProgressState('processing', 'Camera starting');
+        setProgressState('processing', 'Activating camera');
         setStatus('working', 'Requesting camera access', 'Allow camera access if your browser asks for permission.');
 
         try {
@@ -160,20 +160,28 @@ document.addEventListener('DOMContentLoaded', () => {
             scannerStage?.classList.add('is-scanning');
 
             setCameraState(true, 'Camera active');
-            setProgressState('processing', 'Scanning');
-            setStatus('working', `Scanning ${fortressFactorShort}`, `Hold your ${fortressFactorLabel} inside the frame.`);
+            setProgressState('processing', 'Camera active');
+            setStatus('working', 'Camera ready', `Center the QR code on your ${fortressFactorLabel} inside the target frame.`);
 
-            const targetSize = Math.max(205, Math.min(285, Math.floor((scannerStage?.clientWidth || 520) * 0.48)));
+            // Keep the camera choice compatible with the scanner behavior that was
+            // previously working on desktop. Only prefer a rear/environment camera
+            // on actual mobile-sized/mobile-user-agent devices.
+            const isMobileScanner = window.matchMedia('(max-width: 900px)').matches
+                || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+            const rearCamera = cameras.find((camera) => /back|rear|environment|world/i.test(camera.label || ''));
+            const preferredCamera = isMobileScanner && rearCamera ? rearCamera : cameras[0];
 
+            // IMPORTANT: scan the full video frame. The previous UI revision passed
+            // a qrbox to html5-qrcode and then hid its shaded region so only our
+            // custom FortressAuth target was visible. That made the visible guide
+            // different from the library's real decode region on some viewport/camera
+            // combinations, causing valid Personal IDs to sit outside the actual scan
+            // area. The custom overlay is now guidance only; decoding uses the whole
+            // frame, which is both more reliable and still keeps a single visible box.
             await scanner.start(
-                cameras[0].id,
+                preferredCamera.id,
                 {
-                    fps: 12,
-                    qrbox: {
-                        width: targetSize,
-                        height: targetSize
-                    },
-                    aspectRatio: 1.333333
+                    fps: 15
                 },
                 async (decodedText) => {
                     if (scanCompleted) {
@@ -243,7 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ qr_value: qrValue })
             });
 
-            const result = await response.json();
+            const responseText = await response.text();
+            let result = null;
+
+            try {
+                result = JSON.parse(responseText);
+            } catch (_) {
+                throw new Error('The verification service returned an invalid response. Please try again.');
+            }
 
             if (!response.ok || result.success !== true) {
                 throw new Error(result.error || `${fortressFactorShort} verification failed.`);
@@ -289,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.setTimeout(() => {
                 scannerStage?.classList.remove('is-error');
                 verificationCard?.classList.remove('verification-error');
-                setProgressState('active', 'Awaiting scan');
+                setProgressState('active', 'Ready to retry');
             }, 850);
         }
     }

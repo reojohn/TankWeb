@@ -104,7 +104,7 @@ audit_log('blocked_ips_viewed uid=' . $userId);
 ?>
 <!doctype html><html lang="en"><head>
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
-    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>FortressAuth — Blocked IPs</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css"><link rel="stylesheet" href="/css/pjax.css">
+    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>FortressAuth — Blocked IPs</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845"><link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head><body class="command-page"><div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div><main class="command-shell">
 <?php require __DIR__ . '/partials/command_header.php'; ?>
@@ -116,4 +116,4 @@ audit_log('blocked_ips_viewed uid=' . $userId);
 <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth network enforcement</span><span><?= count($activeRows) ?> active restrictions</span></footer>
 
 </div><!-- /.fortress-main-column -->
-</main><script src="/js/dashboard.js"></script><script src="/js/auto_logout.js"></script></body></html>
+</main><script src="/js/dashboard.js?v=20260824-0845"></script><script src="/js/auto_logout.js"></script></body></html>

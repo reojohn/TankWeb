@@ -75,7 +75,7 @@ $csrfToken = generate_csrf_token();
     <meta name="theme-color" content="#10071f">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
     <title>FortressAuth — Verify QR Credential</title>
-    <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="/css/login.css?v=20260824-0749">
 </head>
 
 <body class="auth-page auth-qr-page" data-second-factor="<?= e($factorType) ?>">
@@ -105,11 +105,19 @@ $csrfToken = generate_csrf_token();
                 <span class="progress-check" aria-hidden="true">✓</span>
             </div>
             <div class="progress-line"></div>
-            <div class="progress-item active">
-                <span class="progress-number" aria-hidden="true">2</span>
+            <div class="progress-item active factor-progress-item" data-factor-step>
+                <span class="progress-number progress-factor-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <rect x="3.5" y="4" width="17" height="16" rx="3"></rect>
+                        <circle cx="8.2" cy="9.1" r="2.1"></circle>
+                        <path d="M5.8 14c.7-1.6 1.8-2.5 3.1-2.5 1.3 0 2.4.9 3.1 2.5"></path>
+                        <path d="M14.2 8.1h3.5M14.2 11h3.5M14.2 13.9h2.2"></path>
+                        <path d="M15.1 16.7h2.7"></path>
+                    </svg>
+                </span>
                 <div class="progress-copy">
                     <strong><?= $usesGeneratedQr ? 'Issued QR' : 'Personal ID' ?></strong>
-                    <span>Awaiting scan</span>
+                    <span id="factor-progress-status">Ready to verify</span>
                 </div>
             </div>
         </div>
@@ -151,10 +159,17 @@ $csrfToken = generate_csrf_token();
         </div>
 
         <div class="scanner-status-card neutral" id="scanner-status-card" role="status" aria-live="polite">
-            <span class="status-orb" aria-hidden="true"></span>
+            <span class="status-orb" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 4H5a1 1 0 0 0-1 1v2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"></path>
+                    <rect x="7.5" y="8" width="9" height="8" rx="2"></rect>
+                    <circle cx="12" cy="12" r="2.2"></circle>
+                </svg>
+                <i class="status-live-dot"></i>
+            </span>
             <div>
-                <strong id="scanner-status-title">Ready for verification</strong>
-                <span id="scanner-status">Camera is currently off.</span>
+                <strong id="scanner-status-title">Scanner standing by</strong>
+                <span id="scanner-status">Activate the camera when you are ready to present your QR code.</span>
             </div>
         </div>
 
@@ -169,6 +184,6 @@ $csrfToken = generate_csrf_token();
 
 <script src="/js/auth_motion.js"></script>
 <script src="/js/html5-qrcode.min.js"></script>
-<script src="/js/school_id_verify.js"></script>
+<script src="/js/school_id_verify.js?v=20260824-0749"></script>
 </body>
 </html>

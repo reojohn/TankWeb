@@ -165,7 +165,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     <meta name="theme-color" content="#10071f">
     <title>FortressAuth — Security Analytics</title>
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -239,5 +239,5 @@ audit_log('security_analytics_viewed uid=' . $userId);
 
 </div><!-- /.fortress-main-column -->
 </main>
-<script src="/js/dashboard.js"></script><script src="/js/auto_logout.js"></script>
+<script src="/js/dashboard.js?v=20260824-0845"></script><script src="/js/auto_logout.js"></script>
 </body></html>

@@ -5230,3 +5230,450 @@ body.auth-login::after {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* =========================================================
+   PERSONAL ID SCANNER FINAL UI FIX — Aug 24 2026
+   - Real icon in the Personal ID progress card
+   - Lively camera-ready status indicator
+   - One scanner target only (no duplicate box)
+   - Final mobile layout overrides placed last intentionally
+   ========================================================= */
+
+/* The second-factor badge is an icon, never status text. */
+.auth-qr-page .factor-progress-item .progress-factor-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  color: #e7c9ff !important;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(211, 153, 255, .24), transparent 62%),
+    rgba(181, 103, 255, .11) !important;
+  border: 1px solid rgba(211, 164, 255, .24) !important;
+  box-shadow:
+    inset 0 0 18px rgba(190, 111, 255, .08),
+    0 0 18px rgba(166, 77, 236, .08);
+}
+
+.auth-qr-page .factor-progress-item .progress-factor-icon svg {
+  display: block !important;
+  width: 25px !important;
+  height: 25px !important;
+  margin: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.65 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  filter: drop-shadow(0 0 6px rgba(204, 139, 255, .28));
+}
+
+.auth-qr-page .factor-progress-item.processing .progress-factor-icon {
+  color: #f0d8ff !important;
+  border-color: rgba(211, 164, 255, .42) !important;
+  box-shadow:
+    inset 0 0 22px rgba(190, 111, 255, .13),
+    0 0 0 5px rgba(181, 103, 255, .035),
+    0 0 24px rgba(181, 103, 255, .16);
+  animation: factorIconBreathe 1.45s ease-in-out infinite;
+}
+
+.auth-qr-page .factor-progress-item.complete .progress-factor-icon {
+  color: #91efc9 !important;
+  border-color: rgba(101, 230, 180, .34) !important;
+  background: rgba(101, 230, 180, .09) !important;
+  box-shadow: 0 0 22px rgba(101, 230, 180, .14);
+  animation: none;
+}
+
+.auth-qr-page .factor-progress-item.failed .progress-factor-icon {
+  color: #ff9ab5 !important;
+  border-color: rgba(255, 122, 159, .32) !important;
+  background: rgba(255, 122, 159, .07) !important;
+  animation: none;
+}
+
+@keyframes factorIconBreathe {
+  0%, 100% { transform: scale(.96); filter: brightness(.96); }
+  50% { transform: scale(1.045); filter: brightness(1.14); }
+}
+
+/* Make the camera-ready row feel live even before a QR code is found. */
+.auth-qr-page .scanner-status-card {
+  grid-template-columns: 48px minmax(0, 1fr) !important;
+  gap: 14px !important;
+}
+
+.auth-qr-page .scanner-status-card .status-orb {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  overflow: visible !important;
+  color: #deb8ff;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(207, 139, 255, .22), transparent 58%),
+    rgba(181, 103, 255, .095) !important;
+  border: 1px solid rgba(205, 143, 255, .32) !important;
+  box-shadow:
+    inset 0 0 17px rgba(210, 148, 255, .09),
+    0 0 0 5px rgba(181, 103, 255, .025),
+    0 0 22px rgba(181, 103, 255, .15) !important;
+}
+
+.auth-qr-page .scanner-status-card .status-orb svg {
+  display: block;
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(210, 145, 255, .38));
+}
+
+/* Kill the old grey pseudo-dot. */
+.auth-qr-page .scanner-status-card .status-orb::after {
+  content: none !important;
+  display: none !important;
+}
+
+.auth-qr-page .scanner-status-card .status-live-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #65e6b4;
+  border: 2px solid #130821;
+  box-shadow:
+    0 0 0 3px rgba(101, 230, 180, .08),
+    0 0 10px rgba(101, 230, 180, .78);
+  animation: scannerLiveDot 1.45s ease-in-out infinite;
+}
+
+.auth-qr-page .scanner-status-card.neutral .status-orb,
+.auth-qr-page .scanner-status-card.working .status-orb {
+  animation: scannerOrbBreath 1.9s ease-in-out infinite;
+}
+
+.auth-qr-page .scanner-status-card.success .status-orb {
+  color: #9cf0ce;
+  border-color: rgba(101, 230, 180, .36) !important;
+  background: rgba(101, 230, 180, .09) !important;
+  box-shadow: 0 0 24px rgba(101, 230, 180, .16) !important;
+  animation: none;
+}
+
+.auth-qr-page .scanner-status-card.error .status-orb {
+  color: #ff9ab5;
+  border-color: rgba(255, 122, 159, .34) !important;
+  background: rgba(255, 122, 159, .08) !important;
+  box-shadow: 0 0 20px rgba(255, 122, 159, .12) !important;
+  animation: none;
+}
+
+.auth-qr-page .scanner-status-card.error .status-live-dot {
+  background: #ff7a9f;
+  box-shadow: 0 0 10px rgba(255, 122, 159, .75);
+}
+
+@keyframes scannerOrbBreath {
+  0%, 100% { transform: scale(.96); box-shadow: inset 0 0 17px rgba(210,148,255,.08), 0 0 0 4px rgba(181,103,255,.02), 0 0 18px rgba(181,103,255,.11); }
+  50% { transform: scale(1.035); box-shadow: inset 0 0 19px rgba(210,148,255,.13), 0 0 0 7px rgba(181,103,255,.035), 0 0 28px rgba(181,103,255,.20); }
+}
+
+@keyframes scannerLiveDot {
+  0%, 100% { transform: scale(.78); opacity: .72; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+/* ONE targeting box only: keep the custom corner brackets + scan line.
+   html5-qrcode's shaded qrbox is made transparent because detection works
+   without its visual mask. The custom full-box border is removed as well. */
+.auth-qr-page #reader #qr-shaded-region,
+.auth-qr-page .qr-reader #qr-shaded-region {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  opacity: 0 !important;
+}
+
+.auth-qr-page .scan-overlay::before {
+  content: none !important;
+  display: none !important;
+}
+
+.auth-qr-page .scan-overlay {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.auth-qr-page .scan-overlay .corner {
+  z-index: 3;
+}
+
+.auth-qr-page .scan-overlay .scan-line,
+.auth-qr-page .scan-overlay .scan-center-dot {
+  z-index: 2;
+}
+
+/* Final all-device QR page layout. */
+@media (max-width: 900px) {
+  .auth-qr-page {
+    align-items: flex-start !important;
+    min-height: 100dvh !important;
+    padding: 10px !important;
+    overflow-x: hidden !important;
+  }
+
+  .auth-qr-page .verify-shell {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: min(680px, 100%) !important;
+    max-width: 680px !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    overflow: hidden !important;
+  }
+
+  .auth-qr-page .verify-side {
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,.07) !important;
+    padding: 22px 22px 18px !important;
+  }
+
+  .auth-qr-page .scanner-panel {
+    padding: 20px 22px 22px !important;
+  }
+
+  .auth-qr-page .verify-copy {
+    margin-top: 18px !important;
+  }
+
+  .auth-qr-page .auth-progress {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    margin-top: 18px !important;
+  }
+
+  .auth-qr-page .progress-line {
+    width: 18px !important;
+    height: 1px !important;
+    margin: auto 0 !important;
+    background: linear-gradient(90deg, var(--success), rgba(181,103,255,.55)) !important;
+  }
+
+  .auth-qr-page .progress-item {
+    grid-template-columns: 42px minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+
+  .auth-qr-page .progress-copy {
+    min-width: 0 !important;
+  }
+
+  .auth-qr-page .progress-copy strong,
+  .auth-qr-page .progress-copy span {
+    overflow-wrap: anywhere !important;
+  }
+
+  .auth-qr-page .scanner-stage,
+  .auth-qr-page .qr-reader,
+  .auth-qr-page .qr-reader video,
+  .auth-qr-page .qr-reader canvas {
+    width: 100% !important;
+    min-height: clamp(270px, 57vw, 350px) !important;
+    height: clamp(270px, 57vw, 350px) !important;
+  }
+
+  .auth-qr-page .scan-overlay {
+    width: min(270px, 66vw) !important;
+    max-width: 270px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-qr-page {
+    padding: 6px !important;
+  }
+
+  .auth-qr-page .verify-shell {
+    border-radius: 18px !important;
+  }
+
+  .auth-qr-page .verify-side {
+    padding: 16px 14px 14px !important;
+  }
+
+  .auth-qr-page .verify-brand img {
+    width: 56px !important;
+    height: 56px !important;
+    flex-basis: 56px !important;
+  }
+
+  .auth-qr-page .verify-brand h1 {
+    font-size: 22px !important;
+  }
+
+  .auth-qr-page .verify-copy {
+    margin-top: 12px !important;
+  }
+
+  .auth-qr-page .verify-copy h2 {
+    margin-top: 9px !important;
+    margin-bottom: 7px !important;
+    font-size: clamp(27px, 8.2vw, 33px) !important;
+  }
+
+  .auth-qr-page .verify-copy p {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+
+  .auth-qr-page .auth-progress {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 7px !important;
+    margin-top: 14px !important;
+  }
+
+  .auth-qr-page .progress-line {
+    width: 2px !important;
+    height: 10px !important;
+    margin: -2px 0 -2px 29px !important;
+    background: linear-gradient(var(--success), rgba(181,103,255,.55)) !important;
+  }
+
+  .auth-qr-page .progress-item {
+    min-height: 58px !important;
+    padding: 9px 10px !important;
+    grid-template-columns: 42px minmax(0, 1fr) auto !important;
+  }
+
+  .auth-qr-page .factor-progress-item .progress-factor-icon {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+
+  .auth-qr-page .verify-security-note {
+    margin-top: 10px !important;
+    padding: 9px 10px !important;
+  }
+
+  .auth-qr-page .verify-security-note p {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+  }
+
+  .auth-qr-page .scanner-panel {
+    padding: 14px 12px 16px !important;
+  }
+
+  .auth-qr-page .scanner-panel-head {
+    align-items: flex-start !important;
+    margin-bottom: 9px !important;
+  }
+
+  .auth-qr-page .scanner-panel-head h3 {
+    font-size: 20px !important;
+  }
+
+  .auth-qr-page .camera-state {
+    font-size: 11px !important;
+    padding: 7px 9px !important;
+  }
+
+  .auth-qr-page .scanner-stage,
+  .auth-qr-page .qr-reader,
+  .auth-qr-page .qr-reader video,
+  .auth-qr-page .qr-reader canvas {
+    min-height: clamp(238px, 69vw, 300px) !important;
+    height: clamp(238px, 69vw, 300px) !important;
+  }
+
+  .auth-qr-page .scan-overlay {
+    width: min(230px, 66vw) !important;
+    max-width: 230px !important;
+  }
+
+  .auth-qr-page .scan-overlay::after {
+    bottom: -31px !important;
+    max-width: calc(100vw - 56px) !important;
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    letter-spacing: .105em !important;
+  }
+
+  .auth-qr-page .scanner-status-card {
+    grid-template-columns: 44px minmax(0,1fr) !important;
+    gap: 11px !important;
+    min-height: 60px !important;
+    padding: 10px !important;
+  }
+
+  .auth-qr-page .scanner-status-card .status-orb {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+
+  .auth-qr-page .scanner-status-card strong {
+    font-size: 14px !important;
+  }
+
+  .auth-qr-page .scanner-status-card div > span {
+    font-size: 12.8px !important;
+    line-height: 1.4 !important;
+  }
+
+  .auth-qr-page .scanner-action {
+    min-height: 48px !important;
+    margin-top: 8px !important;
+  }
+
+  .auth-qr-page .scanner-help {
+    margin-top: 7px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-qr-page .scanner-panel-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .auth-qr-page .camera-state {
+    justify-self: start !important;
+    margin-top: 2px !important;
+  }
+
+  .auth-qr-page .scan-overlay {
+    width: min(205px, 64vw) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-qr-page .factor-progress-item.processing .progress-factor-icon,
+  .auth-qr-page .scanner-status-card .status-orb,
+  .auth-qr-page .scanner-status-card .status-live-dot {
+    animation: none !important;
+  }
+}

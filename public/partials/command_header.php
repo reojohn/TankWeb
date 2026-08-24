@@ -31,7 +31,7 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
 ?>
 
 <div hidden data-runtime-defense-theme="<?= e($runtimeDefenseMode) ?>"></div>
-<script src="/js/fortress_theme.js"></script>
+<script src="/js/fortress_theme.js?v=20260824-0845"></script>
 
 <div class="fortress-mobile-bar">
     <button class="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false" data-sidebar-toggle>

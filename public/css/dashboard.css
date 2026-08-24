@@ -14,6 +14,19 @@
   --amber: #ffc86a;
   --red: #ff6c93;
   --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+
+  /* Balanced defaults keep page-specific styles valid before the runtime
+     profile marker is applied during the first React paint. */
+  --theme-accent: #b45cff;
+  --theme-accent-2: #d497ff;
+  --theme-accent-rgb: 180, 92, 255;
+  --theme-accent-2-rgb: 212, 151, 255;
+  --theme-surface-rgb: 29, 12, 51;
+  --theme-surface-2-rgb: 53, 24, 78;
+  --theme-deep-rgb: 11, 4, 20;
+  --theme-text-soft: #eadcf4;
+  --theme-muted-profile-2: #c6add8;
+  --theme-muted-profile: #927e9f;
 }
 
 * { box-sizing: border-box; }
@@ -10793,6 +10806,9 @@ body[data-fortress-theme] {
   --theme-line-strong: rgba(198, 133, 255, .32);
   --theme-throttle-hot: #f0caff;
   --theme-throttle-head: #fff5ff;
+  --theme-text-soft: #eadcf4;
+  --theme-muted-profile-2: #c6add8;
+  --theme-muted-profile: #927e9f;
 
   /* Existing variable-driven components automatically inherit the profile. */
   --bg: var(--theme-bg-bottom);
@@ -10824,6 +10840,9 @@ body[data-fortress-theme="standard"] {
   --theme-line-strong: rgba(88, 221, 161, .33);
   --theme-throttle-hot: #a9f0cf;
   --theme-throttle-head: #eefff7;
+  --theme-text-soft: #dcefe6;
+  --theme-muted-profile-2: #a8c9b8;
+  --theme-muted-profile: #759585;
 }
 
 body[data-fortress-theme="balanced"] {
@@ -10845,6 +10864,9 @@ body[data-fortress-theme="balanced"] {
   --theme-line-strong: rgba(198, 133, 255, .32);
   --theme-throttle-hot: #f0caff;
   --theme-throttle-head: #fff5ff;
+  --theme-text-soft: #eadcf4;
+  --theme-muted-profile-2: #c6add8;
+  --theme-muted-profile: #927e9f;
 }
 
 body[data-fortress-theme="fortress_boost"] {
@@ -10866,6 +10888,9 @@ body[data-fortress-theme="fortress_boost"] {
   --theme-line-strong: rgba(255, 75, 104, .35);
   --theme-throttle-hot: #ff9aab;
   --theme-throttle-head: #fff1f3;
+  --theme-text-soft: #f2dce1;
+  --theme-muted-profile-2: #caa8b0;
+  --theme-muted-profile: #9b747d;
 }
 
 html:has(body[data-fortress-theme="standard"]) { background: #020b08; }
@@ -12540,5 +12565,382 @@ html.fortress-logout-starting .fortress-mobile-notifications {
   .logout-click-wave {
     animation: none !important;
     transition-duration: .01ms !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — MOBILE PROFILE CONSISTENCY
+   Aug 24 2026
+
+   The desktop operating palettes already use --theme-* variables, but several
+   older mobile/off-canvas rules were written with literal FortressAuth purple
+   values (some with !important). Those literals could win the cascade after
+   Standard or Fortress Boost was selected, leaving a purple mobile drawer,
+   mobile controls, navigation chrome and auxiliary cards.
+
+   This final mobile bridge is intentionally last in dashboard.css. It only
+   recolors operating-profile chrome. Security semantics remain untouched:
+   success stays green, warnings stay amber, danger/logout/attack indicators
+   stay red, and the FortressAuth logo artwork is not filtered/recolored.
+   ========================================================= */
+@media (max-width: 900px) {
+  /* Mobile command bar follows the active engine instead of the legacy purple. */
+  body.command-page[data-fortress-theme] .fortress-mobile-bar,
+  body.command-page[data-fortress-theme].fortress-react-v3 > .fortress-mobile-bar,
+  body.command-page[data-fortress-theme].fortress-react-v3 > #root > .fortress-mobile-bar,
+  body.command-page[data-fortress-theme] #root > .fortress-mobile-bar {
+    border-color: var(--theme-line) !important;
+    background:
+      linear-gradient(145deg,
+        rgba(var(--theme-surface-rgb), .96),
+        rgba(var(--theme-deep-rgb), .985)) !important;
+    box-shadow:
+      0 18px 48px rgba(0,0,0,.42),
+      inset 0 1px 0 rgba(255,255,255,.028),
+      0 0 24px rgba(var(--theme-accent-rgb), .055) !important;
+  }
+
+  /* Old mobile action rules used literal purple + !important. Override them
+     with the live profile variables. Logout is deliberately excluded because
+     it is a destructive/security-semantic action and should remain red. */
+  body.command-page[data-fortress-theme] .fortress-mobile-menu,
+  body.command-page[data-fortress-theme] .fortress-mobile-notifications,
+  body.command-page[data-fortress-theme] .fortress-mobile-refresh {
+    border-color: rgba(var(--theme-accent-2-rgb), .18) !important;
+    background: rgba(var(--theme-accent-rgb), .09) !important;
+    color: var(--theme-accent-2) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.035),
+      0 7px 20px rgba(var(--theme-accent-rgb), .05) !important;
+  }
+
+  body.command-page[data-fortress-theme] .fortress-mobile-menu:hover,
+  body.command-page[data-fortress-theme] .fortress-mobile-notifications:hover,
+  body.command-page[data-fortress-theme] .fortress-mobile-refresh:hover {
+    border-color: rgba(var(--theme-accent-2-rgb), .34) !important;
+    background: rgba(var(--theme-accent-rgb), .15) !important;
+    color: #fff !important;
+  }
+
+  /* Off-canvas navigation drawer. */
+  body.command-page[data-fortress-theme] .fortress-sidebar {
+    border-color: var(--theme-line) !important;
+    background:
+      radial-gradient(circle at 22% 0%, rgba(var(--theme-accent-rgb), .13), transparent 29%),
+      radial-gradient(circle at 92% 24%, rgba(var(--theme-accent-rgb), .075), transparent 27%),
+      linear-gradient(180deg,
+        rgba(var(--theme-surface-rgb), .985) 0%,
+        rgba(var(--theme-deep-rgb), .985) 48%,
+        rgba(var(--theme-deep-rgb), 1) 100%) !important;
+    box-shadow:
+      0 28px 90px rgba(0,0,0,.46),
+      inset 0 1px 0 rgba(255,255,255,.035),
+      0 0 34px rgba(var(--theme-accent-rgb), .055) !important;
+  }
+
+  body.command-page[data-fortress-theme] .fortress-sidebar::after {
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(var(--theme-accent-2-rgb), .64),
+      rgba(var(--theme-accent-rgb), .46),
+      transparent
+    ) !important;
+  }
+
+  /* Reinforce theme inheritance on the compact cards because some legacy
+     mobile rules use transparent surfaces that expose the old purple canvas. */
+  body.command-page[data-fortress-theme] .fortress-sidebar .sidebar-brand-card,
+  body.command-page[data-fortress-theme] .fortress-sidebar .sidebar-status-card,
+  body.command-page[data-fortress-theme] .fortress-sidebar .sidebar-operator-card {
+    border-color: rgba(var(--theme-accent-2-rgb), .13) !important;
+    background: linear-gradient(
+      145deg,
+      rgba(var(--theme-surface-2-rgb), .46),
+      rgba(var(--theme-deep-rgb), .68)
+    ) !important;
+  }
+
+  body.command-page[data-fortress-theme] .sidebar-score {
+    border-color: rgba(var(--theme-accent-2-rgb), .16) !important;
+    background: rgba(var(--theme-accent-rgb), .07) !important;
+  }
+
+  body.command-page[data-fortress-theme] .sidebar-score strong {
+    color: var(--theme-accent-2) !important;
+  }
+
+  body.command-page[data-fortress-theme] .sidebar-operator-badge {
+    border: 1px solid rgba(var(--theme-accent-2-rgb), .14) !important;
+    background: rgba(var(--theme-accent-rgb), .10) !important;
+    color: var(--theme-accent-2) !important;
+  }
+
+  body.command-page[data-fortress-theme] .sidebar-section-label {
+    color: rgba(var(--theme-accent-2-rgb), .56) !important;
+  }
+
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links {
+    scrollbar-color: rgba(var(--theme-accent-rgb), .42) transparent !important;
+  }
+
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active) .nav-icon {
+    border-color: rgba(var(--theme-accent-2-rgb), .10) !important;
+    background: rgba(var(--theme-accent-rgb), .055) !important;
+    color: rgba(var(--theme-accent-2-rgb), .72) !important;
+  }
+
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active):hover {
+    border-color: rgba(var(--theme-accent-2-rgb), .15) !important;
+    background: rgba(var(--theme-accent-rgb), .075) !important;
+  }
+
+  /* Standard and Fortress Boost get their own light active-row treatment on
+     mobile instead of inheriting the lavender Balanced row. */
+  body.command-page[data-fortress-theme="standard"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active {
+    color: #062318 !important;
+    border-color: rgba(209,255,234,.94) !important;
+    background: linear-gradient(145deg,#f4fff9 0%,#e3f8ed 60%,#d3f1e2 100%) !important;
+    box-shadow:
+      0 12px 28px rgba(0,0,0,.28),
+      0 0 0 1px rgba(99,217,168,.18),
+      0 0 22px rgba(40,153,107,.18),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+  }
+
+  body.command-page[data-fortress-theme="standard"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy strong {
+    color: #062318 !important;
+  }
+
+  body.command-page[data-fortress-theme="standard"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy small {
+    color: #456e5c !important;
+  }
+
+  body.command-page[data-fortress-theme="fortress_boost"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active {
+    color: #3a0711 !important;
+    border-color: rgba(255,224,230,.96) !important;
+    background: linear-gradient(145deg,#fff7f8 0%,#ffe8ec 60%,#ffd9e0 100%) !important;
+    box-shadow:
+      0 12px 28px rgba(0,0,0,.30),
+      0 0 0 1px rgba(255,83,108,.18),
+      0 0 22px rgba(196,23,56,.20),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+  }
+
+  body.command-page[data-fortress-theme="fortress_boost"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy strong {
+    color: #3a0711 !important;
+  }
+
+  body.command-page[data-fortress-theme="fortress_boost"] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy small {
+    color: #87515c !important;
+  }
+
+  /* Auxiliary dashboard surfaces that were still exposing literal purple on
+     narrow layouts. Attack icons remain red because they represent attacks. */
+  body.command-page[data-fortress-theme] .chart-wrap,
+  body.command-page[data-fortress-theme] .analytics-chart-wrap {
+    border-color: rgba(var(--theme-accent-2-rgb), .10) !important;
+    background:
+      linear-gradient(rgba(255,255,255,.014),rgba(255,255,255,.004)),
+      radial-gradient(circle at 50% 110%,rgba(var(--theme-accent-rgb),.10),transparent 56%) !important;
+  }
+
+  body.command-page[data-fortress-theme] .attack-card {
+    border-color: rgba(var(--theme-accent-2-rgb), .09) !important;
+    background: linear-gradient(
+      145deg,
+      rgba(var(--theme-surface-rgb), .58),
+      rgba(var(--theme-deep-rgb), .76)
+    ) !important;
+  }
+
+  body.command-page[data-fortress-theme] .request-defense-details > summary {
+    border-color: rgba(var(--theme-accent-2-rgb), .12) !important;
+    background: rgba(var(--theme-accent-rgb), .055) !important;
+  }
+
+  /* Crown Jewel keeps its unique artwork, but its surrounding caption/chrome
+     now harmonizes with the selected engine instead of forcing purple text. */
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links a.nav-crown-jewel .crown-jewel-caption {
+    color: var(--theme-accent-2) !important;
+    text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), .34) !important;
+  }
+}
+
+/* =========================================================
+   FORTRESS DEFENSE ENGINE — FINAL CROSS-PAGE THEME BRIDGE
+   Aug 24 2026
+
+   Some older dashboard/page components still used literal violet values even
+   though the shell already switched profiles. This layer is intentionally at
+   the end of dashboard.css so Standard and Fortress Boost remain consistent
+   on desktop and mobile without recoloring security-semantic success, warning,
+   danger, attack, or logout states.
+   ========================================================= */
+body.command-page[data-fortress-theme] .defense-row,
+body.command-page[data-fortress-theme] .event-row,
+body.command-page[data-fortress-theme] .session-details div,
+body.command-page[data-fortress-theme] .log-summary div,
+body.command-page[data-fortress-theme] .quick-actions a,
+body.command-page[data-fortress-theme] .threat-equation div,
+body.command-page[data-fortress-theme] .security-table th,
+body.command-page[data-fortress-theme] .security-table td,
+body.command-page[data-fortress-theme] .protected-resource-list a,
+body.command-page[data-fortress-theme] .source-list > div,
+body.command-page[data-fortress-theme] .control-details div,
+body.command-page[data-fortress-theme] .honeypot-list > div,
+body.command-page[data-fortress-theme] .category-summary div,
+body.command-page[data-fortress-theme] .policy-list > div,
+body.command-page[data-fortress-theme] .defense-grid-list .defense-row:nth-last-child(2) {
+  border-color: rgba(var(--theme-accent-2-rgb), .07) !important;
+}
+
+body.command-page[data-fortress-theme] .threat-stats {
+  border-color: rgba(var(--theme-accent-2-rgb), .08) !important;
+}
+body.command-page[data-fortress-theme] .threat-stats span {
+  border-color: rgba(var(--theme-accent-2-rgb), .07) !important;
+}
+
+body.command-page[data-fortress-theme] .asset-card,
+body.command-page[data-fortress-theme] .configuration-grid > div,
+body.command-page[data-fortress-theme] .request-defense-details {
+  border-color: rgba(var(--theme-accent-2-rgb), .09) !important;
+}
+body.command-page[data-fortress-theme] .asset-card:hover {
+  border-color: rgba(var(--theme-accent-2-rgb), .27) !important;
+  background: rgba(var(--theme-accent-rgb), .04) !important;
+}
+
+body.command-page[data-fortress-theme] .chain-node.protected {
+  border-color: rgba(var(--theme-accent-rgb), .28) !important;
+  box-shadow: 0 0 32px rgba(var(--theme-accent-rgb), .09) !important;
+}
+body.command-page[data-fortress-theme] .threat-equation .threat-total {
+  border-color: rgba(var(--theme-accent-rgb), .14) !important;
+  background: rgba(var(--theme-accent-rgb), .04) !important;
+  color: var(--theme-text-soft) !important;
+}
+body.command-page[data-fortress-theme] .status-recorded {
+  color: var(--theme-accent-2) !important;
+  border-color: rgba(var(--theme-accent-rgb), .16) !important;
+  background: rgba(var(--theme-accent-rgb), .05) !important;
+}
+body.command-page[data-fortress-theme] .timeline-item::after {
+  background: rgba(var(--theme-accent-2-rgb), .10) !important;
+}
+
+body.command-page[data-fortress-theme] .protected-resource-list a > span i,
+body.command-page[data-fortress-theme] .asset-icon {
+  border-color: rgba(var(--theme-accent-rgb), .13) !important;
+  color: var(--theme-accent-2) !important;
+  background: rgba(var(--theme-accent-rgb), .06) !important;
+}
+
+body.command-page[data-fortress-theme] .page-hero {
+  border-color: var(--theme-line) !important;
+  background:
+    linear-gradient(115deg, rgba(var(--theme-surface-2-rgb), .76), rgba(var(--theme-deep-rgb), .94) 62%),
+    radial-gradient(circle at 86% 25%, rgba(var(--theme-accent-rgb), .15), transparent 32%) !important;
+}
+body.command-page[data-fortress-theme] .page-hero-icon {
+  border-color: rgba(var(--theme-accent-rgb), .20) !important;
+  color: var(--theme-accent-2) !important;
+  background: radial-gradient(circle, rgba(var(--theme-accent-rgb), .16), rgba(255,255,255,.015)) !important;
+  box-shadow: 0 0 45px rgba(var(--theme-accent-rgb), .08) !important;
+}
+
+body.command-page[data-fortress-theme] .panel-note {
+  border-color: rgba(var(--theme-accent-rgb), .10) !important;
+  background: rgba(var(--theme-accent-rgb), .035) !important;
+}
+body.command-page[data-fortress-theme] .panel-note > i,
+body.command-page[data-fortress-theme] .configuration-grid i,
+body.command-page[data-fortress-theme] .school-id-visual small {
+  color: var(--theme-accent-2) !important;
+}
+body.command-page[data-fortress-theme] .school-id-visual {
+  border-color: rgba(var(--theme-accent-rgb), .14) !important;
+  background: linear-gradient(135deg, rgba(var(--theme-accent-rgb), .065), rgba(255,255,255,.015)) !important;
+}
+
+body.command-page[data-fortress-theme] .request-defense-details > summary:hover,
+body.command-page[data-fortress-theme] .request-defense-details[open] > summary {
+  background: rgba(var(--theme-accent-rgb), .05) !important;
+}
+body.command-page[data-fortress-theme] .request-defense-extra-heading {
+  border-color: rgba(var(--theme-accent-2-rgb), .07) !important;
+}
+body.command-page[data-fortress-theme] .request-defense-chevron {
+  color: var(--theme-muted-profile) !important;
+}
+
+/* Profile-aware table chrome on narrow screens. This specifically fixes old
+   violet sticky headers that were visible after changing engine on mobile. */
+@media (max-width: 900px) {
+  body.command-page[data-fortress-theme] .mobile-bounded-table {
+    border-color: rgba(var(--theme-accent-2-rgb), .07) !important;
+  }
+  body.command-page[data-fortress-theme] .mobile-bounded-table .security-table thead th {
+    background: rgb(var(--theme-surface-rgb)) !important;
+    box-shadow: 0 1px 0 rgba(var(--theme-accent-2-rgb), .10) !important;
+  }
+}
+
+/* =========================================================
+   DEFENSE ENGINE — STANDALONE PAGE FALLBACK
+   Aug 24 2026
+   Mirrors the final React bridge for direct PHP routes that do not load
+   v3-react.css. This deliberately targets presentation chrome only.
+   ========================================================= */
+body.command-page[data-fortress-theme] {
+  --muted: var(--theme-muted-profile-2);
+  --muted-2: var(--theme-muted-profile);
+}
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links {
+  border-color: rgba(var(--theme-accent-2-rgb), .10) !important;
+  background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), .34), rgba(var(--theme-deep-rgb), .50)) !important;
+}
+body.command-page[data-fortress-theme] .panel,
+body.command-page[data-fortress-theme] .metric-card,
+body.command-page[data-fortress-theme] .attack-card,
+body.command-page[data-fortress-theme] .analytics-card,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-card,
+body.command-page[data-fortress-theme] .analytics-page .analytics-card,
+body.command-page[data-fortress-theme] .analytics-page .analytics-summary-grid .metric-card {
+  border-color: var(--theme-line) !important;
+  background:
+    radial-gradient(circle at var(--pointer-x,86%) var(--pointer-y,0%), rgba(var(--theme-accent-rgb), .065), transparent 30%),
+    linear-gradient(145deg, rgba(var(--theme-surface-rgb), .88), rgba(var(--theme-deep-rgb), .96)) !important;
+}
+body.command-page[data-fortress-theme] .panel::before,
+body.command-page[data-fortress-theme] .metric-card::before,
+body.command-page[data-fortress-theme] .attack-card::before,
+body.command-page[data-fortress-theme] .analytics-card::before {
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-accent-rgb), .40), rgba(var(--theme-accent-2-rgb), .32), transparent) !important;
+}
+body.command-page[data-fortress-theme] .analytics-chart-wrap,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap.small,
+body.command-page[data-fortress-theme] .chart-wrap {
+  border-color: rgba(var(--theme-accent-2-rgb), .11) !important;
+  background:
+    radial-gradient(circle at var(--chart-glow-x,50%) var(--chart-glow-y,45%), rgba(var(--theme-accent-rgb), .075), transparent 28%),
+    linear-gradient(155deg, rgba(var(--theme-surface-rgb), .66), rgba(var(--theme-deep-rgb), .78)) !important;
+}
+body.command-page[data-fortress-theme] .analytics-legend .c4,
+body.command-page[data-fortress-theme] .donut-purple-legend span:last-child i {
+  background: var(--theme-accent-2) !important;
+}
+@media (max-width: 900px) {
+  body.command-page[data-fortress-theme] .fortress-mobile-bar {
+    border-color: var(--theme-line) !important;
+    background: linear-gradient(145deg, rgba(var(--theme-surface-rgb), .97), rgba(var(--theme-deep-rgb), .99)) !important;
+  }
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links {
+    border: 1px solid rgba(var(--theme-accent-2-rgb), .10) !important;
+    border-radius: 18px !important;
+    padding: 5px !important;
+    background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), .40), rgba(var(--theme-deep-rgb), .64)) !important;
   }
 }

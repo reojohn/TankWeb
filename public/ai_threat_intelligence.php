@@ -361,8 +361,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <meta name="theme-color" content="#10071f">
     <title>FortressAuth — AI Defense</title>
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
-    <link rel="stylesheet" href="/css/ai_threat_intelligence.css">
+    <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
+    <link rel="stylesheet" href="/css/ai_threat_intelligence.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -821,7 +821,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-agent-orbit ai-agent-orbit-one"></div>
             <div class="ai-agent-orbit ai-agent-orbit-two"></div>
             <div class="ai-agent-node ai-agent-node-core">
-                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core.png" alt="" aria-hidden="true"></span>
+                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core2.png" alt="" aria-hidden="true"></span>
                 <strong>FortressAuth Core</strong>
                 <small>Defense state: <?= e($mlSeverity) ?></small>
             </div>
@@ -983,8 +983,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 </div><!-- /.fortress-main-column -->
 </main>
-<script src="/js/ai_threat_intelligence.js"></script>
-<script src="/js/dashboard.js"></script>
+<script src="/js/ai_threat_intelligence.js?v=20260824-0845"></script>
+<script src="/js/dashboard.js?v=20260824-0845"></script>
 <script src="/js/auto_logout.js"></script>
 </body>
 </html>

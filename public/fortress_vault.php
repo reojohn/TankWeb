@@ -62,7 +62,7 @@ if (empty($_SESSION['fortress_vault_logged'])) {
     <meta name="robots" content="noindex,nofollow,noarchive">
     <title>FortressAuth — Fortress Vault</title>
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/vault.css?v=20260822-mobile-2x2">
+    <link rel="stylesheet" href="/css/vault.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -197,7 +197,7 @@ if (empty($_SESSION['fortress_vault_logged'])) {
         </footer>
     </main>
 
-    <script src="/js/vault.js"></script>
+    <script src="/js/vault.js?v=20260824-0845"></script>
     <script src="/js/auto_logout.js"></script>
 </body>
 </html>

@@ -26,7 +26,38 @@
 
   const init = () => {
     destroy();
-  const palette = ['#b45cff', '#d497ff', '#8b5cf6', '#c084fc', '#a855f7', '#e0b8ff', '#7c3aed', '#f29aff'];
+
+    // Resolve the active Defense Engine palette once for this render cycle.
+    // Canvas cannot reliably consume CSS var(...) colors directly, so charts
+    // read the same --theme-* custom properties used by the DOM surfaces.
+    const themeStyle = window.getComputedStyle(document.body);
+    const readTheme = (name, fallback) => themeStyle.getPropertyValue(name).trim() || fallback;
+    const themeAccent = readTheme('--theme-accent', '#b45cff');
+    const themeAccent2 = readTheme('--theme-accent-2', '#d497ff');
+    const themeAccentRgb = readTheme('--theme-accent-rgb', '180, 92, 255');
+    const themeAccent2Rgb = readTheme('--theme-accent-2-rgb', '212, 151, 255');
+    const themeSurfaceRgb = readTheme('--theme-surface-rgb', '29, 12, 51');
+    const themeSurface2Rgb = readTheme('--theme-surface-2-rgb', '53, 24, 78');
+    const themeDeepRgb = readTheme('--theme-deep-rgb', '11, 4, 20');
+    const themeMutedProfile2 = readTheme('--theme-muted-profile-2', '#c6add8');
+    const rgba = (rgb, alpha) => `rgba(${rgb},${alpha})`;
+    const themeA = (alpha) => rgba(themeAccentRgb, alpha);
+    const themeA2 = (alpha) => rgba(themeAccent2Rgb, alpha);
+    const themeSurface = (alpha) => rgba(themeSurfaceRgb, alpha);
+    const themeSurface2 = (alpha) => rgba(themeSurface2Rgb, alpha);
+    const themeDeep = (alpha) => rgba(themeDeepRgb, alpha);
+
+    // Non-semantic violet series are profile accents. Success/warning/danger
+    // colors remain fixed so security meaning never changes.
+    const purpleAccentColors = new Set(['#b45cff', '#8b5cf6', '#a855f7', '#7c3aed']);
+    const purpleAccent2Colors = new Set(['#d497ff', '#c084fc', '#e0b8ff', '#f29aff', '#b983ff']);
+    const profileColor = (color, fallback = themeAccent) => {
+      const value = String(color || '').trim().toLowerCase();
+      if (purpleAccentColors.has(value)) return themeAccent;
+      if (purpleAccent2Colors.has(value)) return themeAccent2;
+      return color || fallback;
+    };
+    const palette = [themeAccent, themeAccent2, '#61f7bd', '#77c9ff', '#ffc86a', '#ff6c93', '#52e6a5', '#ff9ee7'];
 
   // Fortress Defense Engine. The browser only requests a profile change; the
   // PHP endpoint remains authoritative, requires CSRF, and restricts changes to
@@ -608,8 +639,8 @@
 
   const drawEmpty = (ctx, width, height) => {
     const glow = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, Math.min(width, height) * .38);
-    glow.addColorStop(0, 'rgba(180,92,255,.10)');
-    glow.addColorStop(1, 'rgba(180,92,255,0)');
+    glow.addColorStop(0, themeA('.10'));
+    glow.addColorStop(1, themeA('0'));
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
 
@@ -628,22 +659,22 @@
     else ctx.rect(left, top, graphWidth, graphHeight);
 
     const panelGradient = ctx.createLinearGradient(0, top, 0, top + graphHeight);
-    panelGradient.addColorStop(0, 'rgba(38,16,59,.54)');
-    panelGradient.addColorStop(.52, 'rgba(23,9,39,.34)');
-    panelGradient.addColorStop(1, 'rgba(11,4,20,.17)');
+    panelGradient.addColorStop(0, themeSurface2('.54'));
+    panelGradient.addColorStop(.52, themeSurface('.34'));
+    panelGradient.addColorStop(1, themeDeep('.17'));
     ctx.fillStyle = panelGradient;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(212,151,255,.08)';
+    ctx.strokeStyle = themeA2('.08');
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.clip();
     const shine = ctx.createLinearGradient(left, top, left + graphWidth, top + graphHeight);
     shine.addColorStop(0, 'rgba(255,255,255,.04)');
-    shine.addColorStop(.27, 'rgba(212,151,255,.032)');
+    shine.addColorStop(.27, themeA2('.032'));
     shine.addColorStop(.64, 'rgba(255,255,255,0)');
-    shine.addColorStop(1, 'rgba(180,92,255,.026)');
+    shine.addColorStop(1, themeA('.026'));
     ctx.fillStyle = shine;
     ctx.fillRect(left, top, graphWidth, graphHeight);
     ctx.restore();
@@ -662,13 +693,13 @@
     ctx.closePath();
 
     const floorGradient = ctx.createLinearGradient(0, floorY, 0, floorY + depth);
-    floorGradient.addColorStop(0, 'rgba(180,92,255,.085)');
-    floorGradient.addColorStop(.5, 'rgba(180,92,255,.026)');
-    floorGradient.addColorStop(1, 'rgba(28,8,45,0)');
+    floorGradient.addColorStop(0, themeA('.085'));
+    floorGradient.addColorStop(.5, themeA('.026'));
+    floorGradient.addColorStop(1, themeDeep('0'));
     ctx.fillStyle = floorGradient;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(212,151,255,.07)';
+    ctx.strokeStyle = themeA2('.07');
     ctx.lineWidth = 1;
     for (let i = 1; i < 4; i += 1) {
       const t = i / 4;
@@ -800,7 +831,7 @@
     labels.forEach((label, index) => {
       const every = labels.length > 14 ? Math.ceil(labels.length / 6) : Math.max(1, Math.ceil(labels.length / 7));
       if (index % every !== 0 && index !== labels.length - 1) return;
-      ctx.fillStyle = 'rgba(196,180,210,.74)';
+      ctx.fillStyle = themeMutedProfile2; 
       ctx.fillText(String(label), xFor(index), top + graphHeight + 13);
     });
 
@@ -1003,7 +1034,7 @@
         ? (mobileCategoryLabels[String(label)] || String(label).slice(0, 7))
         : String(label);
 
-      ctx.fillStyle = 'rgba(196,180,210,.74)';
+      ctx.fillStyle = themeMutedProfile2; 
       ctx.font = '800 8px Inter, Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
@@ -1553,7 +1584,7 @@
     const series = [
       { label: 'Password passed', values: parseJson(authChart.dataset.success, []), color: '#61f7bd' },
       { label: 'Password rejected', values: parseJson(authChart.dataset.failed, []), color: '#ff6c93' },
-      { label: 'Personal ID passed', values: parseJson(authChart.dataset.school, []), color: '#d497ff' },
+      { label: 'Personal ID passed', values: parseJson(authChart.dataset.school, []), color: themeAccent2 },
       { label: 'Defense rejection', values: parseJson(authChart.dataset.blocked, []), color: '#ffc86a' },
     ];
 
@@ -1572,10 +1603,10 @@
     const labels = parseJson(canvas.dataset.labels, []);
     const series = parseJson(canvas.dataset.series, []);
     const values = parseJson(canvas.dataset.values, []);
-    const colors = parseJson(canvas.dataset.colors, palette);
+    const colors = parseJson(canvas.dataset.colors, palette).map((color, index) => profileColor(color, palette[index % palette.length]));
 
     series.forEach((spec, index) => {
-      if (!spec.color) spec.color = colors[index % colors.length] || palette[index % palette.length];
+      spec.color = profileColor(spec.color, colors[index % colors.length] || palette[index % palette.length]);
     });
 
     const render = (state) => {

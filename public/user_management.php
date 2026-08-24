@@ -744,8 +744,8 @@ audit_log('user_management_access uid=' . $userId);
     <meta name="theme-color" content="#10071f">
     <title>FortressAuth — Current Operator</title>
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
-    <link rel="stylesheet" href="/css/user_management_profile.css">
+    <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
+    <link rel="stylesheet" href="/css/user_management_profile.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -1482,6 +1482,6 @@ audit_log('user_management_access uid=' . $userId);
 <script src="/js/qrcode.min.js"></script>
 <script src="/js/user_management.js"></script>
 
-<script src="/js/dashboard.js"></script>
+<script src="/js/dashboard.js?v=20260824-0845"></script>
 </body>
 </html>

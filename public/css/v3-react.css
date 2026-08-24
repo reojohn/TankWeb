@@ -140,8 +140,8 @@ button.icon-action {
   background: rgba(255,255,255,.08);
 }
 .ai-probability-row progress::-webkit-progress-bar { background: rgba(255,255,255,.08); border-radius: 999px; }
-.ai-probability-row progress::-webkit-progress-value { background: linear-gradient(90deg, #8f4dff, #d497ff); border-radius: 999px; }
-.ai-probability-row progress::-moz-progress-bar { background: linear-gradient(90deg, #8f4dff, #d497ff); border-radius: 999px; }
+.ai-probability-row progress::-webkit-progress-value { background: linear-gradient(90deg, var(--theme-accent), var(--theme-accent-2)); border-radius: 999px; }
+.ai-probability-row progress::-moz-progress-bar { background: linear-gradient(90deg, var(--theme-accent), var(--theme-accent-2)); border-radius: 999px; }
 
 /* Route transitions: content swaps quickly without animating the persistent shell. */
 .fortress-main-column > section,
@@ -280,4 +280,360 @@ html,body,#root,.fortress-react-shell{max-width:100%;overflow-x:hidden}
   #root > .fortress-mobile-bar {
     z-index: 900 !important;
   }
+}
+
+/* =========================================================
+   REACT V3 — PROFILE-AWARE TRANSIENT UI
+   Aug 24 2026
+   Prevent route skeletons/sync chrome from flashing Balanced purple after the
+   user switches to Standard or Fortress Boost. These are presentation-only
+   rules and do not alter any security/session behavior.
+   ========================================================= */
+body[data-fortress-theme] .v3-bootstrap-strip,
+body[data-fortress-theme] .v3-loading-panel,
+body[data-fortress-theme] .v3-bridge-notice {
+  border-color: rgba(var(--theme-accent-2-rgb), .16);
+  background: rgba(var(--theme-surface-rgb), .58);
+}
+
+body[data-fortress-theme] .v3-skeleton-metrics > span,
+body[data-fortress-theme] .v3-skeleton-panels > span {
+  border-color: rgba(var(--theme-accent-2-rgb), .10);
+  background: rgba(var(--theme-surface-rgb), .38);
+}
+
+body[data-fortress-theme] .v3-skeleton-metrics > span::after,
+body[data-fortress-theme] .v3-skeleton-panels > span::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--theme-accent-2-rgb), .075),
+    transparent
+  );
+}
+
+body[data-fortress-theme] .v3-inline-sync {
+  border-color: rgba(var(--theme-accent-2-rgb), .18);
+  background: rgba(var(--theme-deep-rgb), .90);
+  color: rgba(244,240,248,.76);
+  box-shadow: 0 10px 26px rgba(0,0,0,.18), 0 0 18px rgba(var(--theme-accent-rgb), .045);
+}
+
+/* React-only controls inherit the active defense-engine accent. */
+body[data-fortress-theme] {
+  --violet: var(--theme-accent);
+  --violet2: var(--theme-accent-2);
+}
+
+
+/* =========================================================
+   REACT V3 — FINAL DEFENSE-ENGINE THEME ENFORCER
+   Aug 24 2026
+
+   This stylesheet loads after dashboard.css, AI Defense, Vault and operator
+   styles. Keep every presentation surface synchronized with the active engine:
+     Standard       -> forest green
+     Balanced       -> FortressAuth purple
+     Fortress Boost -> blood red
+
+   Security-semantic colors (success, warning, danger, attacks, logout) and
+   image artwork are intentionally not recolored.
+   ========================================================= */
+body.command-page[data-fortress-theme] {
+  --muted: var(--theme-muted-profile-2);
+  --muted-2: var(--theme-muted-profile);
+}
+
+/* Persistent shell + sidebar. */
+body.command-page[data-fortress-theme] .fortress-sidebar {
+  border-color: var(--theme-line) !important;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(var(--theme-accent-rgb), .13), transparent 28%),
+    radial-gradient(circle at 92% 24%, rgba(var(--theme-accent-2-rgb), .075), transparent 27%),
+    linear-gradient(180deg,
+      rgba(var(--theme-deep-rgb), .995) 0%,
+      rgba(var(--theme-surface-rgb), .96) 48%,
+      rgba(var(--theme-deep-rgb), .99) 100%) !important;
+  box-shadow: 0 28px 90px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.035), 0 0 34px rgba(var(--theme-accent-rgb), .055) !important;
+}
+body.command-page[data-fortress-theme] .fortress-sidebar::after {
+  background: linear-gradient(180deg, transparent, rgba(var(--theme-accent-2-rgb), .64), rgba(var(--theme-accent-rgb), .46), transparent) !important;
+}
+body.command-page[data-fortress-theme] .sidebar-brand-card,
+body.command-page[data-fortress-theme] .sidebar-status-card,
+body.command-page[data-fortress-theme] .sidebar-operator-card,
+body.command-page[data-fortress-theme] .sidebar-quick-action,
+body.command-page[data-fortress-theme] .operator-quick-links a {
+  border-color: rgba(var(--theme-accent-2-rgb), .13) !important;
+  background: linear-gradient(145deg, rgba(var(--theme-accent-rgb), .07), rgba(var(--theme-deep-rgb), .38)) !important;
+}
+body.command-page[data-fortress-theme] .sidebar-brand-card .topbar-logo,
+body.command-page[data-fortress-theme] .quick-icon,
+body.command-page[data-fortress-theme] .sidebar-operator-badge {
+  border-color: rgba(var(--theme-accent-2-rgb), .17) !important;
+  background: rgba(var(--theme-accent-rgb), .09) !important;
+  color: var(--theme-accent-2) !important;
+}
+body.command-page[data-fortress-theme] .sidebar-score strong,
+body.command-page[data-fortress-theme] .sidebar-section-label,
+body.command-page[data-fortress-theme] .sidebar-brand-card .brand-copy small,
+body.command-page[data-fortress-theme] .sidebar-quick-action small,
+body.command-page[data-fortress-theme] .sidebar-quick-action em,
+body.command-page[data-fortress-theme] .operator-manage-hint span {
+  color: var(--theme-muted-profile-2) !important;
+}
+
+/* The old mobile/desktop nav container itself was still a purple panel. */
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links {
+  border-color: rgba(var(--theme-accent-2-rgb), .10) !important;
+  background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), .34), rgba(var(--theme-deep-rgb), .50)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018), inset 0 0 28px rgba(var(--theme-accent-rgb), .025) !important;
+}
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active) {
+  color: var(--theme-text-soft) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active) .nav-copy small {
+  color: var(--theme-muted-profile) !important;
+}
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active) .nav-icon {
+  border-color: rgba(var(--theme-accent-2-rgb), .11) !important;
+  background: rgba(var(--theme-accent-rgb), .055) !important;
+  color: rgba(var(--theme-accent-2-rgb), .76) !important;
+}
+body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links > a:not(.nav-crown-jewel):not(.active):hover {
+  border-color: rgba(var(--theme-accent-2-rgb), .17) !important;
+  background: rgba(var(--theme-accent-rgb), .08) !important;
+}
+
+/* Main page surfaces. This also catches Analytics cards whose page-specific
+   rules have greater specificity than the older theme bridge. */
+body.command-page[data-fortress-theme] .panel,
+body.command-page[data-fortress-theme] .metric-card,
+body.command-page[data-fortress-theme] .attack-card,
+body.command-page[data-fortress-theme] .posture-summary-strip > div,
+body.command-page[data-fortress-theme] .analytics-card,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-card,
+body.command-page[data-fortress-theme] .analytics-page .analytics-card,
+body.command-page[data-fortress-theme] .analytics-page .analytics-summary-grid .metric-card,
+body.command-page[data-fortress-theme] .control-card,
+body.command-page[data-fortress-theme] .asset-card,
+body.command-page[data-fortress-theme] .configuration-grid > div,
+body.command-page[data-fortress-theme] .request-defense-details,
+body.command-page[data-fortress-theme] .user-management-stats article,
+body.command-page[data-fortress-theme] .user-account-card,
+body.command-page[data-fortress-theme] .user-directory-list,
+body.command-page[data-fortress-theme] .user-directory-filters,
+body.command-page[data-fortress-theme] .access-health-card,
+body.command-page[data-fortress-theme] .report-format-card,
+body.command-page[data-fortress-theme] .factor-method-card,
+body.command-page[data-fortress-theme] .second-factor-method-control,
+body.command-page[data-fortress-theme] .generated-qr-shield,
+body.command-page[data-fortress-theme] .two-factor-config-panel {
+  border-color: var(--theme-line) !important;
+  background:
+    radial-gradient(circle at var(--pointer-x,86%) var(--pointer-y,0%), rgba(var(--theme-accent-rgb), .065), transparent 30%),
+    linear-gradient(145deg, rgba(var(--theme-surface-rgb), .88), rgba(var(--theme-deep-rgb), .96)) !important;
+}
+body.command-page[data-fortress-theme] .panel::before,
+body.command-page[data-fortress-theme] .metric-card::before,
+body.command-page[data-fortress-theme] .attack-card::before,
+body.command-page[data-fortress-theme] .analytics-card::before,
+body.command-page[data-fortress-theme] .user-management-stats article::before {
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-accent-rgb), .40), rgba(var(--theme-accent-2-rgb), .32), transparent) !important;
+}
+body.command-page[data-fortress-theme] .panel:hover,
+body.command-page[data-fortress-theme] .metric-card:hover,
+body.command-page[data-fortress-theme] .analytics-card:hover,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-card:hover,
+body.command-page[data-fortress-theme] .attack-card:hover,
+body.command-page[data-fortress-theme] .asset-card:hover,
+body.command-page[data-fortress-theme] .user-account-card:hover {
+  border-color: rgba(var(--theme-accent-2-rgb), .26) !important;
+  box-shadow: 0 22px 58px rgba(0,0,0,.28), 0 0 30px rgba(var(--theme-accent-rgb), .055), inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+
+/* Analytics page: remove the last fixed-violet glass from cards, chart wells,
+   hover states, legends and interaction hint. Dataset colors remain semantic,
+   while dashboard.js remaps purple series to the live profile accent. */
+body.command-page[data-fortress-theme] .analytics-card .panel-heading::after,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-card .panel-heading::after {
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-accent-2-rgb), .14), transparent) !important;
+}
+body.command-page[data-fortress-theme] .analytics-chart-wrap,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap.small,
+body.command-page[data-fortress-theme] .chart-wrap {
+  border-color: rgba(var(--theme-accent-2-rgb), .11) !important;
+  background:
+    radial-gradient(circle at var(--chart-glow-x,50%) var(--chart-glow-y,45%), rgba(var(--theme-accent-rgb), .075), transparent 28%),
+    linear-gradient(155deg, rgba(var(--theme-surface-rgb), .66), rgba(var(--theme-deep-rgb), .78)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025), inset 0 0 0 1px rgba(var(--theme-accent-2-rgb), .018) !important;
+}
+body.command-page[data-fortress-theme] .analytics-chart-wrap::before,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap::before {
+  background-image:
+    linear-gradient(rgba(var(--theme-accent-2-rgb), .032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--theme-accent-2-rgb), .026) 1px, transparent 1px) !important;
+}
+body.command-page[data-fortress-theme] .analytics-chart-wrap::after,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap::after {
+  background:
+    linear-gradient(118deg, rgba(255,255,255,.025), transparent 22%, transparent 73%, rgba(var(--theme-accent-rgb), .018)),
+    radial-gradient(circle at var(--chart-glow-x,50%) var(--chart-glow-y,45%), rgba(var(--theme-accent-2-rgb), .045), transparent 25%) !important;
+}
+body.command-page[data-fortress-theme] .analytics-chart-wrap:hover,
+body.command-page[data-fortress-theme] .analytics-chart-wrap.is-interacting,
+body.command-page[data-fortress-theme] .analytics-chart-wrap.is-keyboard-focused,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap:hover,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap.is-interacting,
+body.command-page[data-fortress-theme] .reference-analytics-layout .analytics-chart-wrap.is-keyboard-focused {
+  border-color: rgba(var(--theme-accent-2-rgb), .20) !important;
+}
+body.command-page[data-fortress-theme] .analytics-legend span,
+body.command-page[data-fortress-theme] .analytics-insight-strip div,
+body.command-page[data-fortress-theme] .analytics-interaction-hint,
+body.command-page[data-fortress-theme] .premium-chart-tooltip {
+  border-color: rgba(var(--theme-accent-2-rgb), .11) !important;
+  background: rgba(var(--theme-accent-rgb), .055) !important;
+}
+body.command-page[data-fortress-theme] .analytics-interaction-hint i,
+body.command-page[data-fortress-theme] .panel-symbol,
+body.command-page[data-fortress-theme] .metric-icon:not(.success):not(.danger) {
+  color: var(--theme-accent-2) !important;
+}
+
+/* Tables, details, forms and operator workspace chrome. */
+body.command-page[data-fortress-theme] .responsive-table-wrap,
+body.command-page[data-fortress-theme] .mobile-bounded-table,
+body.command-page[data-fortress-theme] .security-table,
+body.command-page[data-fortress-theme] .filter-heading,
+body.command-page[data-fortress-theme] .table-tools,
+body.command-page[data-fortress-theme] .operator-workspace-tabs,
+body.command-page[data-fortress-theme] .report-form-fields label,
+body.command-page[data-fortress-theme] .report-content-list > div,
+body.command-page[data-fortress-theme] .control-details div,
+body.command-page[data-fortress-theme] .source-list > div,
+body.command-page[data-fortress-theme] .honeypot-list > div,
+body.command-page[data-fortress-theme] .category-summary div,
+body.command-page[data-fortress-theme] .policy-list > div,
+body.command-page[data-fortress-theme] .event-row,
+body.command-page[data-fortress-theme] .defense-row,
+body.command-page[data-fortress-theme] .session-details div,
+body.command-page[data-fortress-theme] .log-summary div,
+body.command-page[data-fortress-theme] .quick-actions a {
+  border-color: rgba(var(--theme-accent-2-rgb), .08) !important;
+}
+body.command-page[data-fortress-theme] .security-table thead th,
+body.command-page[data-fortress-theme] .mobile-bounded-table .security-table thead th {
+  background: rgb(var(--theme-surface-rgb)) !important;
+  border-color: rgba(var(--theme-accent-2-rgb), .11) !important;
+}
+body.command-page[data-fortress-theme] .security-table tbody tr:hover {
+  background: rgba(var(--theme-accent-rgb), .05) !important;
+}
+body.command-page[data-fortress-theme] input:not([type="checkbox"]):not([type="radio"]),
+body.command-page[data-fortress-theme] select,
+body.command-page[data-fortress-theme] textarea,
+body.command-page[data-fortress-theme] .user-search-control,
+body.command-page[data-fortress-theme] .factor-method-select,
+body.command-page[data-fortress-theme] .factor-detail-control {
+  border-color: rgba(var(--theme-accent-2-rgb), .13) !important;
+  background: rgba(var(--theme-deep-rgb), .70) !important;
+}
+body.command-page[data-fortress-theme] input:not([type="checkbox"]):not([type="radio"]):focus,
+body.command-page[data-fortress-theme] select:focus,
+body.command-page[data-fortress-theme] textarea:focus {
+  border-color: rgba(var(--theme-accent-2-rgb), .34) !important;
+  box-shadow: 0 0 0 3px rgba(var(--theme-accent-rgb), .09) !important;
+}
+
+/* Notification activity chrome follows the engine; warning/danger/success tones
+   keep their own colors through the more specific tone classes. */
+body.command-page[data-fortress-theme] .fortress-notification-panel,
+body.command-page[data-fortress-theme] .fortress-notification-panel-header,
+body.command-page[data-fortress-theme] .fortress-notification-item,
+body.command-page[data-fortress-theme] .fortress-notification-empty,
+body.command-page[data-fortress-theme] .fortress-notification-tool,
+body.command-page[data-fortress-theme] .fortress-threat-alert.tone-activity {
+  border-color: rgba(var(--theme-accent-2-rgb), .14) !important;
+  background: linear-gradient(145deg, rgba(var(--theme-surface-rgb), .90), rgba(var(--theme-deep-rgb), .96)) !important;
+}
+body.command-page[data-fortress-theme] .fortress-notification-panel-icon,
+body.command-page[data-fortress-theme] .fortress-notification-empty > i,
+body.command-page[data-fortress-theme] .fortress-notification-empty-icon,
+body.command-page[data-fortress-theme] .fortress-notification-status-dot.activity {
+  color: var(--theme-accent-2) !important;
+  border-color: rgba(var(--theme-accent-2-rgb), .18) !important;
+  background: rgba(var(--theme-accent-rgb), .09) !important;
+}
+
+/* Mobile top bar and drawer: enforce active profile after every older mobile
+   block and after all page-specific styles. */
+@media (max-width: 900px) {
+  body.command-page[data-fortress-theme] .fortress-mobile-bar,
+  body.command-page[data-fortress-theme].fortress-react-v3 > .fortress-mobile-bar,
+  body.command-page[data-fortress-theme].fortress-react-v3 > #root > .fortress-mobile-bar,
+  body.command-page[data-fortress-theme] #root > .fortress-mobile-bar {
+    border-color: var(--theme-line) !important;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(var(--theme-accent-rgb), .10), transparent 36%),
+      linear-gradient(145deg, rgba(var(--theme-surface-rgb), .97), rgba(var(--theme-deep-rgb), .99)) !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.03), 0 0 24px rgba(var(--theme-accent-rgb), .055) !important;
+  }
+  body.command-page[data-fortress-theme] .fortress-mobile-menu,
+  body.command-page[data-fortress-theme] .fortress-mobile-notifications,
+  body.command-page[data-fortress-theme] .fortress-mobile-refresh {
+    border-color: rgba(var(--theme-accent-2-rgb), .18) !important;
+    background: rgba(var(--theme-accent-rgb), .09) !important;
+    color: var(--theme-accent-2) !important;
+  }
+  body.command-page[data-fortress-theme] .fortress-mobile-title span {
+    color: var(--theme-muted-profile-2) !important;
+  }
+  body.command-page[data-fortress-theme] .fortress-sidebar .command-nav-links {
+    border: 1px solid rgba(var(--theme-accent-2-rgb), .10) !important;
+    border-radius: 18px !important;
+    padding: 5px !important;
+    background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), .40), rgba(var(--theme-deep-rgb), .64)) !important;
+  }
+}
+
+/* Profile-specific active row. Balanced deliberately keeps the lavender design. */
+body.command-page[data-fortress-theme="standard"] .command-nav-links > a:not(.nav-crown-jewel).active {
+  color: #062318 !important;
+  border-color: rgba(209,255,234,.94) !important;
+  background: linear-gradient(145deg,#f4fff9 0%,#e3f8ed 60%,#d3f1e2 100%) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.28), 0 0 0 1px rgba(99,217,168,.18), 0 0 22px rgba(40,153,107,.18), inset 0 1px 0 rgba(255,255,255,.96) !important;
+}
+body.command-page[data-fortress-theme="standard"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy strong { color:#062318 !important; }
+body.command-page[data-fortress-theme="standard"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy small { color:#456e5c !important; }
+
+body.command-page[data-fortress-theme="fortress_boost"] .command-nav-links > a:not(.nav-crown-jewel).active {
+  color: #3a0711 !important;
+  border-color: rgba(255,224,230,.96) !important;
+  background: linear-gradient(145deg,#fff7f8 0%,#ffe8ec 60%,#ffd9e0 100%) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.30), 0 0 0 1px rgba(255,83,108,.18), 0 0 22px rgba(196,23,56,.20), inset 0 1px 0 rgba(255,255,255,.96) !important;
+}
+body.command-page[data-fortress-theme="fortress_boost"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy strong { color:#3a0711 !important; }
+body.command-page[data-fortress-theme="fortress_boost"] .command-nav-links > a:not(.nav-crown-jewel).active .nav-copy small { color:#87515c !important; }
+
+/* Keep Crown Jewel artwork intact, but remove the forced purple caption/glow
+   around it when Standard or Boost is selected. */
+body.command-page[data-fortress-theme] .command-nav-links a.nav-crown-jewel .crown-jewel-caption {
+  color: var(--theme-accent-2) !important;
+  text-shadow: 0 0 12px rgba(var(--theme-accent-rgb), .34) !important;
+}
+body.command-page[data-fortress-theme="standard"] .command-nav-links a.nav-crown-jewel:hover,
+body.command-page[data-fortress-theme="standard"] .command-nav-links a.nav-crown-jewel.active,
+body.command-page[data-fortress-theme="fortress_boost"] .command-nav-links a.nav-crown-jewel:hover,
+body.command-page[data-fortress-theme="fortress_boost"] .command-nav-links a.nav-crown-jewel.active {
+  filter: drop-shadow(0 0 8px rgba(var(--theme-accent-2-rgb), .34)) drop-shadow(0 0 18px rgba(var(--theme-accent-rgb), .38)) !important;
+}
+
+/* Analytics legend markers that were inline/static violet. */
+body.command-page[data-fortress-theme] .analytics-legend .c4,
+body.command-page[data-fortress-theme] .donut-purple-legend span:last-child i {
+  background: var(--theme-accent-2) !important;
 }

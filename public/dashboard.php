@@ -110,7 +110,7 @@ audit_log('dashboard_access uid=' . $userId);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -565,7 +565,7 @@ audit_log('dashboard_access uid=' . $userId);
 </div><!-- /.fortress-main-column -->
 </main>
 
-    <script src="/js/dashboard.js"></script>
+    <script src="/js/dashboard.js?v=20260824-0845"></script>
     <script src="/js/auto_logout.js"></script>
 </body>
 </html>
