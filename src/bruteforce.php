@@ -21,18 +21,46 @@ function record_login_attempt(PDO $pdo, string $ip, string $username, bool $succ
 
 function failed_attempt_count(PDO $pdo, string $ip, string $username, int $minutes = 15): array
 {
+    /*
+     * Count only the current failure streak. A successful authentication
+     * resets the active brute-force counter without deleting historical
+     * login_attempt rows, so the audit trail remains intact.
+     *
+     * Previously every failure inside the time window remained active even
+     * after a successful login. That could eventually lock out a legitimate
+     * operator who had already authenticated successfully between mistakes.
+     */
     $stmt = $pdo->prepare(
-        "SELECT
-            COUNT(*) FILTER (WHERE ip_address = :ip) AS ip_failures,
-            COUNT(*) FILTER (WHERE LOWER(username) = LOWER(:username)) AS account_failures
-         FROM login_attempts
-         WHERE success = FALSE
-           AND attempted_at > NOW() - (:minutes * INTERVAL '1 minute')"
+        "WITH recent AS (
+            SELECT ip_address, username, success, attempted_at
+            FROM login_attempts
+            WHERE attempted_at > NOW() - (CAST(? AS INTEGER) * INTERVAL '1 minute')
+         ), last_success AS (
+            SELECT
+                MAX(attempted_at) FILTER (WHERE success = TRUE AND ip_address = ?) AS ip_success_at,
+                MAX(attempted_at) FILTER (WHERE success = TRUE AND LOWER(username) = LOWER(?)) AS account_success_at
+            FROM recent
+         )
+         SELECT
+            COUNT(*) FILTER (
+                WHERE recent.success = FALSE
+                  AND recent.ip_address = ?
+                  AND (last_success.ip_success_at IS NULL OR recent.attempted_at > last_success.ip_success_at)
+            ) AS ip_failures,
+            COUNT(*) FILTER (
+                WHERE recent.success = FALSE
+                  AND LOWER(recent.username) = LOWER(?)
+                  AND (last_success.account_success_at IS NULL OR recent.attempted_at > last_success.account_success_at)
+            ) AS account_failures
+         FROM recent
+         CROSS JOIN last_success"
     );
     $stmt->execute([
-        'ip' => $ip,
-        'username' => $username,
-        'minutes' => $minutes,
+        $minutes,
+        $ip,
+        $username,
+        $ip,
+        $username,
     ]);
 
     $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];

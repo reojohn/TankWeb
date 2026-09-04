@@ -237,7 +237,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // TOO MANY FAILED ATTEMPTS
     // --------------------------------------------------
     elseif (too_many_failed_attempts($pdo, $ip, (string)$username)) {
-        record_login_attempt($pdo, $ip, $username, false);
+        // The password is intentionally not evaluated while the active
+        // brute-force threshold is exceeded. Do not record this request as a
+        // failed password attempt because no password decision was made.
+        audit_log('login_locked_out username=' . e((string)$username) . " ip=$ip");
 
         $policy = fortress_security_policy();
         $banSeconds = (int)$policy['ip_ban_seconds'];
