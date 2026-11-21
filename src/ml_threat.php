@@ -72,11 +72,13 @@ function fortress_ml_assisted_enforcement_enabled(): bool
 {
     // The model never blocks by itself. When enabled, PHP requires model confidence
     // plus deterministic evidence before it can add a strike or temporary ban.
-    return fortress_ml_enabled() && fortress_ml_env_bool('ML_ASSISTED_ENFORCEMENT', true);
+    return fortress_ml_enabled() && fortress_ml_env_bool('ML_ASSISTED_ENFORCEMENT', false);
 }
 
 function fortress_ml_enforcement_exempt(string $ip): bool
 {
+    // Never enforce an AI ban against an unresolved or untrusted source identifier.
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) return true;
     // Protect loopback development sessions from accidental self-bans. Additional
     // trusted addresses can be supplied as a comma-separated deployment setting.
     $exempt = fortress_ml_env_bool('ML_ENFORCEMENT_EXEMPT_LOOPBACK', true) ? ['127.0.0.1', '::1'] : [];
@@ -406,6 +408,7 @@ function fortress_ml_prediction_history(int $limit = 25): array
                 if (!$record || !is_array($record['result'] ?? null)) continue;
                 $fp = (string)($dbRow['record_fingerprint'] ?? fortress_ml_prediction_fingerprint($record));
                 $seen[$fp] = true;
+                $record['_it113_record_fingerprint'] = $fp;
                 $rows[] = $record;
             }
         } catch (Throwable $e) {
@@ -422,6 +425,7 @@ function fortress_ml_prediction_history(int $limit = 25): array
         $fp = fortress_ml_prediction_fingerprint($record);
         if (isset($seen[$fp])) continue;
         $seen[$fp] = true;
+        $record['_it113_record_fingerprint'] = $fp;
         $rows[] = $record;
     }
 
@@ -436,6 +440,36 @@ function fortress_ml_safe_path(): string
     return is_string($path) && $path !== '' ? substr($path, 0, 180) : '/';
 }
 
+/** Does the optional durable 15-minute request window exist? No migration is run at runtime. */
+function fortress_ml_telemetry_db_available(): bool
+{
+    static $available = null;
+    if (is_bool($available)) return $available;
+    global $pdo;
+    if (!isset($pdo) || !($pdo instanceof PDO)) return $available = false;
+    try {
+        $stmt = $pdo->query("SELECT to_regclass('public.ml_request_telemetry')");
+        return $available = (string)$stmt->fetchColumn() !== '';
+    } catch (Throwable $e) {
+        return $available = false;
+    }
+}
+
+function fortress_ml_events_db_available(): bool
+{
+    static $available = null;
+    if (is_bool($available)) return $available;
+    global $pdo;
+    if (!isset($pdo) || !($pdo instanceof PDO)) return $available = false;
+    try {
+        $stmt = $pdo->query("SELECT to_regclass('public.security_events')");
+        return $available = (string)$stmt->fetchColumn() !== '';
+    } catch (Throwable $e) {
+        return $available = false;
+    }
+}
+
+/** Only compact request metadata. Never persist request bodies, credentials or query strings. */
 function fortress_ml_record_request(): void
 {
     static $recorded = false;
@@ -445,20 +479,64 @@ function fortress_ml_record_request(): void
     $entry = [
         'ts' => time(),
         'ip' => getRealIP(),
-        'uid' => (int)($_SESSION['uid'] ?? $_SESSION['pending_user_id'] ?? 0),
-        'method' => strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')),
+        'rid' => fortress_request_id(),
+        'method' => substr(strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')), 0, 12),
         'path' => fortress_ml_safe_path(),
         'ua' => substr(hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 16),
     ];
+    // Local fallback is always retained for development and transient DB outages.
     @file_put_contents(fortress_ml_request_log_path(), json_encode($entry, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+    global $pdo;
+    if (!fortress_ml_telemetry_db_available() || !isset($pdo) || !($pdo instanceof PDO)) return;
+    try {
+        $stmt = $pdo->prepare(
+            "INSERT INTO public.ml_request_telemetry
+                (occurred_at, source_ip, request_id, http_method, request_path, ua_hash)
+             VALUES (to_timestamp(:occurred_at), :source_ip, :request_id, :http_method, :request_path, :ua_hash)"
+        );
+        $stmt->execute([
+            'occurred_at' => $entry['ts'], 'source_ip' => $entry['ip'],
+            'request_id' => $entry['rid'], 'http_method' => $entry['method'],
+            'request_path' => $entry['path'], 'ua_hash' => $entry['ua'],
+        ]);
+        // Low-frequency cleanup. Runtime role needs DELETE permission if enabled.
+        if (random_int(1, 1800) === 1) {
+            $pdo->exec("DELETE FROM public.ml_request_telemetry WHERE occurred_at < NOW() - INTERVAL '24 hours'");
+        }
+    } catch (Throwable $e) {
+        error_log('FortressAuth ML durable telemetry write failed; local fallback retained.');
+    }
 }
 
 function fortress_ml_tail_lines(string $path, int $maxLines = 700): array
 {
     if (!is_file($path)) return [];
-    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if (!is_array($lines)) return [];
-    return array_slice($lines, -$maxLines);
+    // Do not read a large historical log fully into memory on every request.
+    $handle = @fopen($path, 'rb');
+    if (!is_resource($handle)) return [];
+    $lines = [];
+    try {
+        fseek($handle, 0, SEEK_END);
+        $position = ftell($handle);
+        if ($position === false) return [];
+        $chunk = '';
+        while ($position > 0 && count($lines) <= $maxLines) {
+            $read = min(16384, $position);
+            $position -= $read;
+            fseek($handle, $position, SEEK_SET);
+            $chunk = (string)fread($handle, $read) . $chunk;
+            $pieces = explode("\n", $chunk);
+            if ($position > 0) $chunk = array_shift($pieces);
+            else $chunk = '';
+            $lines = array_merge($pieces, $lines);
+            if ($position === 0 && $chunk !== '') array_unshift($lines, $chunk);
+            if (count($lines) > $maxLines + 1) $lines = array_slice($lines, -$maxLines - 1);
+        }
+    } finally {
+        fclose($handle);
+    }
+    return array_slice(array_values(array_filter(array_map('trim', $lines), static fn(string $v): bool => $v !== '')), -$maxLines);
 }
 
 function fortress_ml_audit_ts(string $line): int
@@ -468,29 +546,112 @@ function fortress_ml_audit_ts(string $line): int
     return $ts === false ? 0 : $ts;
 }
 
-function fortress_ml_features_for_ip(string $ip): array
+/** @return array{rows:array,source:string} */
+function fortress_ml_request_window(string $ip, int $now): array
+{
+    global $pdo;
+    if (fortress_ml_telemetry_db_available() && isset($pdo) && $pdo instanceof PDO) {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT EXTRACT(EPOCH FROM occurred_at)::bigint AS ts,
+                        request_id AS rid, http_method AS method, request_path AS path, ua_hash AS ua
+                 FROM public.ml_request_telemetry
+                 WHERE source_ip = :ip AND occurred_at >= to_timestamp(:cutoff)
+                 ORDER BY occurred_at DESC LIMIT 3000"
+            );
+            $stmt->execute(['ip' => $ip, 'cutoff' => $now - 900]);
+            return ['rows' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'source' => 'postgresql'];
+        } catch (Throwable $e) {
+            error_log('FortressAuth ML request window read failed; using local fallback.');
+        }
+    }
+    $rows = [];
+    foreach (fortress_ml_tail_lines(fortress_ml_request_log_path(), 3000) as $line) {
+        $item = json_decode($line, true);
+        if (is_array($item) && (string)($item['ip'] ?? '') === $ip && (int)($item['ts'] ?? 0) >= $now - 900) {
+            $rows[] = $item;
+        }
+    }
+    return ['rows' => $rows, 'source' => 'local_fallback'];
+}
+
+/** @return array{rows:array,source:string} */
+function fortress_ml_security_event_window(string $ip, int $now): array
+{
+    global $pdo;
+    if (fortress_ml_events_db_available() && isset($pdo) && $pdo instanceof PDO) {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT id, event_key, username, metadata,
+                        EXTRACT(EPOCH FROM occurred_at)::bigint AS ts
+                 FROM public.security_events
+                 WHERE source_ip = :ip AND occurred_at >= to_timestamp(:cutoff)
+                 ORDER BY occurred_at DESC LIMIT 3000"
+            );
+            $stmt->execute(['ip' => $ip, 'cutoff' => $now - 900]);
+            $rows = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $meta = fortress_ml_decode_json_value($row['metadata'] ?? '');
+                $rows[] = [
+                    'id' => (int)$row['id'], 'ts' => (int)$row['ts'],
+                    'event_key' => (string)$row['event_key'],
+                    'username' => (string)($row['username'] ?? $meta['username'] ?? ''),
+                    'rid' => (string)($meta['request_id'] ?? ''),
+                ];
+            }
+            return ['rows' => $rows, 'source' => 'postgresql'];
+        } catch (Throwable $e) {
+            error_log('FortressAuth ML security event window read failed; using local fallback.');
+        }
+    }
+    $rows = [];
+    foreach (fortress_ml_tail_lines(__DIR__ . '/../data/audit.log', 3000) as $line) {
+        if (!preg_match('/\bip=' . preg_quote($ip, '/') . '(?:\s|$)/', $line)) continue;
+        $ts = fortress_ml_audit_ts($line);
+        if ($ts <= 0 || $ts < $now - 900) continue;
+        // The log's user-agent can contain spaces. Extract only known security
+        // event keys rather than treating a word within the user-agent as an event.
+        // PostgreSQL structured event_key remains the preferred source.
+        $knownKeys = [
+            'password_factor_failed', 'login_failed', 'password_factor_success', 'login_success',
+            'school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited',
+            'sensitive_path_probe', 'reconnaissance_probe', 'request_threat_detected',
+            'malicious_input_detected', 'shell_attack_detected', 'scanner_user_agent_detected',
+            'csrf_validation_failed', 'csrf_rejected', 'http_method_blocked',
+            'http_method_anomaly', 'endpoint_method_rejected', 'auth_rejected',
+            'ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'
+        ];
+        if (!preg_match('/\b(' . implode('|', $knownKeys) . ')\b/', $line, $match)) continue;
+        $username = preg_match('/\busername=([^\s]+)/', $line, $user) ? $user[1] : '';
+        $rid = preg_match('/\brid=([a-f0-9]{12})\b/', $line, $req) ? $req[1] : '';
+        $rows[] = ['id' => null, 'ts' => $ts, 'event_key' => $match[1], 'username' => $username, 'rid' => $rid];
+    }
+    return ['rows' => $rows, 'source' => 'local_fallback'];
+}
+
+/**
+ * Calculate time-window features from real request and audit evidence.
+ * Optional provenance provides traceable source types and record IDs. No raw
+ * username, password, user-agent or request body is exported to the model.
+ */
+function fortress_ml_features_for_ip(string $ip, ?array &$provenance = null): array
 {
     $now = time();
-    $requests = [];
-    foreach (fortress_ml_tail_lines(fortress_ml_request_log_path(), 1200) as $line) {
-        $item = json_decode($line, true);
-        if (!is_array($item) || (string)($item['ip'] ?? '') !== $ip) continue;
-        $ts = (int)($item['ts'] ?? 0);
-        if ($ts < $now - 900) continue;
-        $requests[] = $item;
-    }
-
-    $r1 = array_values(array_filter($requests, static fn(array $r): bool => (int)$r['ts'] >= time() - 60));
-    $r5 = array_values(array_filter($requests, static fn(array $r): bool => (int)$r['ts'] >= time() - 300));
+    $requestWindow = fortress_ml_request_window($ip, $now);
+    $eventWindow = fortress_ml_security_event_window($ip, $now);
+    $requests = $requestWindow['rows'];
+    $events = $eventWindow['rows'];
+    $r1 = array_values(array_filter($requests, static fn(array $r): bool => (int)$r['ts'] >= $now - 60));
+    $r5 = array_values(array_filter($requests, static fn(array $r): bool => (int)$r['ts'] >= $now - 300));
     $paths = array_unique(array_map(static fn(array $r): string => (string)$r['path'], $r5));
     $postCount = count(array_filter($r5, static fn(array $r): bool => (string)$r['method'] === 'POST'));
     $authCount = count(array_filter($r5, static function(array $r): bool {
         return preg_match('#/(?:login|school_id|personal_id)#i', (string)$r['path']) === 1;
     }));
     $uaValues = array_unique(array_map(static fn(array $r): string => (string)$r['ua'], $requests));
-    $intervals = [];
     $sortedTs = array_map(static fn(array $r): int => (int)$r['ts'], $r5);
     sort($sortedTs);
+    $intervals = [];
     for ($i = 1; $i < count($sortedTs); $i++) $intervals[] = max(0, $sortedTs[$i] - $sortedTs[$i - 1]);
     $avgInterval = $intervals ? array_sum($intervals) / count($intervals) : 60.0;
 
@@ -500,29 +661,45 @@ function fortress_ml_features_for_ip(string $ip): array
         'reject15' => 0, 'ban15' => 0,
     ];
     $usernames = [];
-    $auditPath = __DIR__ . '/../data/audit.log';
-    foreach (fortress_ml_tail_lines($auditPath, 1800) as $line) {
-        if (!str_contains($line, 'ip=' . $ip . ' ') && !str_contains($line, 'ip=' . $ip . PHP_EOL) && !preg_match('/\bip=' . preg_quote($ip, '/') . '(?:\s|$)/', $line)) continue;
-        $ts = fortress_ml_audit_ts($line);
-        if ($ts <= 0 || $ts < $now - 900) continue;
-        $age5 = $ts >= $now - 300;
-        if (str_contains($line, 'password_factor_failed')) {
+    $sampleEventIds = [];
+    $sampleRequestIds = [];
+    foreach ($r5 as $r) {
+        $rid = (string)($r['rid'] ?? '');
+        if (preg_match('/^[a-f0-9]{12}$/', $rid)) $sampleRequestIds[$rid] = true;
+    }
+    foreach ($events as $event) {
+        $key = (string)($event['event_key'] ?? '');
+        $age5 = (int)($event['ts'] ?? 0) >= $now - 300;
+        if (in_array($key, ['password_factor_failed', 'login_failed'], true)) {
             $counts['failed15']++;
             if ($age5) $counts['failed5']++;
-            if (preg_match('/\busername=([^\s]+)/', $line, $m)) $usernames[$m[1]] = true;
+            if ((string)($event['username'] ?? '') !== '') $usernames[(string)$event['username']] = true;
         }
-        if (str_contains($line, 'password_factor_success') || str_contains($line, 'login_success')) $counts['success15']++;
-        if (str_contains($line, 'school_id_qr_failed') || str_contains($line, 'school_id_qr_locked') || str_contains($line, 'school_id_qr_rate_limited')) $counts['qr15']++;
-        if (str_contains($line, 'sensitive_path_probe') || str_contains($line, 'reconnaissance_probe')) $counts['probe15']++;
-        if (str_contains($line, 'request_threat_detected') || str_contains($line, 'malicious_input_detected') || str_contains($line, 'shell_attack_detected')) $counts['suspicious15']++;
-        if (str_contains($line, 'scanner_user_agent_detected')) $counts['scanner15']++;
-        if (str_contains($line, 'csrf_validation_failed')) $counts['csrf15']++;
-        if (str_contains($line, 'http_method_blocked') || str_contains($line, 'http_method_anomaly') || str_contains($line, 'endpoint_method_rejected')) $counts['method15']++;
-        if (str_contains($line, 'auth_rejected')) $counts['reject15']++;
-        if (str_contains($line, 'ip_banned') || str_contains($line, 'banned_ip_attempt') || str_contains($line, 'banned_ip_middleware_block')) $counts['ban15']++;
+        if (in_array($key, ['password_factor_success', 'login_success'], true)) $counts['success15']++;
+        if (in_array($key, ['school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'], true)) $counts['qr15']++;
+        if (in_array($key, ['sensitive_path_probe', 'reconnaissance_probe'], true)) $counts['probe15']++;
+        if (in_array($key, ['request_threat_detected', 'malicious_input_detected', 'shell_attack_detected'], true)) $counts['suspicious15']++;
+        if ($key === 'scanner_user_agent_detected') $counts['scanner15']++;
+        if (in_array($key, ['csrf_validation_failed', 'csrf_rejected'], true)) $counts['csrf15']++;
+        if (in_array($key, ['http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected'], true)) $counts['method15']++;
+        if ($key === 'auth_rejected') $counts['reject15']++;
+        if (in_array($key, ['ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], true)) $counts['ban15']++;
+        if (isset($event['id']) && $event['id'] !== null) $sampleEventIds[] = (int)$event['id'];
+        $rid = (string)($event['rid'] ?? '');
+        if (preg_match('/^[a-f0-9]{12}$/', $rid)) $sampleRequestIds[$rid] = true;
     }
-
-    $hour = (int)date('G');
+    $provenance = [
+        'captured_at_utc' => gmdate('c', $now),
+        'window_seconds' => 900,
+        'request_source' => $requestWindow['source'],
+        'security_event_source' => $eventWindow['source'],
+        'request_records' => count($requests),
+        'security_event_records' => count($events),
+        'sample_security_event_ids' => array_slice($sampleEventIds, 0, 8),
+        'sample_request_ids' => array_slice(array_keys($sampleRequestIds), 0, 8),
+        'window_truncated' => count($requests) >= 3000 || count($events) >= 3000,
+    ];
+    $hour = (int)gmdate('G', $now); // Same UTC reference on local and hosted servers.
     return [
         'requests_1m' => count($r1),
         'requests_5m' => count($r5),
@@ -531,7 +708,7 @@ function fortress_ml_features_for_ip(string $ip): array
         'auth_endpoint_requests_5m' => $authCount,
         'failed_logins_5m' => $counts['failed5'],
         'failed_logins_15m' => $counts['failed15'],
-        'unique_usernames_15m' => max(1, count($usernames)),
+        'unique_usernames_15m' => count($usernames),
         'successful_logins_15m' => $counts['success15'],
         'qr_failures_15m' => $counts['qr15'],
         'sensitive_path_probes_15m' => $counts['probe15'],
@@ -733,7 +910,7 @@ function fortress_ml_queue_db_cleanup(): void
     }
 }
 
-function fortress_ml_queue_enqueue(string $ip, array $features, float $ruleScore, string $reason): bool
+function fortress_ml_queue_enqueue(string $ip, array $features, float $ruleScore, string $reason, array $provenance = [], ?string $traceId = null): bool
 {
     if (!fortress_ml_queue_enabled() || !$features) return false;
 
@@ -745,6 +922,8 @@ function fortress_ml_queue_enqueue(string $ip, array $features, float $ruleScore
         'rule_score' => round($ruleScore, 2),
         'reason' => $reason,
         'captured_at' => $queuedAt,
+        'trace_id' => $traceId ?? fortress_request_id(),
+        'provenance' => $provenance,
     ];
 
     global $pdo;
@@ -809,14 +988,16 @@ function fortress_ml_register_shutdown_capture(string $ip): void
         $securityEvent = $GLOBALS['FORTRESS_ML_SECURITY_EVENT_SEEN'] ?? null;
         if (!is_array($securityEvent) || empty($securityEvent['event_key'])) return;
 
-        $features = fortress_ml_features_for_ip($ip);
+        $provenance = [];
+        $features = fortress_ml_features_for_ip($ip, $provenance);
         if (!$features || fortress_ml_queue_same_as_latest($ip, $features)) return;
         $ruleScore = fortress_ml_rule_score($features);
         fortress_ml_queue_enqueue(
             $ip,
             $features,
             $ruleScore,
-            'security_event:' . (string)$securityEvent['event_key']
+            'security_event:' . (string)$securityEvent['event_key'],
+            $provenance
         );
     });
 }
@@ -956,11 +1137,13 @@ function fortress_ml_store_queued_prediction(string $ip, array $features, array 
     $result['analysis_mode'] = 'QUEUED_REPLAY';
     $result['queue_delay_seconds'] = max(0, time() - $queuedAt);
     $result['queue_reason'] = $reason;
+    $result['feature_provenance'] = (array)($queueMeta['provenance'] ?? []);
 
     $record = [
         'ts' => time(),
         'ip' => $ip,
         'features' => $features,
+        'evidence' => (array)($queueMeta['provenance'] ?? []),
         'result' => $result,
         'queue' => [
             'queued_at' => $queuedAt,
@@ -971,7 +1154,9 @@ function fortress_ml_store_queued_prediction(string $ip, array $features, array 
     fortress_ml_store_prediction_record($record);
 
     audit_log(
-        'ml_queue_replayed class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
+        'ml_queue_replayed trace=' . fortress_log_safe_value((string)($result['trace_id'] ?? 'unknown')) .
+        ' model=' . fortress_log_safe_value((string)($result['model_version'] ?? 'unknown')) .
+        ' class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
         ' risk=' . number_format((float)($result['risk_score'] ?? 0), 1, '.', '') .
         ' confidence=' . number_format((float)($result['confidence'] ?? 0), 3, '.', '') .
         ' queued_seconds=' . (int)$result['queue_delay_seconds'] .
@@ -998,6 +1183,7 @@ function fortress_ml_process_queue(int $limit = 1): int
         $result = fortress_ml_post([
             'features' => $payload['features'],
             'rule_score' => (float)($payload['rule_score'] ?? 0),
+            'trace_id' => (string)($payload['trace_id'] ?? fortress_request_id()),
         ]);
         if (!$result) {
             fortress_ml_queue_finish_db((int)$row['id'], false);
@@ -1010,6 +1196,7 @@ function fortress_ml_process_queue(int $limit = 1): int
             [
                 'queued_at' => strtotime((string)$row['queued_at']) ?: (int)($payload['captured_at'] ?? time()),
                 'reason' => (string)($payload['reason'] ?? 'ml_unavailable'),
+                'provenance' => (array)($payload['provenance'] ?? []),
             ]
         );
         fortress_ml_queue_finish_db((int)$row['id'], true, $result);
@@ -1027,6 +1214,7 @@ function fortress_ml_process_queue(int $limit = 1): int
         $result = fortress_ml_post([
             'features' => $payload['features'],
             'rule_score' => (float)($payload['rule_score'] ?? 0),
+            'trace_id' => (string)($payload['trace_id'] ?? fortress_request_id()),
         ]);
         if (!$result) {
             fortress_ml_queue_finish_file($row, false);
@@ -1039,6 +1227,7 @@ function fortress_ml_process_queue(int $limit = 1): int
             [
                 'queued_at' => (int)($row['queued_at'] ?? $payload['captured_at'] ?? time()),
                 'reason' => (string)($payload['reason'] ?? 'ml_unavailable'),
+                'provenance' => (array)($payload['provenance'] ?? []),
             ]
         );
         fortress_ml_queue_finish_file($row, true);
@@ -1109,7 +1298,12 @@ function fortress_ml_service_status(): ?array
 function fortress_ml_post(array $payload): ?array
 {
     $url = trim((string)(getenv('ML_SERVICE_URL') ?: ''));
-    if ($url === '' || !preg_match('#^https?://#i', $url)) {
+    $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+    $host = strtolower((string)parse_url($url, PHP_URL_HOST));
+    $localHosts = ['localhost', '127.0.0.1', '::1', 'ml-service'];
+    if ($url === '' || !in_array($scheme, ['http', 'https'], true) || $host === ''
+        || parse_url($url, PHP_URL_USER) !== null || parse_url($url, PHP_URL_PASS) !== null
+        || ($scheme === 'http' && !in_array($host, $localHosts, true))) {
         fortress_ml_write_service_status([
             'ok' => false,
             'state' => 'CONFIG_ERROR',
@@ -1124,10 +1318,16 @@ function fortress_ml_post(array $payload): ?array
     $timeoutMs = max(250, min(5000, $timeoutMs));
 
     $token = trim((string)(getenv('ML_SERVICE_TOKEN') ?: ''));
-    $headers = "Content-Type: application/json\r\nAccept: application/json\r\nConnection: close\r\n";
-    if ($token !== '') {
-        $headers .= 'Authorization: Bearer ' . str_replace(["\r", "\n"], '', $token) . "\r\n";
+    if (strlen($token) < 24 || strlen($token) > 256
+        || !preg_match('/^[A-Za-z0-9._~+\/=\-]{24,256}$/D', $token)
+        || preg_match('/^(replace[_-]|choose-)/i', $token) === 1
+        || in_array(strtolower($token), ['changeme'], true)) {
+        fortress_ml_write_service_status(['ok' => false, 'state' => 'AUTH_CONFIG_ERROR']);
+        return null;
     }
+    $payload['trace_id'] = (string)($payload['trace_id'] ?? fortress_request_id());
+    $headers = "Content-Type: application/json\r\nAccept: application/json\r\nConnection: close\r\n";
+    $headers .= 'Authorization: Bearer ' . str_replace(["\r", "\n"], '', $token) . "\r\n";
 
     $encodedPayload = json_encode($payload, JSON_UNESCAPED_SLASHES);
     if (!is_string($encodedPayload)) {
@@ -1194,7 +1394,18 @@ function fortress_ml_post(array $payload): ?array
     }
 
     $decoded = json_decode($body, true);
-    if (!is_array($decoded) || !isset($decoded['risk_score'])) {
+    $risk = $decoded['risk_score'] ?? null;
+    $confidence = $decoded['confidence'] ?? null;
+    $class = (string)($decoded['classification'] ?? '');
+    $classes = ['NORMAL', 'BRUTE_FORCE', 'CREDENTIAL_STUFFING', 'RECONNAISSANCE', 'WEB_ATTACK', 'MFA_ABUSE', 'SESSION_ABUSE'];
+    $valid = is_array($decoded)
+        && is_numeric($risk) && is_finite((float)$risk) && (float)$risk >= 0 && (float)$risk <= 100
+        && is_numeric($confidence) && is_finite((float)$confidence) && (float)$confidence >= 0 && (float)$confidence <= 1
+        && in_array($class, $classes, true)
+        && (string)($decoded['trace_id'] ?? '') === (string)$payload['trace_id']
+        && preg_match('/^[a-f0-9]{16}$/', (string)($decoded['model_version'] ?? '')) === 1
+        && is_array($decoded['indicator_evidence'] ?? null);
+    if (!$valid) {
         fortress_ml_write_service_status([
             'ok' => false,
             'state' => 'INVALID_RESPONSE',
@@ -1246,9 +1457,11 @@ function fortress_ml_evaluate_request(): void
 
     if ($lastAttempt > 0 && $lastAttempt >= time() - $cooldown) return;
 
-    $features = fortress_ml_features_for_ip($ip);
+    $provenance = [];
+    $features = fortress_ml_features_for_ip($ip, $provenance);
     $ruleScore = fortress_ml_rule_score($features);
-    $result = fortress_ml_post(['features' => $features, 'rule_score' => $ruleScore]);
+    $traceId = fortress_request_id();
+    $result = fortress_ml_post(['features' => $features, 'rule_score' => $ruleScore, 'trace_id' => $traceId]);
 
     @file_put_contents($cachePath, json_encode([
         'ts' => time(),
@@ -1258,11 +1471,21 @@ function fortress_ml_evaluate_request(): void
     if (!$result) {
         // Preserve this behavioral snapshot instead of losing the ML analysis
         // opportunity while the remote model is sleeping/unavailable.
-        fortress_ml_queue_enqueue($ip, $features, $ruleScore, 'prediction_unavailable');
+        fortress_ml_queue_enqueue($ip, $features, $ruleScore, 'prediction_unavailable', $provenance, $traceId);
         return;
     }
 
     $decision = fortress_ml_enforcement_decision($ip, $features, $result);
+    // Partial evidence windows are useful for assessment but not for taking
+    // an AI-assisted enforcement action against a real user.
+    if (!empty($provenance['window_truncated'])) {
+        $decision['action'] = 'EVIDENCE_INCOMPLETE';
+        $decision['strike'] = false;
+        $decision['block'] = false;
+        $decision['immediate_block'] = false;
+        $decision['repeat_block'] = false;
+        $decision['enabled'] = false;
+    }
     $result['automatic_block'] = (bool)$decision['block'];
     $result['enforcement_mode'] = !empty($decision['enabled']) ? 'AI_ASSISTED' : 'ADVISORY';
     $result['enforcement_action'] = (string)$decision['action'];
@@ -1270,11 +1493,13 @@ function fortress_ml_evaluate_request(): void
     $result['enforcement_strikes'] = (int)$decision['strike_count'];
     $result['enforcement_required_strikes'] = (int)$decision['required_strikes'];
     $result['analysis_mode'] = 'LIVE';
+    $result['feature_provenance'] = $provenance;
 
     $record = [
         'ts' => time(),
         'ip' => $ip,
         'features' => $features,
+        'evidence' => $provenance,
         'result' => $result,
     ];
     fortress_ml_store_prediction_record($record);
@@ -1282,7 +1507,9 @@ function fortress_ml_evaluate_request(): void
     $minLogRisk = (float)(getenv('ML_MIN_LOG_RISK') ?: 30);
     if ((float)$result['risk_score'] >= $minLogRisk || (string)($result['classification'] ?? 'NORMAL') !== 'NORMAL') {
         audit_log(
-            'ml_threat_prediction class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
+            'ml_threat_prediction trace=' . fortress_log_safe_value((string)($result['trace_id'] ?? 'unknown')) .
+            ' model=' . fortress_log_safe_value((string)($result['model_version'] ?? 'unknown')) .
+            ' class=' . fortress_log_safe_value((string)($result['classification'] ?? 'UNKNOWN')) .
             ' confidence=' . number_format((float)($result['confidence'] ?? 0), 3, '.', '') .
             ' anomaly=' . number_format((float)($result['anomaly_score'] ?? 0), 3, '.', '') .
             ' risk=' . number_format((float)($result['risk_score'] ?? 0), 1, '.', '') .
