@@ -1,0 +1,14 @@
+{
+  "type": "public_synthetic_model_evaluation_snapshot",
+  "contains_private_data": false,
+  "live_inference": false,
+  "classifier_autoencoder_version": "24112c5d14aaeac3",
+  "training_script_sha256": "bc0f0e5b49e289727b6083273fe9c5440598d6bd9f5523cb346a9ecb5a811e0e",
+  "metadata_sha256": "7f313a5b38e7cd849522c8ea0a5f866c282f1889ca90250a7b92a0c6016abff9",
+  "evidence_sha256": "5729f9d529d5e5289c9088c7297bcb03095559a334ecb9d1f99104f3e4069bef",
+  "limitations": [
+    "Results derive from synthetic holdout, not real-world threats",
+    "Public data does not include live security records",
+    "Automatic enforcement is not enabled through this interface"
+  ]
+}

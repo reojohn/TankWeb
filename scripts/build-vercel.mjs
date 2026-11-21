@@ -63,6 +63,8 @@ for (const dir of ['css', 'images', 'js', 'webfonts']) {
 }
 await copyDir('app/assets');
 await copyDir('app/vendor');
+// Login-free read-only course-project dashboard contains synthetic evidence only.
+await copyDir('assessment');
 
 const rootIndex = `<!doctype html>
 <html lang="en">
@@ -70,12 +72,12 @@ const rootIndex = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta http-equiv="refresh" content="0;url=/login.php">
+  <meta http-equiv="refresh" content="0;url=/assessment/">
   <title>FortressAuth</title>
 </head>
 <body>
-  <script>location.replace('/login.php');</script>
-  <noscript><a href="/login.php">Continue to FortressAuth</a></noscript>
+  <script>location.replace('/assessment/');</script>
+  <noscript><a href="/assessment/">Open FortressAuth Assessment</a></noscript>
 </body>
 </html>
 `;

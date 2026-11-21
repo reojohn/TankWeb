@@ -1,0 +1,56 @@
+/* IT113 protected analyst mitigation workflow. Only extends Threat Center. */
+.it113-workflow-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:5px 0 22px;margin-bottom:20px;border-bottom:1px solid rgba(185,130,241,.17)}
+.it113-workflow-top>div{min-width:0;max-width:780px}
+.it113-workflow-top h2{font-size:clamp(21px,2vw,29px);letter-spacing:-.035em;color:#faf3ff;margin:8px 0}
+.it113-workflow-top p{font-size:12px;line-height:1.7;color:#b8a8ce;margin:0}
+.it113-workflow-backend{display:inline-flex;align-items:center;gap:7px;flex-shrink:0;white-space:nowrap;padding:9px 12px;border:1px solid rgba(215,175,255,.22);border-radius:12px;background:rgba(133,77,183,.12);font-size:10px;font-weight:800;letter-spacing:.035em;color:#d7bdf0}
+.it113-workflow-backend.is-db{border-color:rgba(102,210,176,.35);color:#a0edd0;background:rgba(45,155,121,.12)}
+.it113-workflow-storage-note{padding:11px 15px;border-radius:12px;border:1px solid rgba(249,200,126,.23);background:rgba(169,111,52,.08);color:#e4cda8;font-size:11px;line-height:1.6;margin:0 0 19px}
+.it113-workflow-storage-note code{color:#f8e1bf;overflow-wrap:anywhere}
+.it113-workflow-flash{display:flex;align-items:center;gap:9px;padding:12px 15px;margin:0 0 18px;border-radius:11px;font-size:12px;font-weight:700}
+.it113-workflow-flash.success{color:#b5f4d6;background:rgba(25,155,97,.13);border:1px solid rgba(52,210,133,.32)}
+.it113-workflow-flash.error{color:#ffd0c6;background:rgba(187,64,78,.12);border:1px solid rgba(243,121,131,.3)}
+.it113-workflow-state{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:3px 0 12px;padding:11px 12px;border:1px solid rgba(167,113,232,.17);border-radius:11px;background:rgba(20,9,37,.34)}
+.it113-workflow-state-label{font-size:11px;font-weight:800;color:#dcc5f8}
+.it113-workflow-state small{margin-left:auto;font-size:10px;color:#ad99c2}
+.it113-workflow-pill{display:inline-flex;justify-content:center;align-items:center;max-width:100%;padding:5px 9px;border:1px solid rgba(196,163,235,.26);border-radius:999px;background:rgba(143,90,193,.12);font-size:10px;font-weight:800;letter-spacing:.025em;white-space:nowrap;color:#dfc9fc}
+.it113-workflow-pill.it113-workflow-investigating{color:#ffd7a0;background:rgba(185,115,41,.15);border-color:rgba(246,180,94,.32)}
+.it113-workflow-pill.it113-workflow-mitigated{color:#a2d9ff;background:rgba(68,150,213,.13);border-color:rgba(118,193,247,.28)}
+.it113-workflow-pill.it113-workflow-resolved{color:#a8efd3;background:rgba(32,169,113,.13);border-color:rgba(84,215,156,.31)}
+.it113-workflow-details{margin-bottom:12px;border:1px solid rgba(174,115,236,.25);background:linear-gradient(135deg,rgba(71,32,108,.17),rgba(22,9,38,.35));border-radius:12px;overflow:hidden}
+.it113-workflow-details>summary{display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer;list-style:none;color:#e4cbff;font-size:11px;font-weight:800;padding:12px 13px}
+.it113-workflow-details>summary::-webkit-details-marker{display:none}
+.it113-workflow-details>summary span{display:flex;gap:8px;align-items:center}
+.it113-workflow-details>summary>i{transition:transform .18s ease}
+.it113-workflow-details[open]>summary>i{transform:rotate(180deg)}
+.it113-workflow-form{padding:13px;display:grid;gap:12px;border-top:1px solid rgba(179,120,237,.16)}
+.it113-workflow-form label{display:grid;gap:6px;color:#e7d2ff;font-weight:750;font-size:11px}
+.it113-workflow-form label small{color:#ae9ac5;font-size:10px;font-weight:400;line-height:1.5}
+.it113-workflow-form select,.it113-workflow-form textarea{display:block;box-sizing:border-box;width:100%;min-width:0;padding:10px 11px;border:1px solid rgba(175,126,231,.34);border-radius:9px;outline:none;background:#1c1030;color:#f8efff;font:inherit;font-size:12px;line-height:1.5}
+.it113-workflow-form textarea{resize:vertical;min-height:76px}
+.it113-workflow-form select:focus-visible,.it113-workflow-form textarea:focus-visible{border-color:#c98dff;box-shadow:0 0 0 3px rgba(171,95,238,.19)}
+.it113-workflow-form button{justify-self:start;cursor:pointer;padding:10px 15px;border:1px solid rgba(220,180,255,.3);border-radius:9px;color:#fff;font-weight:800;font-size:11px;background:linear-gradient(115deg,#8845c9,#5f31a1);box-shadow:0 7px 20px rgba(79,36,146,.19);transition:transform .17s ease,box-shadow .17s ease}
+.it113-workflow-form button:hover{transform:translateY(-1px);box-shadow:0 9px 22px rgba(116,53,185,.29)}
+.it113-workflow-form button i{margin-right:5px}
+.it113-workflow-history{border-top:1px solid rgba(174,115,236,.16);padding:13px}
+.it113-workflow-history>strong{display:block;color:#e9d6ff;font-size:11px}
+.it113-workflow-history>p{font-size:11px;color:#ae9ac4;margin:9px 0 0}
+.it113-workflow-history ol{padding:0;margin:10px 0 0;list-style:none;display:grid;gap:8px}
+.it113-workflow-history li{padding:10px 11px;border-left:2px solid rgba(190,131,252,.62);border-radius:0 8px 8px 0;background:rgba(12,6,25,.31)}
+.it113-workflow-history li strong{font-size:10px;color:#ebd9fd}
+.it113-workflow-history li small{display:block;font-size:10px;color:#a997c1;margin:3px 0 5px}
+.it113-workflow-history li p{font-size:11px;color:#cfc0dd;margin:0;line-height:1.6;overflow-wrap:anywhere}
+.it113-workflow-ledger{margin-top:21px;padding:18px;border:1px solid rgba(172,124,226,.22);border-radius:14px;background:rgba(11,6,26,.28)}
+.it113-workflow-ledger-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.it113-workflow-ledger-head h3{color:#f5eaff;font-size:16px;margin:5px 0 6px}
+.it113-workflow-ledger-head p{color:#afa0c6;line-height:1.55;font-size:11px;margin:0}
+.it113-workflow-ledger-head>span{flex-shrink:0;color:#d0b7eb;font-size:10px}
+.it113-workflow-ledger-empty{color:#bda9cf;font-size:12px;margin:0}
+.it113-workflow-ledger-table{max-width:100%;overflow-x:auto}
+.it113-workflow-ledger-table table{width:100%;border-collapse:collapse;font-size:11px;text-align:left}
+.it113-workflow-ledger-table th{white-space:nowrap;text-align:left;color:#bba5d0;padding:10px 11px;font-weight:700;background:rgba(92,52,130,.14)}
+.it113-workflow-ledger-table td{border-top:1px solid rgba(173,127,224,.13);padding:11px;color:#e3d2f3}
+.it113-workflow-ledger-table td code{color:#c9a6eb;font-size:10px}
+@media(max-width:850px){.it113-workflow-top{flex-direction:column}.it113-workflow-backend{white-space:normal}.it113-workflow-ledger{padding:12px}}
+@media(max-width:560px){.it113-workflow-state small{margin-left:0;flex-basis:100%}.it113-workflow-ledger-head{flex-direction:column}.it113-workflow-ledger-table table{min-width:600px}}
+@media(prefers-reduced-motion:reduce){.it113-workflow-form button,.it113-workflow-details>summary>i{transition:none!important}.it113-workflow-form button:hover{transform:none}}
