@@ -27,6 +27,17 @@ if (!filter_var(getenv('IT113_PUBLIC_DEMO_ENABLED') ?: 'false', FILTER_VALIDATE_
     response(503,['ok'=>false,'error'=>'Academic demonstration unavailable.']);
 }
 $method=(string)($_SERVER['REQUEST_METHOD']??'GET');
+if (!in_array($method,['GET','POST'],true)) { header('Allow: GET, POST'); response(405,['ok'=>false,'error'=>'Unsupported method.']); }
+require_once __DIR__.'/../src/it113_shared_limiter.php';
+$limit=it113_demo_limit($method === 'GET' ? 'read' : 'write');
+if ($limit === 'unavailable') {
+    header('Retry-After: 60');
+    response(503,['ok'=>false,'code'=>'SAFETY_GATE_UNAVAILABLE','error'=>'Academic history safeguards are unavailable.']);
+}
+if ($limit === 'limited') {
+    header('Retry-After: 60');
+    response(429,['ok'=>false,'code'=>'DEMO_LIMIT_REACHED','error'=>'Shared demo limit reached. Please try later.']);
+}
 if ($method==='GET') {
     $records=it113_store_history();
     if ($records===null) response(200,['ok'=>true,'enabled'=>false,

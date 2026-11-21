@@ -57,11 +57,19 @@
   }
   function download(filename,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
   async function postInference(body){
-    const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),9000);
+    const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),25000);
     try{
       const response=await fetch('/it113_demo_infer.php',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
       const data=await response.json().catch(()=>({}));
-      if(!response.ok||data.ok!==true||data.synthetic!==true)throw Error(data.error||`Inference HTTP ${response.status}`);
+      if(!response.ok||data.ok!==true||data.synthetic!==true){
+        const message = data.error || `Inference HTTP ${response.status}`;
+        const suffix = response.status===429 ? ' This limit protects the shared school demonstration.'
+          : data.code==='ML_STARTING' ? ' A Free Render service may take time to restart after inactivity.'
+          : data.code==='SAFETY_GATE_UNAVAILABLE' ? ' Your existing offline evaluation is still available.' : '';
+        const failure = new Error(message + suffix);
+        failure.code = String(data.code || 'INFERENCE_ERROR');
+        throw failure;
+      }
       if(!categories.includes(data.classification)||!/^[a-f0-9]{16}$/.test(String(data.model_version))||!/^[a-f0-9]{32}$/.test(String(data.trace_id)))throw Error('Unverified model response');
       if(data.mode!==(body.sample_id?'live_inference_on_curated_synthetic_sample':'live_inference_on_numeric_security_features'))throw Error('Unexpected inference mode');
       return data;
@@ -89,7 +97,7 @@
     try{
       const data=await postInference({sample_id:sampleId});addResult(data);
       if(data.database_written)await syncHistory();
-    }catch(e){setEngine('ENGINE UNAVAILABLE','error');$('live-result').innerHTML=`<div class="live-error"><strong>Inference was not completed.</strong><p>${esc(e.name==='AbortError'?'Request timeout':e.message)}</p><p>Saved model evaluation remains available; no fabricated result was added.</p></div>`;}
+    }catch(e){setEngine(e.code==='ML_STARTING'?'MODEL WAKING UP':e.code==='DEMO_LIMIT_REACHED'?'DEMO LIMIT REACHED':'ENGINE UNAVAILABLE','error');$('live-result').innerHTML=`<div class="live-error"><strong>Inference was not completed.</strong><p>${esc(e.name==='AbortError'?'Request timed out while the hosted ML service was waking up. Please retry shortly.':e.message)}</p><p>Saved model evaluation remains available; no fabricated result was added.</p></div>`;}
     finally{busy=false;$('live-run-button').disabled=false;$('live-run-button').textContent='Run model analysis ↗';}
   }
   function sampleCsv(){

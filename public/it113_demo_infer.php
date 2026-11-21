@@ -1,7 +1,8 @@
 <?php
 /**
  * IT113 public, login-free, SYNTHETIC-ONLY model inference gateway.
- * No direct input vectors, IP addresses, URLs, credentials, or DB mutations.
+ * Accepts curated synthetic samples or bounded numeric features; no raw logs,
+ * URLs, IP addresses, credentials or legacy administrator table access.
  * Admin authentication and operational routes remain unchanged.
  */
 declare(strict_types=1);
@@ -91,42 +92,18 @@ if (!filter_var(getenv('IT113_PUBLIC_DEMO_ENABLED') ?: 'false', FILTER_VALIDATE_
     it113_demo_reply(503, ['ok' => false, 'error' => 'Public model demonstration is disabled on this deployment.']);
 }
 
-function it113_demo_rate_limit(): bool {
-    $directory = __DIR__ . '/../data/it113_demo_rates';
-    if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) return false;
-    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    // Hashed identifiers; no raw client IP stored in the rate files.
-    $identity = hash('sha256', date('Y-m-d') . '|' . $ip . '|' . (string)(getenv('ML_SERVICE_TOKEN') ?: 'it113'));
-    $file = $directory . '/' . $identity . '.json';
-    $handle = @fopen($file, 'c+');
-    if ($handle === false) return false;
-    try {
-        if (!flock($handle, LOCK_EX)) return false;
-        rewind($handle);
-        $state = json_decode((string)stream_get_contents($handle), true);
-        $times = is_array($state) && is_array($state['times'] ?? null) ? $state['times'] : [];
-        $now = time();
-        $times = array_values(array_filter($times, fn($ts) => is_int($ts) && $ts > $now - 86400));
-        $recent = count(array_filter($times, fn($ts) => $ts > $now - 60));
-        if ($recent >= 10 || count($times) >= 100) return false;
-        $times[] = $now;
-        rewind($handle);
-        ftruncate($handle, 0);
-        $ok = fwrite($handle, json_encode(['times' => $times], JSON_THROW_ON_ERROR)) !== false;
-        fflush($handle);
-        @chmod($file, 0600);
-        return $ok;
-    } catch (Throwable) {
-        return false;
-    } finally {
-        flock($handle, LOCK_UN);
-        fclose($handle);
-    }
-}
-
-if (!it113_demo_rate_limit()) {
+require_once __DIR__ . '/../src/it113_shared_limiter.php';
+function it113_demo_rate_limit(): string { return it113_demo_limit('infer'); }
+$limit = it113_demo_rate_limit();
+if ($limit === 'unavailable') {
     header('Retry-After: 60');
-    it113_demo_reply(429, ['ok' => false, 'error' => 'Demonstration limit reached. Try again later.']);
+    it113_demo_reply(503, ['ok'=>false, 'code'=>'SAFETY_GATE_UNAVAILABLE',
+        'error'=>'Online assessment safeguards are not ready. Local research evidence remains available.']);
+}
+if ($limit === 'limited') {
+    header('Retry-After: 60');
+    it113_demo_reply(429, ['ok'=>false, 'code'=>'DEMO_LIMIT_REACHED',
+        'error'=>'Shared demo limit reached. Try again after the limit resets.']);
 }
 
 $metadata = json_decode((string)@file_get_contents(__DIR__ . '/assessment/model_summary.json'), true);
@@ -187,7 +164,13 @@ $result = fortress_ml_post([
     'trace_id' => $trace,
 ]);
 if (!is_array($result) || ($result['trace_id'] ?? null) !== $trace) {
-    it113_demo_reply(503, ['ok' => false, 'error' => 'Live inference temporarily unavailable. No simulated result was substituted.']);
+    $state = (string)(fortress_ml_service_status()['state'] ?? 'UNKNOWN');
+    $waking = in_array($state, ['TIMEOUT','TRANSPORT_ERROR','SERVICE_UNAVAILABLE'], true);
+    if ($waking) header('Retry-After: 45');
+    it113_demo_reply(503, ['ok'=>false, 'code'=>$waking?'ML_STARTING':'ML_UNAVAILABLE',
+        'error'=>$waking
+            ? 'The hosted AI engine is waking up or temporarily unreachable. Retry in about a minute; no result was saved.'
+            : 'Live model inference is unavailable. No simulated result was substituted.']);
 }
 
 // Explicit allowlist prevents accidental disclosure if the private API grows.
