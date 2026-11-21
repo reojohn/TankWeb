@@ -68,24 +68,27 @@ class PairWorkspaceContract(unittest.TestCase):
         self.assertNotIn('ML_SERVICE_TOKEN',self.api)
         self.assertNotIn('DB_PASS',self.api)
 
-    def test_token_captured_from_fragment_before_navigation(self):
-        self.assertIn("location.hash.startsWith('#pair-invite=')",self.ui)
-        self.assertIn('history.replaceState(null',self.ui)
-        self.assertLess(self.ui.index("#pair-invite="), self.ui.index('/assessment/site.js'))
-        self.assertNotIn('invite_token',self.ui)
+    def test_public_frontend_requires_no_pair_invitation(self):
+        self.assertNotIn("#pair-invite=", self.ui)
+        self.assertNotIn('id="pair-workspace-panel"',self.ui)
+        self.assertNotIn('postPair(',self.js)
+        self.assertNotIn('initializePair()',self.js)
+        self.assertIn('Public findings',self.ui)
 
-    def test_browser_never_caches_shared_records(self):
-        for part in ['if(pair.active)return;',"entries=j.entries.map(normalized)",
-                     'pair.active?[]:readLocal()',"if(pair.active&&!e.database_written)",
-                     "fetch('/it113_pair_workspace.php'",'navigator.clipboard.writeText(inviteLink)']:
-            self.assertIn(part,self.js)
+    def test_private_history_and_legacy_pair_backend_still_exist(self):
+        self.assertIn("$scope['workspace_id']!==null",self.store)
+        self.assertIn('it113_pair_scope(true)',self.store)
+        self.assertIn('IT113_PAIR_WORKSPACE_ENABLED',self.pair)
+        self.assertIn("workspace_id IS NULL",self.store)
+        self.assertIn("const pair={active:false",self.js)
         self.assertNotIn('ML_SERVICE_TOKEN',self.js)
         self.assertNotIn('DB_PASS',self.js)
 
-    def test_reports_and_findings_are_shared_mode_aware(self):
-        for part in ["pair.active?'Two-person synthetic history'", "'shared_pair'",
-                     'Shared research findings cannot be cleared',
-                     'Shared research pair', 'Research Pair Workspace']:
-            self.assertIn(part,self.js+self.ui)
+    def test_optional_numeric_csv_session_does_not_block_public_dashboard(self):
+        self.assertIn('data-project-mode="public"', self.ui)
+        self.assertIn('data-project-mode="session"', self.ui)
+        self.assertIn("displayMode='public'",self.js)
+        self.assertIn("if(ok){setDisplayMode('session');await syncHistory();}",self.js)
+        self.assertIn('public-project-overview',self.ui)
 
 if __name__=='__main__':unittest.main()

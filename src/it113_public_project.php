@@ -1,18 +1,36 @@
 <?php
 /**
  * Read-only, publicly published synthetic IT113 research findings.
- * The project owner pins ONE pair workspace using a server-side UUID setting.
- * No session cookie, browser identity, invitation, DB credentials or analyst
- * notes are ever returned to anonymous viewers. No write methods here.
+ * Curated synthetic XGBoost assessments saved in the academic database are
+ * publicly visible without login, invitations, project IDs or per-browser
+ * session cookies. Numeric CSV uploads remain private to their submitter.
+ * No session identity, raw features, invitations or analyst notes are exposed.
  */
 declare(strict_types=1);
 
 function it113_public_project_configured(): bool {
-    return filter_var(getenv('IT113_PUBLIC_PROJECT_ENABLED') ?: 'false', FILTER_VALIDATE_BOOL)
-        && filter_var(getenv('IT113_PAIR_WORKSPACE_ENABLED') ?: 'false', FILTER_VALIDATE_BOOL)
-        && it113_store_enabled()
-        && preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/Di',
-            (string)(getenv('IT113_PUBLIC_PROJECT_WORKSPACE_ID') ?: '')) === 1;
+    // No additional workspace or publication switch: the deployed, already
+    // enabled academic PostgreSQL persistence is the public project source.
+    return it113_store_enabled();
+}
+
+/** Only sample IDs from the shipped, controlled held-out evidence may publish. */
+function it113_public_curated_labels(): array {
+    $path = __DIR__ . '/../public/assessment/evidence.json';
+    $data = json_decode((string)@file_get_contents($path), true);
+    if (!is_array($data) || ($data['not_live_inference'] ?? null) !== true
+        || ($data['contains_real_personal_data'] ?? null) !== false
+        || !is_array($data['examples'] ?? null)) return [];
+    $labels = [];
+    foreach ($data['examples'] as $example) {
+        $id = $example['id'] ?? null;
+        $label = $example['true_label'] ?? null;
+        if (is_string($id) && preg_match('/^[a-z0-9_]{3,60}$/D', $id)
+            && is_string($label) && preg_match('/^[A-Z_]{3,48}$/D', $label)) {
+            $labels[$id] = $label;
+        }
+    }
+    return $labels;
 }
 
 /** A safe, bounded output built from allowlisted SQL columns only. */
@@ -50,22 +68,35 @@ function it113_public_project_entry(array $row): array {
     ];
 }
 
-/** Returns null on backend error; never falls back to private visitor records. */
+/** Returns null on backend errors. Never falls back to arbitrary session data. */
 function it113_public_project_history(): ?array {
     if (!it113_public_project_configured()) return [];
+    $labels = it113_public_curated_labels();
+    if (!$labels) return null; // Fail closed if evidence provenance is missing.
     $pdo = it113_store_db();
     if (!$pdo) return null;
     try {
-        // The pinned project is chosen only through the Render server config.
-        // Never accept a client-provided workspace ID or switch workspaces by URL.
-        $stmt=$pdo->prepare('SELECT a.trace_id,a.created_at,a.source_type,a.sample_id,a.expected_label,
+        // Only curated model runs are public. They are strictly selected by the
+        // server from evidence.json, not client-provided IDs or free-form CSV.
+        // Existing curated findings become public automatically after deploy.
+        $stmt = $pdo->prepare("SELECT a.trace_id,a.created_at,a.source_type,a.sample_id,a.expected_label,
             a.classification,a.confidence,a.anomaly_score,a.rule_score,a.risk_score,a.severity,
             a.model_version,a.indicators,a.status,a.revision
             FROM public.it113_demo_assessments a
-            INNER JOIN public.it113_pair_workspaces w ON a.workspace_id=w.workspace_id
-            WHERE a.workspace_id=CAST(? AS uuid) ORDER BY a.created_at DESC LIMIT 80');
-        $stmt->execute([(string)getenv('IT113_PUBLIC_PROJECT_WORKSPACE_ID')]);
-        return array_map('it113_public_project_entry', $stmt->fetchAll(PDO::FETCH_ASSOC));
+            WHERE a.source_type = 'curated' AND a.sample_id IS NOT NULL
+              AND a.expected_label IS NOT NULL
+            ORDER BY a.created_at DESC LIMIT 200");
+        $stmt->execute();
+        $entries = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $sampleId = (string)$row['sample_id'];
+            // Safe synthetic provenance: never publish anything whose ID or
+            // ground truth differs from the known, packaged sample catalog.
+            if (!isset($labels[$sampleId]) || $labels[$sampleId] !== (string)$row['expected_label']) continue;
+            $entries[] = it113_public_project_entry($row);
+            if (count($entries) === 80) break;
+        }
+        return $entries;
     } catch (Throwable $e) {
         it113_store_log_error('public project read', $e);
         return null;

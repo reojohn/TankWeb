@@ -1,5 +1,5 @@
 <?php
-/** Anonymous read-only view of a configured, published academic workspace. */
+/** Anonymous, read-only collection of real curated synthetic model assessments. */
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, private, max-age=0');
@@ -30,7 +30,7 @@ require_once __DIR__.'/../src/it113_public_store.php';
 require_once __DIR__.'/../src/it113_public_project.php';
 if (!it113_public_project_configured()) {
     project_reply(200,['ok'=>true,'enabled'=>false,'read_only'=>true,
-        'status'=>'not_published','entries'=>[]]);
+        'status'=>'storage_disabled','entries'=>[]]);
 }
 require_once __DIR__.'/../src/it113_shared_limiter.php';
 $limit=it113_demo_limit('read');
@@ -47,5 +47,5 @@ if ($records===null) {
     project_reply(503,['ok'=>false,'status'=>'unavailable','error'=>'Published research is temporarily unavailable.']);
 }
 project_reply(200,['ok'=>true,'enabled'=>true,'read_only'=>true,
-    'status'=>'published','project_name'=>'FortressAuth IT113 Research Project',
+    'status'=>'public','project_name'=>'FortressAuth IT113 Research Project',
     'entries'=>$records]);
