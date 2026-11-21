@@ -1,18 +1,16 @@
-# FortressAuth v3 - React UI + PHP Security Backend
+# FortressAuth v3 - React Shell + PHP Security Backend
 
-This copy keeps the working FortressAuth v2 security engine in PHP and moves the command-center interface toward a React single-page application.
+FortressAuth v3 keeps the security engine in PHP while React owns the persistent command-center shell and route switching.
 
-## What stays PHP
+## Security boundary
 
-The existing `src/` directory remains authoritative for authentication, sessions, authorization, CSRF, brute-force protection, request monitoring, reconnaissance defense, logging, security policy, ML-assisted enforcement, user accounts, metrics, and report generation. Supabase/PostgreSQL and the separate ML service are unchanged.
+The existing `src/` directory remains authoritative for authentication, sessions, authorization, CSRF, brute-force protection, request monitoring, reconnaissance defense, logging, security policy, ML-assisted enforcement, user accounts, metrics, report generation, and Crown Jewel authorization. Supabase/PostgreSQL and the separate ML service remain server-side.
 
-React does not make allow/block decisions. It requests protected JSON from PHP and renders the result.
+React never makes allow/block decisions and must not contain secrets.
 
-## React application
+## Current UI architecture
 
-React source lives in `frontend/src/`.
-
-Native React routes currently include:
+React source lives in `frontend/src/`. The persistent React shell provides the sidebar, mobile command bar, route transitions, prefetching, and navigation for:
 
 - Overview
 - Access Activity
@@ -22,33 +20,34 @@ Native React routes currently include:
 - Security Logs
 - Blocked IPs
 - Security Controls
+- Current Operator
 - Crown Jewel
 
-Current Operator is intentionally migrated through a progressive React bridge in this first v3 pass. React owns the persistent application shell, while the already-working PHP account, Personal ID, and report-management content is loaded inside it so those complex workflows are not broken during the migration.
+Most command-center page bodies currently use a protected parity bridge: React fetches server-rendered page fragments from `public/api/v3_fragment.php` and places them inside the persistent shell. This preserves the already-tested PHP page logic while keeping SPA-style navigation. Current Operator and Crown Jewel also use protected bridge flows with their own authorization checks.
 
-## PHP JSON API
-
-`public/api/v3.php` is the React data bridge. It reuses the existing PHP security functions and server-side session. It exposes protected views such as:
-
-`/api/v3.php?view=overview`
-
-`/api/v3.php?view=threats`
-
-`/api/v3.php?view=ai`
-
-The Blocked IP page also uses this API for CSRF-protected unblock actions.
+`public/api/v3.php` remains the structured JSON bridge for bootstrap/live data and supported actions. PHP sessions and CSRF validation remain authoritative.
 
 ## Fast navigation design
 
-The React shell stays mounted while routes change. Navigation uses hash routes such as:
+Navigation uses hash routes such as:
 
 `/app/#/overview`
 
 `/app/#/threats`
 
-Hash routing avoids interfering with the existing FortressAuth `.htaccess` security-probe behavior. API responses have a short in-memory frontend cache and route data is prefetched when a navigation item is hovered or focused.
+Hash routing avoids colliding with `.htaccess` reconnaissance handling. The shell caches recent fragments briefly and prefetches safe routes. Crown Jewel is intentionally excluded from ordinary prefetching because opening it is the pentest objective.
 
-## Build locally on Windows
+## Local development
+
+Run the PHP application as before:
+
+```bat
+php -S localhost:8082 -t public
+```
+
+The protected `/app/` entry is gated by `public/app/index.php`, which verifies the server-side session before the React runtime is allowed to load.
+
+## React source validation build
 
 From the project root, run:
 
@@ -56,7 +55,7 @@ From the project root, run:
 BUILD_REACT_V3.bat
 ```
 
-Or manually:
+or:
 
 ```bat
 cd frontend
@@ -64,29 +63,18 @@ npm install
 npm run build
 ```
 
-The compiled application is written to:
+The Vite validation output is written to `react-build/`, not `public/app/`. This is intentional. A previous configuration used `emptyOutDir: true` on `public/app/`, which could delete the PHP auth gate and vendored runtime files.
 
-`public/app/`
-
-Then run FortressAuth the same way as before, for example:
-
-```bat
-php -S localhost:8082 -t public
-```
-
-Open the normal login page. When `public/app/index.html` exists, successful login automatically enters the React application. If the React build is absent, login safely falls back to the original PHP dashboard.
+The currently deployed application uses the tested committed runtime under `public/app/`, including `public/app/assets/v3-fast-navigation-skeleton-20260820.js`.
 
 ## Render deployment
 
-The v3 `Dockerfile` now uses a Node build stage followed by the existing PHP/Apache stage. Render installs the pinned React/Vite packages, builds `public/app/`, then serves the finished bundle from Apache together with the PHP backend.
+The current `Dockerfile` is PHP/Apache only. It copies the committed tested frontend runtime together with the PHP backend, enables Apache rewrite/headers support, and serves `public/` as the document root. It does not run a Node build stage.
 
-No new React environment variables are required for the PHP API because the browser uses the same-origin PHP session cookie.
-
-## Important security boundary
-
-Keep these rules while continuing the migration:
+## Important rules while continuing the migration
 
 1. Never move passwords, database credentials, ban logic, authorization decisions, ML enforcement thresholds, or Crown Jewel secrets into React.
 2. State-changing React actions must continue to send the server-issued CSRF token to PHP.
-3. React should call the PHP API, not Supabase or the ML service directly.
-4. Keep the original PHP pages until each remaining workflow has a native React replacement and has been regression-tested.
+3. React should call the PHP backend, not Supabase or the ML service directly.
+4. Keep the PHP parity pages until a native React replacement is implemented and regression-tested.
+5. Do not point a Vite `emptyOutDir` build at `public/app/`; that directory contains security-critical deployment files in the current architecture.

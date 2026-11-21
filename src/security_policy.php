@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/security_profile.php';
+
 /**
  * FortressAuth security policy.
  *
@@ -22,7 +24,7 @@ function fortress_security_policy(): array
     $idle = fortress_policy_int('SESSION_IDLE_TIMEOUT', 900, 300);
     $absolute = fortress_policy_int('SESSION_ABSOLUTE_TIMEOUT', 28800, $idle);
 
-    return [
+    $policy = [
         'session_idle_seconds' => $idle,
         'session_absolute_seconds' => $absolute,
         'school_id_verification_window_seconds' => fortress_policy_int('SCHOOL_ID_VERIFY_WINDOW', 300, 60),
@@ -55,6 +57,15 @@ function fortress_security_policy(): array
         // meaningful security state actually changes.
         'live_state_poll_seconds' => fortress_policy_int('SECURITY_LIVE_POLL_SECONDS', 2, 2),
     ];
+
+    // The selected runtime profile changes only enforcement thresholds. Session,
+    // CSRF, factor verification, and browser hardening remain identical across
+    // all profiles. Balanced intentionally preserves the deployment's current
+    // environment-backed values for backward compatibility.
+    return array_replace(
+        $policy,
+        fortress_security_profile_policy_overrides(fortress_security_profile_mode())
+    );
 }
 
 function fortress_policy_minutes(int $seconds): string

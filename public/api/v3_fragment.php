@@ -17,6 +17,7 @@ $allowed = [
     'admin_logs' => 'admin_logs.php',
     'blocked_ips' => 'blocked_ips.php',
     'security_controls' => 'security_controls.php',
+    'operator' => 'user_management.php',
 ];
 
 if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {

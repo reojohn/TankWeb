@@ -9,6 +9,13 @@ require_once __DIR__ . '/../src/fortress_metrics.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
+
+// React v3 fragment/live-refresh requests only read session state after auth.
+// Release PHP's per-session lock before the heavier metrics/database work so
+// /logout.php can revoke the session immediately instead of queuing behind it.
+if (defined('FORTRESS_BACKGROUND_REQUEST') && FORTRESS_BACKGROUND_REQUEST === true) {
+    fortress_release_session_read_lock();
+}
 $userId = (int)($_SESSION['uid'] ?? 0);
 $ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
@@ -35,6 +42,7 @@ arsort($mlProbabilities);
 $mlRisk = $mlResult ? (float)($mlResult['risk_score'] ?? 0) : 0.0;
 $mlSeverity = $mlResult ? (string)($mlResult['severity'] ?? 'NO DATA') : ($mlEnabled ? 'WAITING' : 'DISABLED');
 $mlClass = $mlResult ? (string)($mlResult['classification'] ?? 'UNKNOWN') : 'NOT_ANALYZED';
+$mlClassDisplay = strtoupper($mlClass) === 'MFA_ABUSE' ? 'PERSONAL ID ABUSE' : str_replace('_', ' ', $mlClass);
 $mlConfidence = $mlResult ? ((float)($mlResult['confidence'] ?? 0) * 100.0) : 0.0;
 $mlAnomaly = $mlResult ? ((float)($mlResult['anomaly_score'] ?? 0) * 100.0) : 0.0;
 $mlRuleScore = $mlResult ? (float)($mlResult['rule_score'] ?? 0) : 0.0;
@@ -49,7 +57,8 @@ $mlPredictionTime = $mlPredictionTs > 0 ? date('Y-m-d H:i:s', $mlPredictionTs) :
 $mlAssistedEnabled = fortress_ml_assisted_enforcement_enabled();
 $mlEnforcementAction = $mlResult ? (string)($mlResult['enforcement_action'] ?? ($mlAssistedEnabled ? 'OBSERVE' : 'ADVISORY_ONLY')) : ($mlAssistedEnabled ? 'WAITING' : 'ADVISORY_ONLY');
 $mlEnforcementStrikes = $mlResult ? (int)($mlResult['enforcement_strikes'] ?? 0) : 0;
-$mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes'] ?? max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2))) : max(2, (int)(getenv('ML_ASSISTED_REQUIRED_STRIKES') ?: 2));
+$mlEffectiveConfig = fortress_ml_enforcement_config();
+$mlRequiredStrikes = $mlResult ? (int)($mlResult['enforcement_required_strikes'] ?? (int)$mlEffectiveConfig['required_strikes']) : (int)$mlEffectiveConfig['required_strikes'];
 $mlEnforcementEvidence = $mlResult && is_array($mlResult['enforcement_evidence'] ?? null) ? $mlResult['enforcement_evidence'] : [];
 $mlResponseMode = $mlAssistedEnabled ? 'AI-ASSISTED' : 'ADVISORY';
 
@@ -78,11 +87,11 @@ try {
             COUNT(*) FILTER (WHERE event_key = 'bruteforce_detected') AS brute,
             COUNT(*) FILTER (
                 WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%sql_attack%')
-                   OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%sqli%')
+                   OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,sqli,%')
             ) AS sqli,
             COUNT(*) FILTER (
                 WHERE (event_key = 'malicious_input_detected' AND COALESCE(issues, '') ILIKE '%xss_attack%')
-                   OR (event_key = 'request_threat_detected' AND COALESCE(raw_line, '') ILIKE '%xss%')
+                   OR (event_key = 'request_threat_detected' AND (',' || LOWER(COALESCE(issues, '')) || ',') LIKE '%,xss,%')
             ) AS xss,
             COUNT(*) FILTER (WHERE event_key IN (
                 'sensitive_path_probe', 'reconnaissance_probe', 'scanner_user_agent_detected'
@@ -131,7 +140,7 @@ $featureLabels = [
 $predictionHistory = fortress_ml_prediction_history(20);
 
 
-$aiBehaviorLabel = ucwords(strtolower(str_replace('_', ' ', $mlClass)));
+$aiBehaviorLabel = strtoupper($mlClass) === 'MFA_ABUSE' ? 'Personal ID Abuse' : ucwords(strtolower(str_replace('_', ' ', $mlClass)));
 $aiClassKey = strtoupper(trim($mlClass));
 
 $aiAnomalyInterpretation = $mlAnomaly >= 70
@@ -177,14 +186,14 @@ if (!$mlEnabled) {
 } elseif (!$mlResult) {
     if (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])) {
         $aiConversationMessages = [
-            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled, but the latest prediction request did not complete successfully.',
+            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled, but the latest analysis request did not complete successfully.',
             'The safe connection diagnostic currently reports ' . strtolower(str_replace('_', ' ', $mlServiceState)) . '. The system does not expose the private ML URL, token, request body, or raw transport error in this interface.',
-            'FortressAuth continues enforcing its deterministic protections while the ML connection is unavailable. Once a prediction request succeeds, this page will automatically populate the XGBoost, Autoencoder, and hybrid-risk findings.',
+            'FortressAuth continues enforcing its deterministic protections while the ML connection is unavailable. Once an analysis request succeeds, this page will automatically populate the XGBoost, Autoencoder, and hybrid-risk findings.',
         ];
     } else {
         $aiConversationMessages = [
             'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled and I am waiting for the first completed behavioral analysis.',
-            'I have not found a saved security result yet. Normal protected-page activity will give the request monitor telemetry and trigger a prediction attempt.',
+            'I have not found a saved security result yet. Normal protected-page activity will give the request monitor telemetry and trigger an analysis attempt.',
             'While I wait, FortressAuth continues enforcing its normal protections. The AI layer is supplementary and does not replace authentication, rate limits, deterministic rules, or session security.',
         ];
     }
@@ -213,9 +222,13 @@ if (!$mlEnabled) {
     if ($mlProbabilities) {
         $topProbabilityParts = [];
         foreach (array_slice($mlProbabilities, 0, 3, true) as $probabilityClass => $probability) {
+            $probabilityClassRaw = (string)$probabilityClass;
+            $probabilityClassLabel = strtoupper($probabilityClassRaw) === 'MFA_ABUSE'
+                ? 'Personal ID Abuse'
+                : ucwords(strtolower(str_replace('_', ' ', $probabilityClassRaw)));
             $topProbabilityParts[] = sprintf(
                 '%s at %.1f percent',
-                ucwords(strtolower(str_replace('_', ' ', (string)$probabilityClass))),
+                $probabilityClassLabel,
                 ((float)$probability) * 100.0
             );
         }
@@ -348,8 +361,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <meta name="theme-color" content="#10071f">
     <title>FortressAuth — AI Defense</title>
     <link rel="stylesheet" href="/css/all.min.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
-    <link rel="stylesheet" href="/css/ai_threat_intelligence.css">
+    <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
+    <link rel="stylesheet" href="/css/ai_threat_intelligence.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -370,8 +383,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 <section class="posture-summary-strip ai-summary-strip">
     <div><span>ML service</span><strong><?= e(str_replace('_', ' ', $mlServiceDisplay)) ?></strong></div>
-    <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
-    <div><span>Detected behavior</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong></div>
+    <div><span>Latest hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
+    <div><span>Latest ML behavior</span><strong><?= e($mlClassDisplay) ?></strong></div>
     <div><span>AI response mode</span><strong><?= e($mlResponseMode) ?></strong></div>
 </section>
 
@@ -386,7 +399,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     </div>
     <div class="attack-grid threat-category-grid ai-metric-grid">
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-gauge-high"></i></span><div><strong><?= number_format($mlRisk, 1) ?>/100</strong><span>Hybrid risk score</span><small><?= e($mlSeverity) ?></small></div></div>
-        <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-diagram-project"></i></span><div><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong><span>XGBoost classification</span><small><?= number_format($mlConfidence, 1) ?>% model confidence</small></div></div>
+        <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-diagram-project"></i></span><div><strong><?= e($mlClassDisplay) ?></strong><span>XGBoost classification</span><small><?= number_format($mlConfidence, 1) ?>% model confidence</small></div></div>
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-wave-square"></i></span><div><strong><?= number_format($mlAnomaly, 1) ?>%</strong><span>Autoencoder anomaly</span><small>Deviation from learned normal behavior</small></div></div>
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-shield-halved"></i></span><div><strong><?= number_format($mlRuleScore, 1) ?>/100</strong><span>Rule-engine signal</span><small>Deterministic FortressAuth evidence</small></div></div>
     </div>
@@ -404,7 +417,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <?php elseif (!$mlEnabled): ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is currently disabled. Set <code>ML_SERVICE_ENABLED=true</code>, configure the private service URL/token, and start the ML service. Existing defenses continue working normally.</div>
     <?php elseif (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])): ?>
-        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest prediction connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active<?php if ($mlQueuePending > 0): ?> and <?= $mlQueuePending ?> ML analysis snapshot<?= $mlQueuePending === 1 ? ' is' : 's are' ?> safely queued for replay<?php endif; ?> while FortressAuth retries after the configured backoff.</div>
+        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest analysis connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active<?php if ($mlQueuePending > 0): ?> and <?= $mlQueuePending ?> ML analysis snapshot<?= $mlQueuePending === 1 ? ' is' : 's are' ?> safely queued for replay<?php endif; ?> while FortressAuth retries after the configured backoff.</div>
     <?php else: ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is enabled. Use the system normally or run controlled security tests to populate the behavioral window and generate the first analysis.</div>
     <?php endif; ?>
@@ -445,7 +458,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <div class="fortress-ai-analyst-detail-grid">
                     <div>
                         <span>Detected behavior</span>
-                        <strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong>
+                        <strong><?= e($mlClassDisplay) ?></strong>
                     </div>
                     <div>
                         <span>Current source</span>
@@ -467,7 +480,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <div class="fortress-ai-analyst-metric classifier">
                     <span>XGBOOST CONFIDENCE</span>
                     <strong><?= number_format($mlConfidence, 1) ?>%</strong>
-                    <small><?= e(str_replace('_', ' ', $mlClass)) ?> classification confidence</small>
+                    <small><?= e($mlClassDisplay) ?> classification confidence</small>
                 </div>
                 <div class="fortress-ai-analyst-metric anomaly">
                     <span>ANOMALY DEVIATION</span>
@@ -584,7 +597,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 </div>
             </div>
             <div class="fortress-defense-board-metrics">
-                <div><span>Classification</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong></div>
+                <div><span>Classification</span><strong><?= e($mlClassDisplay) ?></strong></div>
                 <div><span>Confidence</span><strong><?= number_format($mlConfidence, 1) ?>%</strong></div>
                 <div><span>Risk contribution</span><strong><?= number_format($mlXgbRisk, 1) ?>/100</strong></div>
             </div>
@@ -723,7 +736,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-flow-node ai-flow-node-xgb">
                 <span class="ai-node-kicker">Known behavior</span>
                 <strong>XGBoost</strong>
-                <small><?= e(str_replace('_', ' ', $mlClass)) ?> · <?= number_format($mlConfidence, 1) ?>% confidence</small>
+                <small><?= e($mlClassDisplay) ?> · <?= number_format($mlConfidence, 1) ?>% confidence</small>
             </div>
             <div class="ai-flow-node ai-flow-node-auto">
                 <span class="ai-node-kicker">Unknown behavior</span>
@@ -759,7 +772,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 </div>
                 <div class="ai-feed-item" style="--feed-delay:1.4s">
                     <span class="ai-feed-dot"></span>
-                    <div><strong>XGBoost</strong><small>Current behavior classified as <?= e(str_replace('_', ' ', $mlClass)) ?> with <?= number_format($mlConfidence, 1) ?>% model confidence.</small></div>
+                    <div><strong>XGBoost</strong><small>Current behavior classified as <?= e($mlClassDisplay) ?> with <?= number_format($mlConfidence, 1) ?>% model confidence.</small></div>
                 </div>
                 <div class="ai-feed-item" style="--feed-delay:2.1s">
                     <span class="ai-feed-dot"></span>
@@ -786,7 +799,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <div class="ai-agent-grid">
         <div class="ai-agent-scene"
             aria-label="Animated AI agent collaboration scene"
-            data-agent-classification="<?= e(str_replace('_', ' ', $mlClass)) ?>"
+            data-agent-classification="<?= e($mlClassDisplay) ?>"
             data-agent-confidence="<?= number_format($mlConfidence, 1, '.', '') ?>"
             data-agent-anomaly="<?= number_format($mlAnomaly, 1, '.', '') ?>"
             data-agent-rule-score="<?= number_format($mlRuleScore, 1, '.', '') ?>"
@@ -808,7 +821,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-agent-orbit ai-agent-orbit-one"></div>
             <div class="ai-agent-orbit ai-agent-orbit-two"></div>
             <div class="ai-agent-node ai-agent-node-core">
-                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core.png" alt="" aria-hidden="true"></span>
+                <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core2.png" alt="" aria-hidden="true"></span>
                 <strong>FortressAuth Core</strong>
                 <small>Defense state: <?= e($mlSeverity) ?></small>
             </div>
@@ -826,7 +839,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-agent-node ai-agent-node-left">
                 <span class="ai-agent-icon"><img class="ai-agent-robot-image" src="/images/ai5.png" alt="" aria-hidden="true"></span>
                 <strong>XGBoost Agent</strong>
-                <small><?= e(str_replace('_', ' ', $mlClass)) ?></small>
+                <small><?= e($mlClassDisplay) ?></small>
             </div>
             <div class="ai-agent-node ai-agent-node-right">
                 <span class="ai-agent-icon"><img class="ai-agent-robot-image" src="/images/ai6.png" alt="" aria-hidden="true"></span>
@@ -855,7 +868,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             </div>
             <div class="ai-agent-consensus-metrics">
                 <div><span>Hybrid risk</span><strong><?= number_format($mlRisk, 1) ?>/100</strong></div>
-                <div><span>XGBoost</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?> · <?= number_format($mlConfidence, 1) ?>%</strong></div>
+                <div><span>XGBoost</span><strong><?= e($mlClassDisplay) ?> · <?= number_format($mlConfidence, 1) ?>%</strong></div>
                 <div><span>Anomaly</span><strong><?= number_format($mlAnomaly, 1) ?>%</strong></div>
                 <div><span>Rule evidence</span><strong><?= number_format($mlRuleScore, 1) ?>/100</strong></div>
                 <div><span>Response</span><strong><?= e($mlResponseMode) ?></strong></div>
@@ -872,7 +885,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             </div>
             <div class="ai-agent-status-card">
                 <div class="ai-agent-status-head"><span class="ai-agent-mini-icon"><img class="ai-agent-robot-image" src="/images/ai5.png" alt="" aria-hidden="true"></span><strong>XGBoost Agent</strong></div>
-                <p>Classifies the current pattern as <strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong> with <strong><?= number_format($mlConfidence, 1) ?>%</strong> confidence.</p>
+                <p>Classifies the current pattern as <strong><?= e($mlClassDisplay) ?></strong> with <strong><?= number_format($mlConfidence, 1) ?>%</strong> confidence.</p>
                 <span class="ai-agent-badge">Known-behavior specialist</span>
             </div>
             <div class="ai-agent-status-card">
@@ -892,7 +905,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 <section class="ai-model-grid">
     <article class="panel ai-model-card">
         <div class="panel-heading compact"><div><span class="eyebrow">KNOWN BEHAVIOR CLASSIFIER</span><h2>XGBoost</h2><p>Classifies behavioral telemetry into learned attack categories generated for the controlled FortressAuth project environment.</p></div><i class="fa-solid fa-diagram-project panel-symbol"></i></div>
-        <div class="ai-model-stat"><span>Detected behavior</span><strong><?= e(str_replace('_', ' ', $mlClass)) ?></strong></div>
+        <div class="ai-model-stat"><span>Detected behavior</span><strong><?= e($mlClassDisplay) ?></strong></div>
         <div class="ai-model-stat"><span>Model confidence</span><strong><?= number_format($mlConfidence, 1) ?>%</strong></div>
         <div class="ai-model-stat"><span>XGBoost risk contribution</span><strong><?= number_format($mlXgbRisk, 1) ?>/100</strong></div>
         <div class="ai-probability-list">
@@ -949,11 +962,11 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <tbody>
             <?php if (!$predictionHistory): ?>
                 <tr><td colspan="8" class="table-empty">No AI analyses have been recorded yet.</td></tr>
-            <?php else: foreach ($predictionHistory as $row): $result=(array)$row['result']; ?>
+            <?php else: foreach ($predictionHistory as $row): $result=(array)$row['result']; $historyClassRaw=(string)($result['classification'] ?? 'UNKNOWN'); $historyClassDisplay=strtoupper($historyClassRaw)==='MFA_ABUSE'?'PERSONAL ID ABUSE':str_replace('_', ' ', $historyClassRaw); ?>
                 <tr>
                     <td><?= e(date('Y-m-d H:i:s', (int)($row['ts'] ?? 0))) ?></td>
                     <td><code><?= e((string)($row['ip'] ?? 'unknown')) ?></code></td>
-                    <td><?= e(str_replace('_', ' ', (string)($result['classification'] ?? 'UNKNOWN'))) ?></td>
+                    <td><?= e($historyClassDisplay) ?></td>
                     <td><?= number_format(((float)($result['confidence'] ?? 0))*100, 1) ?>%</td>
                     <td><?= number_format(((float)($result['anomaly_score'] ?? 0))*100, 1) ?>%</td>
                     <td><strong><?= number_format((float)($result['risk_score'] ?? 0), 1) ?>/100</strong></td>
@@ -970,8 +983,8 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 </div><!-- /.fortress-main-column -->
 </main>
-<script src="/js/ai_threat_intelligence.js"></script>
-<script src="/js/dashboard.js"></script>
+<script src="/js/ai_threat_intelligence.js?v=20260824-0845"></script>
+<script src="/js/dashboard.js?v=20260824-0845"></script>
 <script src="/js/auto_logout.js"></script>
 </body>
 </html>

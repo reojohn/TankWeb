@@ -1,0 +1,14 @@
+Fortress Defense Engine profile palette implementation
+
+Standard        -> Forest green operating palette
+Balanced        -> FortressAuth purple operating palette
+Fortress Boost  -> Blood red / burgundy operating palette
+
+Behavior:
+- Clicking a profile immediately previews the target palette while the engine processing/rev animation runs.
+- The server-side profile endpoint remains authoritative.
+- If the server rejects the change, the previous palette is restored.
+- Successful mode changes persist because the saved runtime defense profile is read again on page/bootstrap load.
+- React v3 and legacy PHP pages both synchronize to the same runtime palette.
+- Security semantic colors for success/warning/danger are left separate from the operating theme variables.
+- Reduced-motion mode disables the extra theme ignition sweep and boost ambient heartbeat.

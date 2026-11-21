@@ -14,6 +14,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 require_admin_auth();
 
+// Authentication has completed and this endpoint is read-only. Free the PHP
+// session lock before file/database polling so an explicit logout is never
+// blocked by a telemetry request that happened to start first.
+fortress_release_session_read_lock();
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
@@ -125,6 +130,9 @@ function fortress_alert_title(string $line): string
     if (str_contains($line, 'honeypot_triggered')) return 'Honeypot Intrusion Detected';
     if (str_contains($line, 'auth_rejected')) {
         $reason = strtolower(fortress_alert_field($line, 'reason'));
+        if (in_array($reason, ['missing_primary_session', 'incomplete_primary_auth'], true)) {
+            return 'Forced Browsing Attempt Blocked';
+        }
         if (str_contains($reason, 'fingerprint')) return 'Suspicious Session Reuse Blocked';
         if (str_contains($reason, 'revoked')) return 'Revoked Session Blocked';
         if (str_contains($reason, 'multifactor')) return 'Protected Page Access Blocked';
@@ -263,6 +271,10 @@ function fortress_build_notifications(array $lines, array $priority, int $limit 
     $grouped = [];
 
     foreach ($lines as $line) {
+        if (function_exists('fortress_is_benign_recon_event_line') && fortress_is_benign_recon_event_line($line)) {
+            continue;
+        }
+
         $key = fortress_event_key($line);
         if (!isset($priority[$key])) continue;
 

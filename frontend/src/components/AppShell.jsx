@@ -33,8 +33,12 @@ export default function AppShell({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [runtimeDefenseMode, setRuntimeDefenseMode] = useState(null);
   const liveRevision = useRef(null);
   const livePollBusy = useRef(false);
+  const livePollController = useRef(null);
+  const logoutStarted = useRef(false);
   const meta = pageMap[location.pathname] || pageMap['/overview'];
 
   useEffect(() => {
@@ -46,6 +50,20 @@ export default function AppShell({ children }) {
     document.body.className = `command-page fortress-react-v3 ${legacyBodyClass}`.trim();
     setOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (data?.defenseProfileMode) setRuntimeDefenseMode(data.defenseProfileMode);
+  }, [data?.defenseProfileMode]);
+
+  useEffect(() => {
+    const onProfileChanged = (event) => {
+      const mode = event?.detail?.mode;
+      if (mode) setRuntimeDefenseMode(mode);
+      reload();
+    };
+    window.addEventListener('fortress:defense-profile-changed', onProfileChanged);
+    return () => window.removeEventListener('fortress:defense-profile-changed', onProfileChanged);
+  }, [reload]);
 
   useEffect(() => {
     if (!data) return;
@@ -68,27 +86,19 @@ export default function AppShell({ children }) {
       .filter(([path]) => path !== location.pathname)
       .map(([, page, legacyUrl]) => [page, legacyUrl]);
 
-    const warm = async () => {
-      for (const item of queue) {
-        if (cancelled) return;
-        await warmLegacyPages([item]);
-      }
+    const warm = () => {
+      if (cancelled) return;
+      warmLegacyPages(queue);
+      // Current Operator now has a silent v3 fragment endpoint, so it can be
+      // warmed safely without creating a false user_management_access event.
+      prefetchCurrentOperator();
 
-      // Current Operator and Crown Jewel are intentionally excluded from
-      // background warming. Their original v2 PHP pages write meaningful
-      // audit evidence when they are opened, so preloading them would create
-      // false access/objective events before the user actually navigates.
+      // Crown Jewel remains excluded because opening it is the pentest objective.
     };
 
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(() => warm(), { timeout: 800 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback?.(idleId);
-      };
-    }
-
-    timerId = window.setTimeout(warm, 180);
+    // Begin warming almost immediately after bootstrap. Running the ordinary
+    // fragments in parallel avoids the old page-1 -> page-2 -> page-3 waterfall.
+    timerId = window.setTimeout(warm, 60);
     return () => {
       cancelled = true;
       if (timerId !== null) window.clearTimeout(timerId);
@@ -108,14 +118,17 @@ export default function AppShell({ children }) {
     const pollSeconds = Math.max(2, Number(data?.policy?.livePollSeconds || 2));
 
     const pollSecurityRevision = async () => {
-      if (cancelled || document.hidden || livePollBusy.current) return;
+      if (cancelled || logoutStarted.current || document.hidden || livePollBusy.current) return;
       livePollBusy.current = true;
+      const controller = new AbortController();
+      livePollController.current = controller;
 
       try {
         const response = await fetch('/security_live_state.php', {
           method: 'GET',
           credentials: 'same-origin',
           cache: 'no-store',
+          signal: controller.signal,
           headers: {
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
@@ -155,10 +168,14 @@ export default function AppShell({ children }) {
         // Pull the matching notification immediately instead of waiting for
         // the normal notification interval.
         window.FortressSecurityAlerts?.pollNow?.();
-      } catch (_) {
-        // Live synchronization is enhancement-only. A temporary failure must
-        // never interrupt the authenticated workspace.
+      } catch (error) {
+        // Live synchronization is enhancement-only. A temporary failure or a
+        // logout-triggered abort must never interrupt the workspace.
+        if (error?.name !== 'AbortError') {
+          // Intentionally quiet: the next poll can recover automatically.
+        }
       } finally {
+        if (livePollController.current === controller) livePollController.current = null;
         livePollBusy.current = false;
       }
     };
@@ -172,6 +189,8 @@ export default function AppShell({ children }) {
 
     return () => {
       cancelled = true;
+      livePollController.current?.abort?.();
+      livePollController.current = null;
       if (timerId !== null) window.clearInterval(timerId);
       document.removeEventListener('visibilitychange', onVisibility);
     };
@@ -179,8 +198,21 @@ export default function AppShell({ children }) {
 
   const header = data || {
     username: 'Loading…', roleLabel: 'ADMIN', protectionScore: 0, activeDefenseCount: 0, defenseTotal: 8,
+    defenseProfileMode: 'balanced', defenseProfileLabel: 'BALANCED',
     policy: { alertPollSeconds: 4, livePollSeconds: 2, sessionIdleSeconds: 900 },
   };
+  const activeDefenseMode = runtimeDefenseMode || header.defenseProfileMode || 'balanced';
+
+  useEffect(() => {
+    window.FortressTheme?.apply?.(activeDefenseMode);
+  }, [activeDefenseMode]);
+
+  const boostActive = activeDefenseMode === 'fortress_boost';
+  const defenseProfileVisual = activeDefenseMode === 'standard'
+    ? { label: 'Standard', image: '/images/standard.png', className: 'standard' }
+    : activeDefenseMode === 'fortress_boost'
+      ? { label: 'Fortress Boost', image: '/images/fortressboost.png', className: 'fortress-boost' }
+      : { label: 'Balanced', image: '/images/balanced.png', className: 'balanced' };
 
   const runtimeAttrs = {
     'data-alert-poll-seconds': header.policy?.alertPollSeconds || 4,
@@ -191,27 +223,58 @@ export default function AppShell({ children }) {
 
   const prefetch = (page, legacyUrl) => () => prefetchLegacyPage(page, legacyUrl);
 
-  const openLegacyRoute = (path, page, legacyUrl) => async (event) => {
+  const openLegacyRoute = (path, page, legacyUrl) => (event) => {
     if (location.pathname === path) return;
     event.preventDefault();
-    await prefetchLegacyPage(page, legacyUrl);
+    prefetchLegacyPage(page, legacyUrl);
     navigate(path);
   };
 
-  const openOperator = async (event) => {
+  const openOperator = (event) => {
     if (location.pathname === '/operator') return;
     event.preventDefault();
-    await prefetchCurrentOperator();
+    // Start fetching immediately, but never hold the route transition hostage.
+    // CurrentOperator will join the same in-flight request and paint a skeleton
+    // if the warmed copy is not ready yet.
+    prefetchCurrentOperator();
     navigate('/operator');
   };
 
-  const openVault = async (event) => {
+  const openVault = (event) => {
+    if (location.pathname === '/vault') return;
     event.preventDefault();
-    await prefetchVault();
+    // Start the protected vault request immediately, but do not block the SPA
+    // route transition on network/PHP latency. Vault joins this same in-flight
+    // request and shows its loading state until the protected content arrives.
+    prefetchVault();
     navigate('/vault');
   };
 
+  const handleLogout = (event) => {
+    event?.preventDefault?.();
+    if (logoutStarted.current) return;
+
+    logoutStarted.current = true;
+    setLoggingOut(true);
+    setOpen(false);
+
+    // Stop UI-only background work immediately. The server-side endpoints also
+    // release their read-only session locks after authentication, so logout is
+    // never forced to wait behind telemetry or fragment rendering.
+    livePollController.current?.abort?.();
+    window.FortressSecurityAlerts?.destroy?.();
+    window.dispatchEvent(new CustomEvent('fortress:logout-start'));
+    document.documentElement.classList.add('fortress-logout-starting');
+
+    // A tiny tactile beat lets the pressed/locking animation paint before the
+    // browser moves to the secure server-side logout endpoint.
+    window.setTimeout(() => {
+      window.location.assign('/logout.php');
+    }, 110);
+  };
+
   const refreshWorkspace = () => {
+    if (logoutStarted.current) return;
     reload();
     window.dispatchEvent(new CustomEvent('fortress:v3-route-refresh'));
   };
@@ -220,20 +283,25 @@ export default function AppShell({ children }) {
     <>
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
-      <main className="command-shell fortress-react-shell">
-        <div className="fortress-mobile-bar">
-          <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
-            <i className="fa-solid fa-bars" />
-          </button>
-          <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>FortressAuth · Protection enforced</span></div>
-          <div className="fortress-mobile-actions">
-            <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
-            <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
-            <a className="fortress-mobile-logout" href="/logout.php" aria-label="Log out"><i className="fa-solid fa-arrow-right-from-bracket" /></a>
-          </div>
-        </div>
-        <div className={`fortress-sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
 
+      {/* Keep the mobile command bar outside the scrolling/grid shell.
+          iOS Safari can delay painting a fixed descendant of a positioned
+          grid container until the first scroll. As a root-level sibling the
+          bar is composited immediately and remains pinned from first paint. */}
+      <div className="fortress-mobile-bar">
+        <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <i className="fa-solid fa-bars" />
+        </button>
+        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>{boostActive ? 'FortressAuth · Fortress Boost active' : 'FortressAuth · Protection enforced'}</span></div>
+        <div className="fortress-mobile-actions">
+          <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
+          <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
+          <a className={`fortress-mobile-logout ${loggingOut ? 'is-logging-out' : ''}`} href="/logout.php" aria-label={loggingOut ? 'Securing session' : 'Log out'} aria-busy={loggingOut ? 'true' : 'false'} onClick={handleLogout}><i className={`fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`} /><span className="logout-click-wave" aria-hidden="true" /></a>
+        </div>
+      </div>
+      <div className={`fortress-sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
+
+      <main className="command-shell fortress-react-shell">
         <aside className={`command-chrome fortress-sidebar ${open ? 'open' : ''}`} data-fortress-sidebar>
           <div className="sidebar-brand-card">
             <NavLink
@@ -250,12 +318,15 @@ export default function AppShell({ children }) {
             <button type="button" className="sidebar-close" onClick={() => setOpen(false)} aria-label="Close navigation"><i className="fa-solid fa-xmark" /></button>
           </div>
           <div className="sidebar-status-card">
-            <div><span>Workspace status</span><strong><i className="live-dot" /> Enforced</strong></div>
+            <div><span>Workspace status</span><strong><i className="live-dot" /> {boostActive ? 'Boosted' : 'Enforced'}</strong></div>
             <div className="sidebar-score"><span>Score</span><strong>{header.protectionScore}</strong></div>
           </div>
           <NavLink
             className={({isActive}) => `sidebar-operator-card operator-management-link ${isActive ? 'active' : ''}`}
             to="/operator"
+            onMouseEnter={prefetchCurrentOperator}
+            onFocus={prefetchCurrentOperator}
+            onPointerDown={prefetchCurrentOperator}
             onClick={openOperator}
           >
             <span className="sidebar-operator-icon"><i className="fa-solid fa-user-shield" /></span>
@@ -297,13 +368,17 @@ export default function AppShell({ children }) {
           <header className="fortress-page-header">
             <div className="page-heading-left">
               <span className="page-heading-icon"><i className={`fa-solid ${meta[2]}`} /></span>
-              <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className="status-chip"><i className="live-dot" /> PROTECTION ENFORCED</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
+              <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className={`status-chip ${boostActive ? 'boost-active' : ''}`}><i className={boostActive ? 'fa-solid fa-bolt' : 'live-dot'} /> {boostActive ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED'}</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
             </div>
             <div className="page-heading-actions">
+              <div className={`header-engine-card ${defenseProfileVisual.className}`} title={`Active defense profile: ${defenseProfileVisual.label}`}>
+                <span className="header-engine-image"><img src={defenseProfileVisual.image} alt="" /></span>
+                <span className="header-engine-copy"><small>Engine</small><strong>{defenseProfileVisual.label}</strong></span>
+              </div>
               <div className="header-score-card"><span>Protection</span><strong>{header.protectionScore}/100</strong></div>
               <button className="icon-action fortress-notification-toggle" type="button" data-notification-toggle title="Security notifications" aria-label="Open security notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
               <button className="icon-action" type="button" onClick={refreshWorkspace} title="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
-              <a className="logout-mini" href="/logout.php"><i className="fa-solid fa-arrow-right-from-bracket" /><span>Log out</span></a>
+              <a className={`logout-mini ${loggingOut ? 'is-logging-out' : ''}`} href="/logout.php" aria-label={loggingOut ? 'Securing session' : 'Log out'} aria-busy={loggingOut ? 'true' : 'false'} onClick={handleLogout}><span className="logout-mini-icon"><i className={`fa-solid ${loggingOut ? 'fa-lock' : 'fa-arrow-right-from-bracket'}`} /></span><span className="logout-mini-label">{loggingOut ? 'Securing…' : 'Log out'}</span><span className="logout-click-wave" aria-hidden="true" /></a>
             </div>
           </header>
 

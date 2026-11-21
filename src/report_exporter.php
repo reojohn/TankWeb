@@ -17,6 +17,7 @@ function fortress_report_read_json(string $path): array
 
 function fortress_report_label(string $value): string
 {
+    if (strtoupper(trim($value)) === 'MFA_ABUSE') return 'Personal ID Abuse';
     $value = str_replace(['_', '-'], ' ', trim($value));
     $value = preg_replace('/\s+/', ' ', $value) ?? '';
     if ($value === '') return 'Not recorded';
@@ -302,7 +303,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         ['Network bans / blocked banned sources', ['ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], 'Sources temporarily banned or blocked before protected logic executed.'],
         ['Protected-resource rejections', ['auth_rejected', 'login_disabled_account'], 'Requests rejected because authentication, account state, or session requirements were not satisfied.'],
         ['Personal ID abuse / verification pressure', ['school_id_qr_failed', 'school_id_qr_locked', 'school_id_qr_rate_limited'], 'Failed, locked, or rate-limited possession-factor verification activity.'],
-        ['ML threat predictions recorded', ['ml_threat_prediction'], 'Hybrid ML analyses written to the audit trail after model/risk thresholds were met.'],
+        ['ML threat analyses recorded', ['ml_threat_prediction'], 'Hybrid ML analyses written to the audit trail after model/risk thresholds were met.'],
     ];
     $threatFindings = [];
     foreach ($threatDefinitions as [$label, $needles, $meaning]) {
@@ -418,7 +419,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $provenance = [
         ['Source' => 'Administrator database', 'Purpose' => 'Account status, authentication policy, Personal ID enrollment state, last-login and update timestamps.', 'Privacy Boundary' => 'No password hashes or QR credential hashes are exported.'],
         ['Source' => 'FortressAuth audit log', 'Purpose' => 'Authentication, Personal ID, account-management, network-defense, request-defense, session, and documentation events.', 'Privacy Boundary' => 'Sensitive request values, CSRF tokens, cookies, authorization headers, and session identifiers are excluded.'],
-        ['Source' => 'ML latest prediction / history', 'Purpose' => 'XGBoost classification, Autoencoder anomaly score, hybrid risk, safe behavioral feature window, and AI analysis history.', 'Privacy Boundary' => 'Only non-sensitive numerical behavior and source IP evidence are used in the model report.'],
+        ['Source' => 'ML latest analysis / history', 'Purpose' => 'XGBoost classification, Autoencoder anomaly score, hybrid risk, safe behavioral feature window, and AI analysis history.', 'Privacy Boundary' => 'Only non-sensitive numerical behavior and source IP evidence are used in the model report.'],
         ['Source' => 'ML training metadata', 'Purpose' => 'Model validation metrics, class performance, feature importance, Autoencoder validation, and fusion weights.', 'Privacy Boundary' => 'Training metadata describes the course-project model and does not contain user credentials.'],
     ];
 
@@ -436,7 +437,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         sprintf('FortressAuth reports a protection score of %d/100 with a current protection status of %s and threat level of %s.', (int)($ctx['protectionScore'] ?? 0), (string)($ctx['protectionLabel'] ?? 'Unknown'), (string)($ctx['threatLevel'] ?? 'Unknown')),
         $latestResult
             ? sprintf('The latest AI analysis is %s with %s hybrid risk and %s severity; use this together with the threat findings and audit evidence in this report.', fortress_report_label((string)($latestResult['classification'] ?? 'Unknown')), fortress_report_score($latestResult['risk_score'] ?? null), fortress_report_label((string)($latestResult['severity'] ?? 'Unknown')))
-            : 'No completed AI prediction is available in the current snapshot, so the report relies on deterministic defenses, authentication records, and audit evidence.',
+            : 'No completed AI analysis is available in the current snapshot, so the report relies on deterministic defenses, authentication records, and audit evidence.',
         'For documentation or presentation, prioritize the executive summary, AI/model findings, threat findings, authentication evidence, defense posture, and the most recent audit events. Keep the limitations slide/page attached when presenting model results.',
     ];
 

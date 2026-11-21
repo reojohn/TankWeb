@@ -147,8 +147,8 @@ function fortress_audit_severity(string $eventKey, array $fields): string
         in_array($eventKey, [
             'malicious_input_detected', 'auth_rejected', 'ml_assisted_strike',
             'automated_recon_detected', 'reconnaissance_probe', 'sensitive_path_probe',
-            'scanner_user_agent_detected', 'http_method_abuse',
-            'oversized_request', 'csrf_rejected', 'csp_violation',
+            'scanner_user_agent_detected', 'http_method_abuse', 'http_method_anomaly',
+            'oversized_request', 'oversized_request_detected', 'oversized_uri_detected', 'csrf_rejected', 'csrf_validation_failed', 'csp_violation', 'csp_violation_reported',
             'login_locked_out',
         ], true)
     ) {
@@ -160,27 +160,37 @@ function fortress_audit_severity(string $eventKey, array $fields): string
 
 function fortress_audit_outcome(string $eventKey): string
 {
-    if (
-        str_contains($eventKey, 'blocked') ||
-        str_contains($eventKey, 'rejected') ||
-        in_array($eventKey, [
-            'malicious_input_detected', 'auth_rejected', 'ml_assisted_block', 'bruteforce_detected',
-            'automated_recon_block', 'automated_recon_blocked_source_attempt',
-            'banned_ip_middleware_block', 'reconnaissance_probe',
-            'sensitive_path_probe', 'scanner_user_agent_detected',
-            'http_method_abuse', 'oversized_request', 'csrf_rejected',
-            'csp_violation', 'login_locked_out', 'unsafe_redirect_blocked',
-        ], true)
-    ) {
+    if (in_array($eventKey, [
+        'ml_assisted_block', 'malicious_input_detected', 'shell_attack_detected',
+        'banned_ip_attempt', 'banned_ip_middleware_block', 'ip_banned',
+        'csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked',
+        'endpoint_method_rejected', 'sensitive_path_probe', 'reconnaissance_probe',
+        'auth_rejected', 'school_id_qr_rate_limited', 'honeypot_triggered',
+        'automated_recon_block', 'automated_recon_blocked_source_attempt',
+        'unsafe_redirect_blocked',
+        // Legacy aliases kept so older callers remain classified correctly.
+        'http_method_abuse', 'csrf_rejected', 'csp_violation', 'login_locked_out',
+    ], true)) {
         return 'BLOCKED';
     }
 
-    if (str_contains($eventKey, 'failed') || str_contains($eventKey, 'failure')) {
+    if (in_array($eventKey, [
+        'password_factor_failed', 'school_id_qr_failed', 'school_id_qr_locked',
+        'school_id_account_lookup_failed', 'login_failed', 'login_disabled_account',
+        'bruteforce_detected', 'user_management_denied',
+    ], true)) {
         return 'REJECTED';
     }
 
-    if (str_contains($eventKey, 'success') || str_contains($eventKey, 'passed')) {
+    if (in_array($eventKey, [
+        'password_factor_success', 'school_id_qr_success', 'school_id_qr_registered',
+        'login_success',
+    ], true)) {
         return 'PASSED';
+    }
+
+    if (in_array($eventKey, ['logout', 'dashboard_session_timeout', 'session_expired'], true)) {
+        return 'CLOSED';
     }
 
     return 'RECORDED';

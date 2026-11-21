@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10071f">
 
-  <link rel="stylesheet" href="/css/login.css">
+  <link rel="stylesheet" href="/css/login.css?v=20260822-mobile-ai-toast-top">
 
   <style>
     /* =========================================================
@@ -314,15 +314,15 @@
       <!-- =====================================================
            FORTRESS BACKGROUND ART
            File location:
-           public/fortress.png
+           public/images/fortress.png
 
            Browser URL:
-           /fortress.png
+           /images/fortress.png
            ===================================================== -->
 
       <img
         class="fortress-login-art"
-        src="/fortress.png?v=20260817"
+        src="/images/fortress.png?v=20260817"
         alt=""
         aria-hidden="true"
         draggable="false"
@@ -972,28 +972,22 @@
 
 
           <button
-            class="primary-action"
+            class="primary-action image-login-action"
             type="submit"
+            aria-label="Login"
           >
 
-            <span>
-              Continue securely
+            <span class="login-button-label">
+              Login
             </span>
 
-            <svg
-              viewBox="0 0 24 24"
+            <img
+              class="login-button-art"
+              src="/images/login.png?v=20260821"
+              alt=""
               aria-hidden="true"
+              draggable="false"
             >
-
-              <path
-                d="M5 12h13"
-              />
-
-              <path
-                d="M14 7l5 5-5 5"
-              />
-
-            </svg>
 
           </button>
 
@@ -1107,7 +1101,7 @@
 
 
   <script src="/js/auth_motion.js"></script>
-  <script src="/js/login_ui.js"></script>
+  <script src="/js/login_ui.js?v=20260821-fast-login-1"></script>
 
 </body>
 </html>

@@ -26,7 +26,343 @@
 
   const init = () => {
     destroy();
-  const palette = ['#b45cff', '#d497ff', '#8b5cf6', '#c084fc', '#a855f7', '#e0b8ff', '#7c3aed', '#f29aff'];
+
+    // Resolve the active Defense Engine palette once for this render cycle.
+    // Canvas cannot reliably consume CSS var(...) colors directly, so charts
+    // read the same --theme-* custom properties used by the DOM surfaces.
+    const themeStyle = window.getComputedStyle(document.body);
+    const readTheme = (name, fallback) => themeStyle.getPropertyValue(name).trim() || fallback;
+    const themeAccent = readTheme('--theme-accent', '#b45cff');
+    const themeAccent2 = readTheme('--theme-accent-2', '#d497ff');
+    const themeAccentRgb = readTheme('--theme-accent-rgb', '180, 92, 255');
+    const themeAccent2Rgb = readTheme('--theme-accent-2-rgb', '212, 151, 255');
+    const themeSurfaceRgb = readTheme('--theme-surface-rgb', '29, 12, 51');
+    const themeSurface2Rgb = readTheme('--theme-surface-2-rgb', '53, 24, 78');
+    const themeDeepRgb = readTheme('--theme-deep-rgb', '11, 4, 20');
+    const themeMutedProfile2 = readTheme('--theme-muted-profile-2', '#c6add8');
+    const rgba = (rgb, alpha) => `rgba(${rgb},${alpha})`;
+    const themeA = (alpha) => rgba(themeAccentRgb, alpha);
+    const themeA2 = (alpha) => rgba(themeAccent2Rgb, alpha);
+    const themeSurface = (alpha) => rgba(themeSurfaceRgb, alpha);
+    const themeSurface2 = (alpha) => rgba(themeSurface2Rgb, alpha);
+    const themeDeep = (alpha) => rgba(themeDeepRgb, alpha);
+
+    // Non-semantic violet series are profile accents. Success/warning/danger
+    // colors remain fixed so security meaning never changes.
+    const purpleAccentColors = new Set(['#b45cff', '#8b5cf6', '#a855f7', '#7c3aed']);
+    const purpleAccent2Colors = new Set(['#d497ff', '#c084fc', '#e0b8ff', '#f29aff', '#b983ff']);
+    const profileColor = (color, fallback = themeAccent) => {
+      const value = String(color || '').trim().toLowerCase();
+      if (purpleAccentColors.has(value)) return themeAccent;
+      if (purpleAccent2Colors.has(value)) return themeAccent2;
+      return color || fallback;
+    };
+    const palette = [themeAccent, themeAccent2, '#61f7bd', '#77c9ff', '#ffc86a', '#ff6c93', '#52e6a5', '#ff9ee7'];
+
+  // Fortress Defense Engine. The browser only requests a profile change; the
+  // PHP endpoint remains authoritative, requires CSRF, and restricts changes to
+  // Super Admin accounts. The UI animation deliberately continues briefly even
+  // when the server responds quickly so the mode transition remains visible.
+  const defenseEngine = document.querySelector('[data-defense-engine]');
+  if (defenseEngine instanceof HTMLElement) {
+    const canManage = defenseEngine.dataset.engineCanManage === '1';
+    const csrfToken = defenseEngine.dataset.engineCsrf || '';
+    const buttons = Array.from(defenseEngine.querySelectorAll('[data-defense-mode]'));
+    const overlay = defenseEngine.querySelector('[data-engine-activation]');
+    const overlayTitle = defenseEngine.querySelector('[data-engine-activation-title]');
+    const profileTitle = defenseEngine.querySelector('[data-engine-profile-title]');
+    const profileDescription = defenseEngine.querySelector('[data-engine-profile-description]');
+    const profileIcon = defenseEngine.querySelector('[data-engine-profile-icon]');
+    const readyLabel = defenseEngine.querySelector('[data-engine-ready-label]');
+    const message = defenseEngine.querySelector('[data-engine-message]');
+    const reducedEngineMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const applyGlobalTheme = (mode, animate = true) => {
+      if (window.FortressTheme?.apply) {
+        return window.FortressTheme.apply(mode, { animate });
+      }
+      const normalized = mode === 'standard' || mode === 'fortress_boost' ? mode : 'balanced';
+      document.body.dataset.fortressTheme = normalized;
+      return normalized;
+    };
+
+    applyGlobalTheme(defenseEngine.dataset.engineMode || 'balanced', false);
+
+    const copy = {
+      standard: {
+        title: 'Standard',
+        label: 'ENGINE READY',
+        description: 'Normal layered protection with conservative automated response thresholds.',
+        iconPath: '/images/standard.png',
+      },
+      balanced: {
+        title: 'Balanced',
+        label: 'ENGINE READY',
+        description: 'Current FortressAuth policy with strong protection and measured automated enforcement.',
+        iconPath: '/images/balanced.png',
+      },
+      fortress_boost: {
+        title: 'Fortress Boost',
+        label: 'BOOST ACTIVE',
+        description: 'High-alert defense profile with faster corroborated blocking and accelerated ML replay.',
+        iconPath: '/images/fortressboost.png',
+      },
+    };
+
+
+    const countupNodes = Array.from(defenseEngine.querySelectorAll('[data-engine-countup]'));
+    const stepNodes = Array.from(defenseEngine.querySelectorAll('[data-engine-step]'));
+    let processingTicker = 0;
+
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const animateEngineCount = (node, target, duration = 950) => {
+      if (!(node instanceof HTMLElement)) return;
+      const safeTarget = Number.isFinite(target) ? target : Number.parseInt(node.textContent || '0', 10) || 0;
+      if (reducedEngineMotion) {
+        node.textContent = String(safeTarget);
+        return;
+      }
+      const startValue = 0;
+      const startTime = performance.now();
+      const tick = (now) => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const value = Math.round(startValue + ((safeTarget - startValue) * easeOutCubic(progress)));
+        node.textContent = String(value);
+        if (progress < 1) {
+          window.requestAnimationFrame(tick);
+        } else {
+          node.textContent = String(safeTarget);
+        }
+      };
+      window.requestAnimationFrame(tick);
+    };
+
+    const runTelemetryIntro = () => {
+      countupNodes.forEach((node, index) => {
+        const target = Number.parseInt(node.dataset.engineCountupTarget || node.textContent || '0', 10) || 0;
+        schedule(() => animateEngineCount(node, target, 860 + (index * 120)), 180 + (index * 110));
+      });
+    };
+
+    const resetProcessingSteps = () => {
+      stepNodes.forEach((node) => node.classList.remove('active', 'complete'));
+    };
+
+    const setProcessingStep = (activeIndex, markCompleteAll = false) => {
+      stepNodes.forEach((node, index) => {
+        node.classList.toggle('active', !markCompleteAll && index === activeIndex);
+        node.classList.toggle('complete', markCompleteAll || index < activeIndex);
+      });
+    };
+
+    const stopProcessingAnimation = (markCompleteAll = false) => {
+      if (processingTicker) {
+        window.clearInterval(processingTicker);
+        processingTicker = 0;
+      }
+      buttons.forEach((button) => button.classList.remove('processing'));
+      defenseEngine.classList.remove('engine-processing');
+      if (markCompleteAll) {
+        setProcessingStep(stepNodes.length, true);
+      } else {
+        resetProcessingSteps();
+      }
+    };
+
+    const startProcessingAnimation = (targetButton) => {
+      stopProcessingAnimation(false);
+      defenseEngine.classList.add('engine-processing');
+      if (targetButton instanceof HTMLElement) targetButton.classList.add('processing');
+      if (!stepNodes.length) return;
+      let index = 0;
+      setProcessingStep(index, false);
+      processingTicker = window.setInterval(() => {
+        index = (index + 1) % stepNodes.length;
+        setProcessingStep(index, false);
+      }, 240);
+    };
+
+    lifecycle.cleanups.push(() => stopProcessingAnimation(false));
+
+    const schedule = (fn, delay) => {
+      const id = window.setTimeout(fn, delay);
+      lifecycle.cleanups.push(() => window.clearTimeout(id));
+      return id;
+    };
+
+    const setMessage = (text, state = '') => {
+      if (!(message instanceof HTMLElement)) return;
+      message.classList.remove('error', 'success');
+      if (state) message.classList.add(state);
+      const icon = message.querySelector('i');
+      const span = message.querySelector('span');
+      if (icon) {
+        icon.className = `fa-solid ${state === 'error' ? 'fa-triangle-exclamation' : state === 'success' ? 'fa-circle-check' : canManage ? 'fa-circle-info' : 'fa-lock'}`;
+      }
+      if (span) span.textContent = text;
+    };
+
+    const applyModeUi = (mode) => {
+      const selected = copy[mode] || copy.balanced;
+      defenseEngine.dataset.engineMode = mode;
+      defenseEngine.classList.remove('mode-standard', 'mode-balanced', 'mode-fortress_boost');
+      defenseEngine.classList.add(`mode-${mode}`);
+      buttons.forEach((button) => button.classList.toggle('active', button.dataset.defenseMode === mode));
+      if (profileTitle) profileTitle.textContent = selected.title;
+      if (profileDescription) profileDescription.textContent = selected.description;
+      if (readyLabel) readyLabel.textContent = selected.label;
+      if (profileIcon instanceof HTMLImageElement) {
+        profileIcon.src = selected.iconPath || '/images/balanced.png';
+        profileIcon.alt = `${selected.title} profile icon`;
+      }
+      if (mode === 'fortress_boost') {
+        defenseEngine.classList.remove('engine-boost-pulse');
+        // Force a new animation when Boost is re-engaged after another profile.
+        void defenseEngine.offsetWidth;
+        defenseEngine.classList.add('engine-boost-pulse');
+      }
+    };
+
+    const setBusy = (busy) => {
+      buttons.forEach((button) => { button.disabled = busy || !canManage; });
+      if (overlay instanceof HTMLElement) overlay.setAttribute('aria-hidden', busy ? 'false' : 'true');
+      if (!busy) defenseEngine.classList.remove('engine-processing');
+    };
+
+    schedule(() => defenseEngine.classList.add('engine-premium-ready'), 120);
+    schedule(runTelemetryIntro, 210);
+
+    if (!reducedEngineMotion) {
+      const premiumTargets = [
+        ...defenseEngine.querySelectorAll('.engine-dial'),
+        ...defenseEngine.querySelectorAll('.engine-mode-button'),
+        defenseEngine.querySelector('.engine-active-profile'),
+      ].filter(Boolean);
+
+      let premiumRaf = 0;
+      let premiumX = 0;
+      let premiumY = 0;
+
+      const resetPremiumMotion = () => {
+        premiumTargets.forEach((target) => {
+          if (!(target instanceof HTMLElement)) return;
+          target.style.transform = '';
+        });
+      };
+
+      const renderPremiumMotion = () => {
+        premiumRaf = 0;
+        premiumTargets.forEach((target, index) => {
+          if (!(target instanceof HTMLElement)) return;
+          const depth = target.classList.contains('engine-active-profile') ? .22 : index < 3 ? .34 : .18;
+          const x = premiumX * depth;
+          const y = premiumY * depth;
+          target.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+        });
+      };
+
+      listen(defenseEngine, 'pointermove', (event) => {
+        const rect = defenseEngine.getBoundingClientRect();
+        const normalizedX = ((event.clientX - rect.left) / Math.max(1, rect.width)) - .5;
+        const normalizedY = ((event.clientY - rect.top) / Math.max(1, rect.height)) - .5;
+        premiumX = normalizedX * 10;
+        premiumY = normalizedY * 8;
+        if (!premiumRaf) premiumRaf = window.requestAnimationFrame(renderPremiumMotion);
+      });
+
+      listen(defenseEngine, 'pointerleave', () => {
+        premiumX = 0;
+        premiumY = 0;
+        if (premiumRaf) {
+          window.cancelAnimationFrame(premiumRaf);
+          premiumRaf = 0;
+        }
+        resetPremiumMotion();
+      });
+
+      lifecycle.cleanups.push(() => {
+        if (premiumRaf) window.cancelAnimationFrame(premiumRaf);
+        resetPremiumMotion();
+      });
+    }
+
+    buttons.forEach((button) => {
+      listen(button, 'click', async () => {
+        if (!canManage || button.disabled) return;
+        const mode = button.dataset.defenseMode || 'balanced';
+        if (!copy[mode]) return;
+        const previousMode = defenseEngine.dataset.engineMode || 'balanced';
+        if (mode === previousMode) {
+          setMessage(`${copy[mode].title} is already the active server-side defense profile.`, 'success');
+          return;
+        }
+
+        if (overlayTitle) {
+          overlayTitle.textContent = mode === 'fortress_boost'
+            ? 'ENGAGING FORTRESS BOOST'
+            : mode === 'balanced'
+              ? 'CALIBRATING BALANCED DEFENSE'
+              : 'APPLYING STANDARD DEFENSE';
+        }
+        setBusy(true);
+        startProcessingAnimation(button);
+        // Preview the target operating palette while the engine revs. If the
+        // server rejects the profile change, the previous palette is restored.
+        applyGlobalTheme(mode, true);
+        setMessage('Applying the new enforcement thresholds securely...');
+        const animationStarted = performance.now();
+
+        try {
+          const response = await fetch('/api/security_profile.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-Fortress-React': '1',
+            },
+            body: JSON.stringify({ mode, csrfToken }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403 && !payload?.message) {
+            window.location.href = '/login.php';
+            return;
+          }
+          if (!response.ok || payload.ok === false) {
+            throw new Error(payload.message || 'FortressAuth could not change the defense profile.');
+          }
+
+          const activeMode = payload?.data?.mode || mode;
+          applyModeUi(activeMode);
+          applyGlobalTheme(activeMode, false);
+          const selected = copy[activeMode] || copy.balanced;
+          const minAnimationMs = 1320;
+          const remaining = Math.max(0, minAnimationMs - (performance.now() - animationStarted));
+          schedule(() => {
+            stopProcessingAnimation(true);
+            schedule(() => {
+              setBusy(false);
+              stopProcessingAnimation(false);
+            }, 140);
+            setMessage(`${selected.title} is active. The change was recorded in Security Logs.`, 'success');
+            window.dispatchEvent(new CustomEvent('fortress:defense-profile-changed', {
+              detail: { mode: activeMode, label: payload?.data?.label || selected.title.toUpperCase() },
+            }));
+            schedule(() => window.dispatchEvent(new CustomEvent('fortress:v3-route-refresh')), 450);
+          }, remaining);
+        } catch (error) {
+          const remaining = Math.max(0, 760 - (performance.now() - animationStarted));
+          schedule(() => {
+            stopProcessingAnimation(false);
+            setBusy(false);
+            applyGlobalTheme(previousMode, true);
+            setMessage(error?.message || 'The defense profile could not be changed.', 'error');
+          }, remaining);
+        }
+      });
+    });
+  }
 
 
   // Tactile micro-interactions for buttons and button-like command controls.
@@ -303,8 +639,8 @@
 
   const drawEmpty = (ctx, width, height) => {
     const glow = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, Math.min(width, height) * .38);
-    glow.addColorStop(0, 'rgba(180,92,255,.10)');
-    glow.addColorStop(1, 'rgba(180,92,255,0)');
+    glow.addColorStop(0, themeA('.10'));
+    glow.addColorStop(1, themeA('0'));
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
 
@@ -323,22 +659,22 @@
     else ctx.rect(left, top, graphWidth, graphHeight);
 
     const panelGradient = ctx.createLinearGradient(0, top, 0, top + graphHeight);
-    panelGradient.addColorStop(0, 'rgba(38,16,59,.54)');
-    panelGradient.addColorStop(.52, 'rgba(23,9,39,.34)');
-    panelGradient.addColorStop(1, 'rgba(11,4,20,.17)');
+    panelGradient.addColorStop(0, themeSurface2('.54'));
+    panelGradient.addColorStop(.52, themeSurface('.34'));
+    panelGradient.addColorStop(1, themeDeep('.17'));
     ctx.fillStyle = panelGradient;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(212,151,255,.08)';
+    ctx.strokeStyle = themeA2('.08');
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.clip();
     const shine = ctx.createLinearGradient(left, top, left + graphWidth, top + graphHeight);
     shine.addColorStop(0, 'rgba(255,255,255,.04)');
-    shine.addColorStop(.27, 'rgba(212,151,255,.032)');
+    shine.addColorStop(.27, themeA2('.032'));
     shine.addColorStop(.64, 'rgba(255,255,255,0)');
-    shine.addColorStop(1, 'rgba(180,92,255,.026)');
+    shine.addColorStop(1, themeA('.026'));
     ctx.fillStyle = shine;
     ctx.fillRect(left, top, graphWidth, graphHeight);
     ctx.restore();
@@ -357,13 +693,13 @@
     ctx.closePath();
 
     const floorGradient = ctx.createLinearGradient(0, floorY, 0, floorY + depth);
-    floorGradient.addColorStop(0, 'rgba(180,92,255,.085)');
-    floorGradient.addColorStop(.5, 'rgba(180,92,255,.026)');
-    floorGradient.addColorStop(1, 'rgba(28,8,45,0)');
+    floorGradient.addColorStop(0, themeA('.085'));
+    floorGradient.addColorStop(.5, themeA('.026'));
+    floorGradient.addColorStop(1, themeDeep('0'));
     ctx.fillStyle = floorGradient;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(212,151,255,.07)';
+    ctx.strokeStyle = themeA2('.07');
     ctx.lineWidth = 1;
     for (let i = 1; i < 4; i += 1) {
       const t = i / 4;
@@ -495,7 +831,7 @@
     labels.forEach((label, index) => {
       const every = labels.length > 14 ? Math.ceil(labels.length / 6) : Math.max(1, Math.ceil(labels.length / 7));
       if (index % every !== 0 && index !== labels.length - 1) return;
-      ctx.fillStyle = 'rgba(196,180,210,.74)';
+      ctx.fillStyle = themeMutedProfile2; 
       ctx.fillText(String(label), xFor(index), top + graphHeight + 13);
     });
 
@@ -682,11 +1018,27 @@
         });
       });
 
-      ctx.fillStyle = 'rgba(196,180,210,.74)';
+      const chartTitle = String(canvas.dataset.chartTitle || '');
+      const mobileCategoryLabels = {
+        Authentication: 'Auth',
+        Identity: 'ID',
+        Network: 'Net',
+        Threat: 'Threat',
+        Session: 'Session',
+        System: 'System',
+        Accounts: 'Acct',
+        Configuration: 'Config',
+        Documentation: 'Docs',
+      };
+      const displayLabel = (width < 540 && chartTitle === 'Security Event Volume')
+        ? (mobileCategoryLabels[String(label)] || String(label).slice(0, 7))
+        : String(label);
+
+      ctx.fillStyle = themeMutedProfile2; 
       ctx.font = '800 8px Inter, Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillText(String(label), center, top + graphHeight + 14);
+      ctx.fillText(displayLabel, center, top + graphHeight + 14);
     });
 
     return hitRegions;
@@ -1232,7 +1584,7 @@
     const series = [
       { label: 'Password passed', values: parseJson(authChart.dataset.success, []), color: '#61f7bd' },
       { label: 'Password rejected', values: parseJson(authChart.dataset.failed, []), color: '#ff6c93' },
-      { label: 'Personal ID passed', values: parseJson(authChart.dataset.school, []), color: '#d497ff' },
+      { label: 'Personal ID passed', values: parseJson(authChart.dataset.school, []), color: themeAccent2 },
       { label: 'Defense rejection', values: parseJson(authChart.dataset.blocked, []), color: '#ffc86a' },
     ];
 
@@ -1251,10 +1603,10 @@
     const labels = parseJson(canvas.dataset.labels, []);
     const series = parseJson(canvas.dataset.series, []);
     const values = parseJson(canvas.dataset.values, []);
-    const colors = parseJson(canvas.dataset.colors, palette);
+    const colors = parseJson(canvas.dataset.colors, palette).map((color, index) => profileColor(color, palette[index % palette.length]));
 
     series.forEach((spec, index) => {
-      if (!spec.color) spec.color = colors[index % colors.length] || palette[index % palette.length];
+      spec.color = profileColor(spec.color, colors[index % colors.length] || palette[index % palette.length]);
     });
 
     const render = (state) => {

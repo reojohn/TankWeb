@@ -65,6 +65,19 @@ function fortress_start_session(): void
     ]);
 }
 
+function fortress_release_session_read_lock(): void
+{
+    // PHP serializes requests that share the same session while the session
+    // file/handler is open. Read-only dashboard/background requests should
+    // release that lock immediately after authentication so a user-initiated
+    // logout never waits behind telemetry, fragment, or notification queries.
+    // The already-loaded $_SESSION values remain readable for the rest of the
+    // request; this only prevents further writes from this request.
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+}
+
 function fortress_destroy_session(): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {

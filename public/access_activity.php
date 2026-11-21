@@ -10,6 +10,13 @@ require_once __DIR__ . '/../src/fortress_metrics.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 require_admin_auth();
 
+// React v3 fragment/live-refresh requests only read session state after auth.
+// Release PHP's per-session lock before the heavier metrics/database work so
+// /logout.php can revoke the session immediately instead of queuing behind it.
+if (defined('FORTRESS_BACKGROUND_REQUEST') && FORTRESS_BACKGROUND_REQUEST === true) {
+    fortress_release_session_read_lock();
+}
+
 $userId = (int)($_SESSION['uid'] ?? 0);
 $ctx = fortress_build_security_context($pdo, $userId, ['minimal' => true]);
 extract($ctx, EXTR_SKIP);
@@ -79,7 +86,7 @@ audit_log('access_activity_viewed uid=' . $userId);
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
     <title>FortressAuth — Access Activity</title>
-    <link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
@@ -114,7 +121,7 @@ audit_log('access_activity_viewed uid=' . $userId);
                 <select data-table-category="accessHistory" aria-label="Filter access activity"><option value="all">All results</option><option value="passed">Passed</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select>
             </div>
         </div>
-        <div class="responsive-table-wrap">
+        <div class="responsive-table-wrap mobile-bounded-table access-history-table-wrap">
             <table class="security-table" data-table="accessHistory">
                 <thead><tr><th>Timestamp</th><th>Operator</th><th>Source IP</th><th>Authentication event</th><th>Factor</th><th>Result</th></tr></thead>
                 <tbody>
@@ -136,6 +143,6 @@ audit_log('access_activity_viewed uid=' . $userId);
 
 </div><!-- /.fortress-main-column -->
 </main>
-<script src="/js/dashboard.js"></script><script src="/js/auto_logout.js"></script>
+<script src="/js/dashboard.js?v=20260824-0845"></script><script src="/js/auto_logout.js"></script>
 </body>
 </html>

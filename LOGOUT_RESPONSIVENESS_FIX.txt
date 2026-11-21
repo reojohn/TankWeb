@@ -1,0 +1,15 @@
+FortressAuth v3 logout responsiveness fix - 2026-08-23
+
+What changed
+- Read-only authenticated background endpoints release the PHP session write lock immediately after authentication.
+- React live-security polling is aborted as soon as manual logout begins.
+- Manual logout now has a short tactile lock/ripple interaction before navigating to /logout.php.
+- Dashboard/runtime asset versions were bumped to 20260823-1424 to bypass stale frontend caches.
+
+Security
+- Authentication, CSRF checks, session destruction, session cookies, role authorization, Personal ID policy, IP enforcement, audit logging, and ML/recon controls were not weakened.
+- The session lock is released only after authentication on read-only/background rendering work. State-changing requests keep their normal writable-session behavior.
+
+Deployment
+- Render redeploy is required for the PHP session-lock changes.
+- Vercel redeploy is required for the React/CSS logout interaction and updated static runtime.

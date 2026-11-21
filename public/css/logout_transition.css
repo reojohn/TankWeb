@@ -5,7 +5,7 @@ body{font-family:Inter,"Segoe UI",sans-serif;background:radial-gradient(circle a
 .logout-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle at 50% 45%,#000,transparent 78%);pointer-events:none}
 .logout-ambient{position:fixed;width:520px;height:520px;border-radius:50%;filter:blur(120px);opacity:.18;pointer-events:none}
 .logout-ambient-one{left:-220px;top:-230px;background:#a845ff}.logout-ambient-two{right:-220px;bottom:-250px;background:#7a2eaa}
-.logout-scanline{position:fixed;left:0;right:0;height:1px;top:-2px;background:linear-gradient(90deg,transparent,rgba(211,160,255,.5),transparent);box-shadow:0 0 18px rgba(190,111,255,.35);animation:logoutScan 2s ease-in-out forwards;pointer-events:none}
+.logout-scanline{position:fixed;left:0;right:0;height:1px;top:-2px;background:linear-gradient(90deg,transparent,rgba(211,160,255,.5),transparent);box-shadow:0 0 18px rgba(190,111,255,.35);animation:logoutScan 1s ease-in-out forwards;pointer-events:none}
 .logout-shell{min-height:100vh;display:grid;place-items:center;padding:24px}
 .logout-card{position:relative;width:min(650px,100%);padding:34px 38px 30px;border:1px solid var(--line);border-radius:30px;background:linear-gradient(145deg,rgba(31,14,46,.82),rgba(10,6,15,.93));box-shadow:0 36px 110px rgba(0,0,0,.56),0 0 80px rgba(161,72,255,.13),inset 0 1px rgba(255,255,255,.07);backdrop-filter:blur(24px);text-align:center;overflow:hidden}
 .logout-card:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,var(--violet),var(--violet2),transparent)}
@@ -30,7 +30,7 @@ body{font-family:Inter,"Segoe UI",sans-serif;background:radial-gradient(circle a
 .logout-steps .done{color:#8ff5d2;border-color:rgba(110,245,197,.13);background:rgba(68,214,165,.035)}.logout-steps .done i{background:rgba(77,237,183,.09)}
 .logout-steps .active{color:#e9c7ff;border-color:rgba(188,112,255,.16);background:rgba(176,86,255,.05)}.logout-steps .active i{background:rgba(179,92,255,.11);box-shadow:0 0 16px rgba(179,92,255,.13)}
 .logout-progress{height:4px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}
-.logout-progress span{display:block;height:100%;width:100%;border-radius:inherit;background:linear-gradient(90deg,#8f48d7,#c779ff,#78edc6);box-shadow:0 0 18px rgba(194,115,255,.35);transform-origin:left center;animation:logoutProgress 2s cubic-bezier(.4,0,.2,1) forwards}
+.logout-progress span{display:block;height:100%;width:100%;border-radius:inherit;background:linear-gradient(90deg,#8f48d7,#c779ff,#78edc6);box-shadow:0 0 18px rgba(194,115,255,.35);transform-origin:left center;animation:logoutProgress 1s cubic-bezier(.4,0,.2,1) forwards}
 .logout-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:17px;color:#897b94;font-size:8px;font-weight:800;letter-spacing:.04em}
 .logout-footer>span{display:inline-flex;align-items:center;gap:7px}.logout-footer>span i{color:#73ecc3}
 .logout-footer a{display:inline-flex;align-items:center;gap:7px;color:#d9a8ff;text-decoration:none}.logout-footer a:hover{color:#f0d9ff}

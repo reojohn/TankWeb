@@ -16,6 +16,7 @@
   let visibilityHandler = null;
   let outsideHandler = null;
   let keyHandler = null;
+  let uiAbortController = null;
   let toastDismissTimer = null;
   let toastRemovalTimer = null;
   let polling = false;
@@ -277,7 +278,20 @@
     }).join('');
 
     list.querySelectorAll('[data-notification-id]').forEach((item) => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (eventObject) => {
+        const openDetails = eventObject.target?.closest?.('.fortress-notification-open');
+
+        // React v3 keeps the notification drawer mounted while the user is
+        // reviewing alerts. A normal click on a notification should therefore
+        // mark it as read without dismissing the entire panel. Only the
+        // explicit "Open details" action is allowed to navigate away.
+        if (!openDetails) {
+          eventObject.preventDefault();
+          eventObject.stopPropagation();
+          markRead(item.dataset.notificationId || '');
+          return;
+        }
+
         markRead(item.dataset.notificationId || '');
         closePanel();
       });
@@ -455,9 +469,12 @@
       renderPanel();
 
       if (!state.historyLoaded) {
+        // Initial history is a snapshot, not a newly detected attack. Never
+        // replay an old security event as a fresh toast after a hard refresh
+        // or on a second device whose local notification cache is empty. New
+        // events that arrive after this cursor is established are still
+        // toasted by poll() below.
         state.historyLoaded = true;
-        const firstUnread = state.notifications.find((item) => !readIds.has(item.id));
-        if (firstUnread) queueToast(firstUnread);
       } else {
         const newestUnseen = events.find((item) => item.id && !knownIds.has(item.id) && !readIds.has(item.id));
         if (newestUnseen) queueToast(newestUnseen);
@@ -532,12 +549,14 @@
     if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
     if (outsideHandler) document.removeEventListener('pointerdown', outsideHandler, true);
     if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (uiAbortController) uiAbortController.abort();
     intervalId = null;
     toastDismissTimer = null;
     toastRemovalTimer = null;
     visibilityHandler = null;
     outsideHandler = null;
     keyHandler = null;
+    uiAbortController = null;
     polling = false;
     toastQueue = [];
     panelOpen = false;
@@ -583,12 +602,19 @@
     readIds = loadStoredReadIds();
     notificationsEnabled = loadEnabledPreference();
 
+    // React v3 can re-initialize this module when the persistent shell data
+    // refreshes. Abort the previous UI-listener group before binding a new
+    // one so a single click can never run multiple open/close handlers.
+    if (uiAbortController) uiAbortController.abort();
+    uiAbortController = new AbortController();
+    const uiSignal = uiAbortController.signal;
+
     document.querySelectorAll('[data-notification-toggle]').forEach((button) => {
       button.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
         panelOpen ? closePanel() : openPanel();
-      });
+      }, { signal: uiSignal });
     });
 
     document.querySelectorAll('[data-notification-close]').forEach((button) => {
@@ -596,10 +622,10 @@
         event.preventDefault();
         event.stopPropagation();
         closePanel();
-      });
+      }, { signal: uiSignal });
     });
 
-    document.querySelector('[data-notification-mark-all]')?.addEventListener('click', markAllRead);
+    document.querySelector('[data-notification-mark-all]')?.addEventListener('click', markAllRead, { signal: uiSignal });
     document.querySelector('[data-notification-enable-toggle]')?.addEventListener('click', () => {
       notificationsEnabled = !notificationsEnabled;
       saveEnabledPreference();
@@ -618,7 +644,7 @@
 
       renderPanel();
       updateBellState();
-    });
+    }, { signal: uiSignal });
 
     outsideHandler = (event) => {
       if (!panelOpen) return;

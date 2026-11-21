@@ -23,9 +23,14 @@ async function requestOperatorHtml({ force = false } = {}) {
   }
   if (!force && operatorInflight) return operatorInflight;
 
-  operatorInflight = fetch('/user_management.php', {
+  operatorInflight = fetch('/api/v3_fragment.php?page=operator', {
     credentials: 'same-origin',
-    headers: { 'X-Fortress-React': '1' },
+    cache: 'no-store',
+    headers: {
+      Accept: 'text/html',
+      'X-Fortress-React': '1',
+      'X-Fortress-Live-Refresh': '1',
+    },
   }).then(async (response) => {
     if (response.status === 401 || response.status === 403 || response.url.includes('/login.php')) {
       window.location.href = '/login.php';
@@ -33,7 +38,7 @@ async function requestOperatorHtml({ force = false } = {}) {
     }
     const text = await response.text();
     if (!response.ok) throw new Error('Operator workspace failed to load.');
-    const html = extractContent(text);
+    const html = text.trim();
     operatorCache = { at: Date.now(), html };
     return html;
   }).finally(() => {
@@ -45,6 +50,19 @@ async function requestOperatorHtml({ force = false } = {}) {
 
 export function prefetchCurrentOperator() {
   return requestOperatorHtml().catch(() => '');
+}
+
+async function touchOperatorRoute() {
+  try {
+    const response = await fetch('/api/v3_touch.php?page=operator', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'X-Fortress-React': '1' },
+    });
+    if (response.status === 401 || response.status === 403) window.location.href = '/login.php';
+  } catch (_) {
+    // Navigation remains usable even if the audit heartbeat is temporarily unavailable.
+  }
 }
 
 function loadScript(src, id) {
@@ -116,6 +134,7 @@ export default function CurrentOperator() {
   };
 
   useEffect(() => {
+    touchOperatorRoute();
     load();
   }, []);
 
@@ -190,6 +209,13 @@ export default function CurrentOperator() {
 
   return (
     <>
+      {loading && !html ? (
+        <section className="v3-route-skeleton" aria-label="Loading Current Operator" aria-busy="true" role="status">
+          <span className="sr-only">Loading Current Operator</span>
+          <div className="v3-skeleton-metrics">{[0, 1, 2, 3].map((item) => <span key={item} />)}</div>
+          <div className="v3-skeleton-panels"><span /><span /></div>
+        </section>
+      ) : null}
       {error ? <section className="panel v3-error-panel"><i className="fa-solid fa-triangle-exclamation"/><div><strong>Operator workspace failed to load</strong><span>{error}</span></div></section> : null}
       <div
         ref={root}

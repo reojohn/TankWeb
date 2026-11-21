@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function publicFailureCopy(result = {}, responseStatus = 0) {
         const stage = String(result.stage || '');
+        const serverMessage = typeof result.message === 'string' ? result.message.trim() : '';
 
         if (stage === 'password' || stage === 'credential_format') {
             return {
@@ -144,16 +145,37 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        if (stage === 'csrf' || stage === 'request_security' || stage === 'network_policy' || stage === 'bruteforce' || responseStatus === 403 || responseStatus === 429) {
+        if (stage === 'csrf') {
+            return {
+                title: 'Secure session expired',
+                message: serverMessage || 'Refresh the sign-in page and try again.'
+            };
+        }
+
+        if (stage === 'network_policy' || stage === 'bruteforce' || responseStatus === 429) {
+            return {
+                title: 'Temporarily blocked',
+                message: serverMessage || 'Too many rejected sign-in attempts were detected. Please wait before trying again.'
+            };
+        }
+
+        if (stage === 'request_security') {
+            return {
+                title: 'Sign-in request blocked',
+                message: 'FortressAuth rejected this request because it matched a security rule.'
+            };
+        }
+
+        if (responseStatus === 403) {
             return {
                 title: 'Sign-in activity flagged',
-                message: 'This access attempt was not accepted.'
+                message: serverMessage || 'This access attempt was not accepted.'
             };
         }
 
         return {
             title: 'Access not verified',
-            message: 'The sign-in attempt could not be completed.'
+            message: serverMessage || 'The sign-in attempt could not be completed.'
         };
     }
 
@@ -210,8 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (submit) {
             submit.classList.remove('loading', 'submitting');
-            const label = submit.querySelector('span');
-            if (label) label.textContent = 'Continue securely';
+            const label = submit.querySelector('.login-button-label') || submit.querySelector('span');
+            if (label) label.textContent = 'Login';
+            submit.setAttribute('aria-label', 'Login');
         }
 
         setFormLocked(false);
@@ -253,11 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
             shell?.classList.add('is-submitting');
             document.body.classList.add('login-verifying');
 
-            submit.classList.add('loading', 'submitting');
             setFormLocked(true);
 
-            const label = submit.querySelector('span');
-            if (label) label.textContent = 'Verifying credentials';
+            const label = submit.querySelector('.login-button-label') || submit.querySelector('span');
+            if (label) label.textContent = 'Login';
+            submit.setAttribute('aria-label', 'Login');
 
             const formData = new FormData(form);
             formData.set('response_format', 'json');
@@ -266,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // a live presentation of the same request, not a timer that runs
             // before authentication starts.
             const requestStartedAt = performance.now();
-            const minimumPresentationMs = reduceMotion ? 500 : 5200;
+            const minimumPresentationMs = reduceMotion ? 180 : 650;
 
             const loginRequest = fetch(form.action || '/login.php', {
                 method: 'POST',
@@ -298,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'FortressAuth is assessing the current sign-in request.',
                         30
                     );
-                }, 1050);
+                }, 140);
 
                 window.setTimeout(() => {
                     if (!submitting) return;
@@ -308,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Waiting for the final access decision.',
                         58
                     );
-                }, 2550);
+                }, 330);
 
                 const progressStartedAt = performance.now();
                 const animateVerificationProgress = (now) => {
@@ -368,11 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         { completeAll: true }
                     );
 
-                    if (label) label.textContent = 'Access verified';
-                    submit.classList.remove('loading');
+                    if (label) label.textContent = 'Login';
+                    submit.setAttribute('aria-label', 'Login');
 
                     // Keep the real success state visible long enough to be read.
-                    await wait(reduceMotion ? 180 : 950);
+                    await wait(reduceMotion ? 90 : 300);
                     window.location.assign(result.redirect);
                     return;
                 }
@@ -387,8 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     100
                 );
 
-                if (label) label.textContent = 'Access not verified';
-                submit.classList.remove('loading');
+                if (label) label.textContent = 'Login';
+                submit.setAttribute('aria-label', 'Login');
 
                 showAiDefenseToast(publicFailure.title, publicFailure.message);
 
@@ -423,8 +446,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     100
                 );
 
-                if (label) label.textContent = 'Unable to verify';
-                submit.classList.remove('loading');
+                if (label) label.textContent = 'Login';
+                submit.setAttribute('aria-label', 'Login');
 
                 await wait(reduceMotion ? 150 : 900);
 

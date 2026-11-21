@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const parityFragmentCache = new Map();
+// Each in-flight entry owns an AbortController and request id so a forced
+// refresh can supersede older stale-while-revalidate work instead of joining it.
 const parityInflight = new Map();
-const PARITY_TTL = 10_000;
+const parityRequestSequence = new Map();
 
 const legacyRouteMap = {
   '/dashboard.php': '/overview',
@@ -70,12 +72,24 @@ function extractLegacyContent(html) {
 async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
   const key = cacheKey(page, legacyUrl);
   const cached = parityFragmentCache.get(key);
-  if (!force && cached && Date.now() - cached.at < PARITY_TTL) return cached.html;
-  if (!force && parityInflight.has(key)) return parityInflight.get(key);
+  if (!force && cached) return cached.html;
+
+  const existing = parityInflight.get(key);
+  if (!force && existing) return existing.promise;
+
+  // A forced refresh represents newer server state (for example immediately
+  // after changing the defense engine). Abort an older background fragment
+  // request so it cannot repaint the page with stale profile HTML afterwards.
+  if (force && existing?.controller) existing.controller.abort();
+
+  const controller = new AbortController();
+  const requestId = (parityRequestSequence.get(key) || 0) + 1;
+  parityRequestSequence.set(key, requestId);
 
   const promise = fetch(buildFragmentUrl(page, legacyUrl), {
     credentials: 'same-origin',
     cache: 'no-store',
+    signal: controller.signal,
     headers: { Accept: 'text/html', 'X-Fortress-React': '1', 'X-Fortress-Live-Refresh': '1' },
   }).then(async (response) => {
     if (response.status === 401 || response.status === 403) {
@@ -84,11 +98,15 @@ async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
     }
     const html = await response.text();
     if (!response.ok) throw new Error(html || 'Unable to load FortressAuth page content.');
-    parityFragmentCache.set(key, { at: Date.now(), html });
+    if (parityRequestSequence.get(key) === requestId) {
+      parityFragmentCache.set(key, { at: Date.now(), html });
+    }
     return html;
-  }).finally(() => parityInflight.delete(key));
+  }).finally(() => {
+    if (parityInflight.get(key)?.requestId === requestId) parityInflight.delete(key);
+  });
 
-  parityInflight.set(key, promise);
+  parityInflight.set(key, { promise, controller, requestId });
   return promise;
 }
 
@@ -110,11 +128,12 @@ export function prefetchLegacyPage(page, legacyUrl = '') {
 }
 
 export async function warmLegacyPages(items = []) {
-  for (const item of items) {
-    const [page, legacyUrl] = Array.isArray(item) ? item : [item, ''];
-    if (!pagePathMap[page]) continue;
-    await prefetchLegacyPage(page, legacyUrl);
-  }
+  const jobs = items
+    .map((item) => (Array.isArray(item) ? item : [item, '']))
+    .filter(([page]) => pagePathMap[page])
+    .map(([page, legacyUrl]) => prefetchLegacyPage(page, legacyUrl));
+
+  await Promise.allSettled(jobs);
 }
 
 function updateFragmentCache(page, legacyUrl, html) {
@@ -137,6 +156,7 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const pendingAnchor = useRef('');
+  const loadRevision = useRef(0);
 
   const renderFullLegacyResponse = async (response, requestedUrl) => {
     if (response.status === 401 || response.status === 403 || response.url.includes('/login.php')) {
@@ -155,21 +175,51 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
   };
 
   const load = async ({ force = false, url = currentLegacyUrl.current } = {}) => {
+    const revision = ++loadRevision.current;
     const key = cacheKey(page, url);
     const cached = parityFragmentCache.get(key)?.html || '';
-    if (cached && !force) setHtml(cached);
     setError('');
-    setLoading(!cached && !html);
-    setRefreshing(Boolean(cached || html));
-    try {
-      const next = await requestFragment(page, url, { force });
+
+    // Stale-while-revalidate: a cached page is painted immediately. The PHP
+    // fragment refresh happens silently afterwards and only replaces the DOM
+    // when it is still the newest load for this component.
+    if (cached && !force) {
       currentLegacyUrl.current = url;
-      setHtml(next);
-    } catch (e) {
-      setError(e?.message || String(e));
-    } finally {
+      setHtml(cached);
       setLoading(false);
       setRefreshing(false);
+
+      requestFragment(page, url, { force: true })
+        .then((next) => {
+          if (loadRevision.current !== revision) return;
+          currentLegacyUrl.current = url;
+          if (next && next !== cached) setHtml(next);
+        })
+        .catch(() => {
+          // Keep the known-good cached page visible if a background refresh
+          // fails or is intentionally superseded by a newer forced refresh.
+        });
+      return cached;
+    }
+
+    setLoading(!html);
+    setRefreshing(Boolean(html));
+    try {
+      const next = await requestFragment(page, url, { force });
+      if (loadRevision.current !== revision) return next;
+      currentLegacyUrl.current = url;
+      setHtml(next);
+      return next;
+    } catch (e) {
+      if (loadRevision.current === revision && e?.name !== 'AbortError') {
+        setError(e?.message || String(e));
+      }
+      return '';
+    } finally {
+      if (loadRevision.current === revision) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -228,13 +278,13 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
       event.preventDefault();
       pendingAnchor.current = resolved.hash || '';
 
-      // Keep the current page visible until the destination fragment is ready.
-      // In normal use the sidebar has already warmed this cache, so the switch
-      // is immediate. If not, the user still never sees a skeleton/blank route.
+      // Start any missing fragment request, but never hold the route change
+      // behind network latency. In normal use the parallel warmer has already
+      // filled this cache, so the destination paints from memory immediately.
       const routePath = target.split('?')[0];
       const targetPage = routePageMap[routePath];
       if (targetPage) {
-        await prefetchLegacyPage(targetPage[0], targetPage[1] + (resolved.search || ''));
+        prefetchLegacyPage(targetPage[0], targetPage[1] + (resolved.search || ''));
       }
 
       navigate(target, { state: resolved.hash ? { legacyAnchor: resolved.hash } : undefined });
@@ -288,6 +338,23 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
 
   return (
     <>
+      {loading && !html ? (
+        <section
+          className="v3-route-skeleton"
+          aria-label="Loading FortressAuth page"
+          aria-busy="true"
+          role="status"
+        >
+          <span className="sr-only">Loading FortressAuth page</span>
+          <div className="v3-skeleton-metrics">
+            {[0, 1, 2, 3].map((item) => <span key={item} />)}
+          </div>
+          <div className="v3-skeleton-panels">
+            <span />
+            <span />
+          </div>
+        </section>
+      ) : null}
       {error ? <section className="panel v3-error-panel"><i className="fa-solid fa-triangle-exclamation" /><div><strong>Unable to load this workspace</strong><span>{error}</span></div></section> : null}
       <div
         ref={root}
