@@ -198,6 +198,9 @@ $record = [
     'model_version'=>$version, 'trace_id'=>$trace, 'indicator_evidence'=>$indicators,
 ];
 $written = it113_store_record($record);
+$pairScope = $written ? it113_pair_scope(false) : null;
+$isShared = $pairScope !== null && $pairScope['workspace_id'] !== null;
+$record['workspace_shared'] = $isShared;
 $record['ok'] = true;
 $record['mode'] = $isCurated ? 'live_inference_on_curated_synthetic_sample' : 'live_inference_on_numeric_security_features';
 $record['reconstruction_error'] = (float)$result['reconstruction_error'];
@@ -208,5 +211,5 @@ $record['persistence_status'] = $written ? 'saved' : it113_store_diagnostic();
 $record['automatic_block'] = false;
 $record['status'] = 'OPEN';
 $record['revision'] = 0;
-$record['persistence_mode'] = $written ? 'server_private_session' : 'browser_only';
+$record['persistence_mode'] = $written ? ($isShared ? 'server_shared_pair' : 'server_private_session') : 'browser_only';
 it113_demo_reply(200, $record);

@@ -6,6 +6,7 @@
  * HttpOnly/SameSite cookie; public API roles have no database permissions.
  */
 declare(strict_types=1);
+require_once __DIR__ . '/it113_pair_workspace.php';
 
 /**
  * A deliberately non-sensitive state code for the academic UI and local
@@ -95,77 +96,83 @@ function it113_store_db(): ?PDO {
 
 function it113_store_record(array $safe): bool {
     $pdo = it113_store_db();
-    if (!$pdo) return false;
-    $sid = it113_store_session(true);
-    if (!$sid) { it113_store_diagnostic('session_unavailable'); return false; }
+    $scope = $pdo ? it113_pair_scope(true) : null;
+    if (!$pdo || !$scope) { it113_store_diagnostic('workspace_unavailable'); return false; }
+    $sid=$scope['sid']; $wid=$scope['workspace_id'];
     try {
         $pdo->beginTransaction();
-        // Cap per-session durable records to prevent an anonymous client from
-        // growing the table without bound (additional per-IP limits elsewhere).
-        $stmt=$pdo->prepare('SELECT COUNT(*) FROM public.it113_demo_assessments WHERE session_digest = ?');
-        $stmt->execute([$sid]);
+        if ($wid !== null) {
+            // Serialize competing writers to the same workspace before the cap check.
+            $lock=$pdo->prepare('SELECT workspace_id FROM public.it113_pair_workspaces WHERE workspace_id=? FOR UPDATE');
+            $lock->execute([$wid]);
+            if (!$lock->fetchColumn()) { $pdo->rollBack();return false; }
+            $auth=$pdo->prepare('SELECT 1 FROM public.it113_pair_members
+                WHERE workspace_id=? AND session_digest=? FOR SHARE');
+            $auth->execute([$wid,$sid]);
+            if (!$auth->fetchColumn()) { $pdo->rollBack();return false; }
+            $stmt=$pdo->prepare('SELECT COUNT(*) FROM public.it113_demo_assessments WHERE workspace_id=?');
+            $stmt->execute([$wid]);
+        } else {
+            $stmt=$pdo->prepare('SELECT COUNT(*) FROM public.it113_demo_assessments
+                WHERE session_digest=? AND workspace_id IS NULL');
+            $stmt->execute([$sid]);
+        }
         if ((int)$stmt->fetchColumn() >= 80) {
-            $pdo->rollBack();
-            it113_store_diagnostic('session_limit_reached');
-            return false;
+            $pdo->rollBack();it113_store_diagnostic('session_limit_reached');return false;
         }
         $stmt=$pdo->prepare('INSERT INTO public.it113_demo_assessments (
-            session_digest, trace_id, source_type, sample_id, expected_label,
+            session_digest, workspace_id, trace_id, source_type, sample_id, expected_label,
             classification, confidence, anomaly_score, rule_score, risk_score,
             severity, model_version, indicators
-        ) VALUES (:sid,:trace,:source,:sample,:expected,:class,:confidence,:anomaly,:rule,:risk,:severity,:version,CAST(:indicators AS jsonb))');
+        ) VALUES (:sid,:wid,:trace,:source,:sample,:expected,:class,:confidence,:anomaly,:rule,:risk,:severity,:version,CAST(:indicators AS jsonb))');
         $stmt->execute([
-            ':sid'=>$sid, ':trace'=>$safe['trace_id'], ':source'=>$safe['source_type'],
+            ':sid'=>$sid, ':wid'=>$wid, ':trace'=>$safe['trace_id'], ':source'=>$safe['source_type'],
             ':sample'=>$safe['sample_id'] ?? null, ':expected'=>$safe['expected_label'] ?: null,
             ':class'=>$safe['classification'], ':confidence'=>$safe['confidence'],
             ':anomaly'=>$safe['anomaly_score'], ':rule'=>$safe['rule_score'],
             ':risk'=>$safe['risk_score'], ':severity'=>$safe['severity'],
             ':version'=>$safe['model_version'],
-            ':indicators'=>json_encode($safe['indicator_evidence'], JSON_THROW_ON_ERROR),
+            ':indicators'=>json_encode($safe['indicator_evidence'],JSON_THROW_ON_ERROR),
         ]);
-        $pdo->commit();
-        it113_store_diagnostic('saved');
-        return true;
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        it113_store_diagnostic('database_write_failed');
-        it113_store_log_error('write', $e);
-        return false;
+        $pdo->commit();it113_store_diagnostic('saved');return true;
+    } catch(Throwable $e) {
+        if($pdo->inTransaction())$pdo->rollBack();
+        it113_store_diagnostic('database_write_failed');it113_store_log_error('write',$e);return false;
     }
 }
 
 function it113_store_history(): ?array {
-    $pdo=it113_store_db();
-    if (!$pdo) return null;
-    $sid=it113_store_session(true);
-    if (!$sid) { it113_store_diagnostic('session_unavailable'); return null; }
+    $pdo=it113_store_db();$scope=$pdo?it113_pair_scope(true):null;
+    if (!$pdo || !$scope) return null;
     try {
+        $where=$scope['workspace_id']!==null ? 'workspace_id = ?' : 'session_digest = ? AND workspace_id IS NULL';
+        $guard=$scope['workspace_id']!==null ? ' AND EXISTS (SELECT 1 FROM public.it113_pair_members m
+            WHERE m.workspace_id=? AND m.session_digest=?)' : '';
         $stmt=$pdo->prepare('SELECT trace_id,source_type,sample_id,expected_label,classification,confidence,
            anomaly_score,rule_score,risk_score,severity,model_version,indicators,status,revision,
            created_at,updated_at
-           FROM public.it113_demo_assessments WHERE session_digest = ? ORDER BY created_at DESC LIMIT 80');
-        $stmt->execute([$sid]);
+           FROM public.it113_demo_assessments WHERE '.$where.$guard.' ORDER BY created_at DESC LIMIT 80');
+        $params=[$scope['workspace_id']??$scope['sid']];
+        if ($scope['workspace_id']!==null) array_push($params,$scope['workspace_id'],$scope['sid']);
+        $stmt->execute($params);
         $entries=[];
         foreach ($stmt->fetchAll() as $row) {
             $entries[] = [
-                'trace_id'=>$row['trace_id'], 'source_type'=>$row['source_type'],
+                'trace_id'=>$row['trace_id'],'source_type'=>$row['source_type'],
                 'sample_id'=>$row['sample_id'] ?: 'NUMERIC_CSV',
-                'expected_label'=>$row['expected_label'], 'classification'=>$row['classification'],
-                'confidence'=>(float)$row['confidence'], 'anomaly_score'=>(float)$row['anomaly_score'],
-                'rule_score'=>(float)$row['rule_score'], 'risk_score'=>(float)$row['risk_score'],
-                'severity'=>$row['severity'], 'model_version'=>$row['model_version'],
+                'expected_label'=>$row['expected_label'],'classification'=>$row['classification'],
+                'confidence'=>(float)$row['confidence'],'anomaly_score'=>(float)$row['anomaly_score'],
+                'rule_score'=>(float)$row['rule_score'],'risk_score'=>(float)$row['risk_score'],
+                'severity'=>$row['severity'],'model_version'=>$row['model_version'],
                 'indicator_evidence'=>json_decode($row['indicators'],true) ?: [],
-                'status'=>$row['status'], 'revision'=>(int)$row['revision'],
-                'at'=>$row['created_at'], 'updated_at'=>$row['updated_at'],
-                'synthetic'=>true, 'database_written'=>true,
+                'status'=>$row['status'],'revision'=>(int)$row['revision'],
+                'at'=>$row['created_at'],'updated_at'=>$row['updated_at'],
+                'synthetic'=>true,'database_written'=>true,
             ];
         }
-        it113_store_diagnostic('ready');
-        return $entries;
-    } catch (Throwable $e) {
-        it113_store_diagnostic('database_read_failed');
-        it113_store_log_error('history read', $e);
-        return null;
+        it113_store_diagnostic('ready');return $entries;
+    } catch(Throwable $e) {
+        it113_store_diagnostic('database_read_failed');it113_store_log_error('history read',$e);return null;
     }
 }
 
@@ -173,15 +180,21 @@ function it113_store_status(string $trace, string $status, string $note, int $re
     $allowed=['OPEN','INVESTIGATING','MITIGATED','RESOLVED'];
     if (!in_array($status,$allowed,true) || strlen($note)>240 || $revision<0 || $revision>15
         || !preg_match('/^[a-f0-9]{32}$/D',$trace)) return 'invalid';
-    $pdo=it113_store_db();
-    if (!$pdo) return 'unavailable';
-    $sid=it113_store_session(false);
-    if (!$sid) return 'not_found';
+    $pdo=it113_store_db();$scope=$pdo?it113_pair_scope(false):null;
+    if (!$pdo || !$scope) return 'unavailable';
+    $where=$scope['workspace_id']!==null ? 'workspace_id = ?' : 'session_digest = ? AND workspace_id IS NULL';
+    $scopeValue=$scope['workspace_id']??$scope['sid'];
     try {
         $pdo->beginTransaction();
+        if ($scope['workspace_id']!==null) {
+            $auth=$pdo->prepare('SELECT 1 FROM public.it113_pair_members
+                WHERE workspace_id=? AND session_digest=? FOR SHARE');
+            $auth->execute([$scope['workspace_id'],$scope['sid']]);
+            if (!$auth->fetchColumn()) { $pdo->rollBack();return 'conflict'; }
+        }
         $lookup=$pdo->prepare('SELECT status,revision,classification FROM public.it113_demo_assessments
-          WHERE trace_id=? AND session_digest=? FOR UPDATE');
-        $lookup->execute([$trace,$sid]);
+          WHERE trace_id=? AND '.$where.' FOR UPDATE');
+        $lookup->execute([$trace,$scopeValue]);
         $current=$lookup->fetch(PDO::FETCH_ASSOC);
         if (!$current || $current['classification']==='NORMAL' || (int)$current['revision']!==$revision) {
             $pdo->rollBack();return 'conflict';
@@ -197,41 +210,47 @@ function it113_store_status(string $trace, string $status, string $note, int $re
         }
         $stmt=$pdo->prepare('UPDATE public.it113_demo_assessments
            SET status=?,revision=revision+1,updated_at=NOW()
-           WHERE trace_id=? AND session_digest=? AND revision=? AND revision<15 RETURNING status');
-        $stmt->execute([$status,$trace,$sid,$revision]);
+           WHERE trace_id=? AND '.$where.' AND revision=? AND revision<15 RETURNING status');
+        $stmt->execute([$status,$trace,$scopeValue,$revision]);
         if (!$stmt->fetchColumn()) { $pdo->rollBack(); return 'conflict'; }
         $stmt=$pdo->prepare('INSERT INTO public.it113_demo_case_events (trace_id,session_digest,revision,status,note)
          VALUES(?,?,?,?,?)');
-        $stmt->execute([$trace,$sid,$revision+1,$status,$note]);
-        $pdo->commit();
-        return 'updated';
-    } catch (Throwable $e) {
+        // Attribution is deliberately anonymous; this session digest is used
+        // only for security scoping and is never returned to the browser.
+        $stmt->execute([$trace,$scope['sid'],$revision+1,$status,$note]);
+        $pdo->commit();return 'updated';
+    } catch(Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        it113_store_diagnostic('database_update_failed');
-        it113_store_log_error('case update', $e);
-        return 'unavailable';
+        it113_store_diagnostic('database_update_failed');it113_store_log_error('case update',$e);return 'unavailable';
     }
 }
 
 function it113_store_events(string $trace): ?array {
     if (!preg_match('/^[a-f0-9]{32}$/D',$trace)) return [];
-    $pdo=it113_store_db();$sid=it113_store_session(false);
-    if (!$pdo || !$sid) return null;
+    $pdo=it113_store_db();$scope=$pdo?it113_pair_scope(false):null;
+    if (!$pdo || !$scope) return null;
+    $where=$scope['workspace_id']!==null ? 'a.workspace_id = ?' : 'a.session_digest = ? AND a.workspace_id IS NULL';
     try {
+        $guard=$scope['workspace_id']!==null ? ' AND EXISTS (SELECT 1 FROM public.it113_pair_members m
+            WHERE m.workspace_id=? AND m.session_digest=?)' : '';
         $stmt=$pdo->prepare('SELECT e.revision,e.status,e.note,e.changed_at
           FROM public.it113_demo_case_events e
           JOIN public.it113_demo_assessments a ON a.trace_id=e.trace_id
-          AND a.session_digest=e.session_digest
-          WHERE e.trace_id=? AND e.session_digest=? ORDER BY e.revision ASC LIMIT 15');
-        $stmt->execute([$trace,$sid]);return $stmt->fetchAll();
-    } catch(Throwable $e) { return null; }
+          WHERE e.trace_id=? AND '.$where.$guard.' ORDER BY e.revision ASC LIMIT 15');
+        $params=[$trace,$scope['workspace_id']??$scope['sid']];
+        if ($scope['workspace_id']!==null) array_push($params,$scope['workspace_id'],$scope['sid']);
+        $stmt->execute($params);return $stmt->fetchAll();
+    } catch(Throwable $e) {it113_store_log_error('events read',$e);return null;}
 }
 
 function it113_store_clear(): bool {
-    $pdo=it113_store_db(); $sid=it113_store_session(false);
-    if (!$pdo || !$sid) return false;
+    $pdo=it113_store_db();$scope=$pdo?it113_pair_scope(false):null;
+    if (!$pdo || !$scope) return false;
+    // Never allow a partner to wipe the entire shared team's findings.
+    if ($scope['workspace_id']!==null) {it113_store_diagnostic('shared_clear_blocked');return false;}
     try {
-        $stmt=$pdo->prepare('DELETE FROM public.it113_demo_assessments WHERE session_digest = ?');
-        return $stmt->execute([$sid]);
-    } catch (Throwable $e) { return false; }
+        $stmt=$pdo->prepare('DELETE FROM public.it113_demo_assessments
+            WHERE session_digest = ? AND workspace_id IS NULL');
+        return $stmt->execute([$scope['sid']]);
+    } catch(Throwable $e) {it113_store_log_error('private clear',$e);return false;}
 }

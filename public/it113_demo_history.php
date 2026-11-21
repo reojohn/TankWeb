@@ -44,8 +44,10 @@ if ($method==='GET') {
         'storage_state'=>it113_store_diagnostic(),'entries'=>[]]);
     $trace=(string)($_GET['trace_id'] ?? '');
     $events=$trace!=='' ? it113_store_events($trace) : [];
+    $workspace=it113_pair_enabled()?it113_pair_status():['active'=>false];
+    if($workspace===null) response(503,['ok'=>false,'error'=>'Workspace scope unavailable.']);
     response(200,['ok'=>true,'enabled'=>true,'storage_state'=>'ready',
-        'entries'=>$records,'events'=>$events ?: []]);
+        'workspace'=>$workspace,'entries'=>$records,'events'=>$events ?: []]);
 }
 if ($method!=='POST') { header('Allow: GET, POST'); response(405,['ok'=>false,'error'=>'Unsupported method.']); }
 if (stripos((string)($_SERVER['CONTENT_TYPE']??''),'application/json')!==0 ||
@@ -67,6 +69,9 @@ if ($origin!=='') {
 }
 $data=json_decode((string)file_get_contents('php://input',false,null,0,1001),true);
 if (is_array($data) && count($data)===1 && ($data['action']??'')==='clear') {
+    $scope=it113_pair_scope(false);
+    if($scope===null) response(503,['ok'=>false,'error'=>'Workspace scope unavailable.']);
+    if($scope['workspace_id']!==null) response(409,['ok'=>false,'error'=>'Shared workspace history cannot be cleared from one browser.']);
     if (it113_store_clear()) response(200,['ok'=>true,'cleared'=>true]);
     response(503,['ok'=>false,'error'=>'Could not clear saved history.']);
 }

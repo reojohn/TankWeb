@@ -108,3 +108,25 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 
 /* Assessment-store diagnostics: preserve actionable but non-sensitive feedback. */
 .store-hint { color: #ffc5dc; background: rgba(145, 51, 88, .10); border: 1px solid rgba(246, 140, 173, .20); border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.5; margin: 10px 0; }
+
+/* Two-person login-free academic workspace (owner + one invited partner) */
+.pair-workspace{position:relative;margin:0 0 18px;padding:22px;border:1px solid rgba(191,140,248,.38);border-radius:18px;background:linear-gradient(118deg,rgba(62,35,91,.62),rgba(23,20,42,.92) 62%,rgba(24,55,57,.26));box-shadow:inset 0 1px 0 rgba(240,218,255,.08),0 18px 55px rgba(7,5,17,.21)}
+.pair-workspace:before{content:'';position:absolute;right:18px;top:16px;width:125px;height:125px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(162,108,229,.14),transparent 70%)}
+.pair-workspace-heading{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;position:relative}
+.pair-workspace h2{font-size:21px;letter-spacing:-.55px;margin:8px 0;color:#f4eaff}
+.pair-workspace p{font-size:12px;line-height:1.7;color:#bfb0d0;max-width:790px;margin:0}
+.pair-seat-badge{flex:none;padding:8px 11px;background:rgba(126,82,165,.19);border-radius:999px;border:1px solid rgba(202,149,245,.28);font-size:10px;letter-spacing:.55px;font-weight:850;color:#d7c3f2}
+.pair-seat-badge[data-active=true]{background:rgba(38,127,99,.18);color:#9aedc5;border-color:rgba(108,216,168,.35)}
+.pair-controls{position:relative;margin-top:18px;display:grid;gap:12px}
+.pair-controls-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.pair-controls .primary-cta,.pair-controls .subtle-btn{min-height:40px;font-size:12px}
+.pair-controls .subtle-btn.danger{border-color:rgba(247,148,167,.3);color:#ffc6d2}
+.pair-controls label{display:flex;align-items:flex-start;gap:9px;color:#dbcae9;font-size:12px;line-height:1.55}
+.pair-controls input[type=checkbox]{accent-color:#b97cfa;margin-top:3px}
+.pair-workspace .pair-feedback{min-height:16px;margin:10px 0 0;color:#b6e9d7}
+.pair-workspace .pair-feedback[data-error=true]{color:#ffc0cc}
+.pair-member-chip{display:inline-flex;gap:7px;align-items:center;border-radius:999px;padding:8px 11px;border:1px solid rgba(180,146,231,.28);font-size:11px;color:#e9d9fa;background:rgba(93,69,128,.15)}
+.pair-member-chip::before{content:'';width:7px;height:7px;border-radius:100%;background:#77d9b1}
+.pair-warning{font-size:11px!important;color:#a9a0b8!important}
+@media(max-width:720px){.pair-workspace{padding:17px}.pair-workspace-heading{flex-direction:column}.pair-workspace h2{font-size:19px}.pair-controls-actions .primary-cta,.pair-controls-actions .subtle-btn{flex:1}}
+@media print{.pair-workspace{display:none!important}}
