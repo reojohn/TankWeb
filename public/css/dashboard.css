@@ -12944,3 +12944,13 @@ body.command-page[data-fortress-theme] .donut-purple-legend span:last-child i {
     background: linear-gradient(180deg, rgba(var(--theme-surface-rgb), .40), rgba(var(--theme-deep-rgb), .64)) !important;
   }
 }
+
+/* IT113 Phase 3 completion — academic links shared by PHP and deployed React.
+   These are navigation-only routes to public, synthetic research evidence. */
+.it113-research-nav{margin:16px 2px 12px;padding:14px 12px 12px;border:1px solid rgba(190,143,255,.22);border-radius:15px;background:linear-gradient(145deg,rgba(136,64,197,.12),rgba(25,13,44,.35))}
+.it113-research-nav .it113-research-nav-title{margin:0 0 9px;padding:0 6px;font-size:10px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:#cba8f7;display:flex;gap:9px;align-items:center}
+.it113-research-nav>a{display:flex!important;align-items:center;gap:11px;width:100%;min-height:34px;padding:7px 10px!important;margin:0 0 2px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#d1bfec!important;text-decoration:none!important;font-size:12px!important;line-height:1.4!important;box-sizing:border-box;transition:background .2s ease,color .2s ease,transform .2s ease}
+.it113-research-nav>a i{width:15px;flex-shrink:0;text-align:center;color:#ba8cf2}
+.it113-research-nav>a:hover,.it113-research-nav>a:focus-visible{background:rgba(189,132,254,.16)!important;color:#fff!important;transform:translateX(2px)}
+.it113-research-nav>small{display:block;padding:7px 6px 0;color:#a694c1;font-size:10px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.it113-research-nav>a{transition:none!important}.it113-research-nav>a:hover{transform:none}}

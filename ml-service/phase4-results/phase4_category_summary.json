@@ -1,0 +1,193 @@
+{
+  "description": "Local-only held-out synthetic evidence, not live intrusion testing",
+  "dataset": "ml-service/data/synthetic_test_dataset.csv",
+  "model_version": "24112c5d14aaeac3",
+  "row_count": 10500,
+  "total_correct": 10160,
+  "total_misclassified": 340,
+  "accuracy": 0.9676190476190476,
+  "per_class": {
+    "NORMAL": {
+      "total": 1500,
+      "correct": 1500,
+      "incorrect": 0,
+      "recall": 1.0
+    },
+    "BRUTE_FORCE": {
+      "total": 1500,
+      "correct": 1488,
+      "incorrect": 12,
+      "recall": 0.992
+    },
+    "CREDENTIAL_STUFFING": {
+      "total": 1500,
+      "correct": 1370,
+      "incorrect": 130,
+      "recall": 0.913333
+    },
+    "RECONNAISSANCE": {
+      "total": 1500,
+      "correct": 1473,
+      "incorrect": 27,
+      "recall": 0.982
+    },
+    "WEB_ATTACK": {
+      "total": 1500,
+      "correct": 1426,
+      "incorrect": 74,
+      "recall": 0.950667
+    },
+    "MFA_ABUSE": {
+      "total": 1500,
+      "correct": 1489,
+      "incorrect": 11,
+      "recall": 0.992667
+    },
+    "SESSION_ABUSE": {
+      "total": 1500,
+      "correct": 1414,
+      "incorrect": 86,
+      "recall": 0.942667
+    }
+  },
+  "class_order": [
+    "NORMAL",
+    "BRUTE_FORCE",
+    "CREDENTIAL_STUFFING",
+    "RECONNAISSANCE",
+    "WEB_ATTACK",
+    "MFA_ABUSE",
+    "SESSION_ABUSE"
+  ],
+  "confusion_matrix": [
+    [
+      1500,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1488,
+      12,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      130,
+      1370,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      5,
+      0,
+      0,
+      1473,
+      20,
+      0,
+      2
+    ],
+    [
+      19,
+      0,
+      0,
+      19,
+      1426,
+      0,
+      36
+    ],
+    [
+      11,
+      0,
+      0,
+      0,
+      0,
+      1489,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      2,
+      83,
+      1,
+      1414
+    ]
+  ],
+  "classification_report": {
+    "NORMAL": {
+      "precision": 0.9771986970684039,
+      "recall": 1.0,
+      "f1-score": 0.9884678747940692,
+      "support": 1500.0
+    },
+    "BRUTE_FORCE": {
+      "precision": 0.9196538936959209,
+      "recall": 0.992,
+      "f1-score": 0.95445798588839,
+      "support": 1500.0
+    },
+    "CREDENTIAL_STUFFING": {
+      "precision": 0.9913169319826338,
+      "recall": 0.9133333333333333,
+      "f1-score": 0.9507286606523248,
+      "support": 1500.0
+    },
+    "RECONNAISSANCE": {
+      "precision": 0.9859437751004017,
+      "recall": 0.982,
+      "f1-score": 0.9839679358717435,
+      "support": 1500.0
+    },
+    "WEB_ATTACK": {
+      "precision": 0.9326357096141269,
+      "recall": 0.9506666666666667,
+      "f1-score": 0.941564872895345,
+      "support": 1500.0
+    },
+    "MFA_ABUSE": {
+      "precision": 0.9993288590604027,
+      "recall": 0.9926666666666667,
+      "f1-score": 0.9959866220735786,
+      "support": 1500.0
+    },
+    "SESSION_ABUSE": {
+      "precision": 0.9738292011019284,
+      "recall": 0.9426666666666667,
+      "f1-score": 0.9579945799457995,
+      "support": 1500.0
+    },
+    "accuracy": 0.9676190476190476,
+    "macro avg": {
+      "precision": 0.9685581525176883,
+      "recall": 0.9676190476190476,
+      "f1-score": 0.96759550458875,
+      "support": 10500.0
+    },
+    "weighted avg": {
+      "precision": 0.9685581525176883,
+      "recall": 0.9676190476190476,
+      "f1-score": 0.96759550458875,
+      "support": 10500.0
+    }
+  },
+  "sample_evidence_file": "phase4_scenario_evidence.csv",
+  "sample_evidence_cases": 13,
+  "limitations": [
+    "All observations are simulated; estimates do not establish performance on real traffic.",
+    "One example per class was selected to illustrate a correct prediction, not to estimate success rates.",
+    "A misclassification example is included when the held-out set has one for that class.",
+    "Risk scores include rule_score=0 for repeatable examples and do not represent live security decisions.",
+    "The in-process HTTP API test does not validate PostgreSQL or cloud deployment."
+  ]
+}

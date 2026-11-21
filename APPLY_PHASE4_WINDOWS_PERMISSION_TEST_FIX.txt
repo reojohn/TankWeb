@@ -1,0 +1,38 @@
+FortressAuth IT113 Phase 4 — Windows mitigation workflow test compatibility fix
+
+File replaced:
+  TankWeb-v3/tests/test_it113_mitigation_workflow.php
+
+Cause:
+  The original test asserted POSIX 0600 via fileperms(). Windows PHP does not
+  report NTFS ACL permissions as POSIX mode bits. This yielded a false failure
+  on Windows even when the file was successfully created and read.
+
+Change:
+  POSIX: still requires fileperms() & 0777 === 0600.
+  Windows: checks that the file exists, is readable by the current account,
+  and is not served from public/. Emits an INFO reminder that NTFS ACLs need
+  separate review using icacls; does NOT claim to verify Windows ACLs.
+  No production PHP files or security settings changed.
+
+Install:
+  Extract ZIP, copy TankWeb-v3/tests/test_it113_mitigation_workflow.php
+  over your existing project path.
+
+Then run in project root:
+  php tests/test_it113_mitigation_workflow.php
+
+Expected on Windows:
+  INFO: Windows NTFS permissions require a separate icacls check; PHP fileperms() cannot validate ACLs.
+  PASS: 27 offline workflow assertions (state, authorization input, stale writes, persistence, audit history)
+
+Optional Windows ACL inspection (in PowerShell, from project root):
+  icacls .\data
+  icacls .\data\it113_mitigation_cases.json
+If the file does not yet exist, it will be created on the first offline workflow write.
+Only authorized Windows accounts should have access. Because the app runs in
+OneDrive/Desktop, review inherited permissions before storing sensitive real logs.
+
+The unrelated PHP "mysqli is already loaded" warning comes from PHP configuration,
+not this test. Run php --ini to locate the active php.ini file and check for
+multiple enabled mysqli extension entries if you want to remove that warning.

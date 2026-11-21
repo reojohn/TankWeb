@@ -1,0 +1,44 @@
+FORTRESSAUTH IT113 - PHASE 4 STEP 4 / FAILURE AND RECOVERY TESTING
+
+This is a TEST-ONLY patch. It contains one new Python testing script; it does
+not modify FortressAuth code, its training data, models, UI, database, or .env.
+
+INSTALL
+1. Unzip the package.
+2. Copy the contents INSIDE the extracted TankWeb-v3 folder into your existing
+   TankWeb-v3 project folder. Keep the folder structure.
+3. From a PowerShell terminal in TankWeb-v3, run:
+
+   python ml-service/tests/run_phase4_failure_recovery.py
+
+4. Successful output ends with:
+   SUMMARY: 18/18 local failure/recovery checks PASSED
+
+5. Keep a screenshot of the terminal output and your locally generated file:
+   ml-service/phase4-results/phase4_failure_recovery_summary.json
+
+REQUIREMENTS
+- Python environment already used for previous Phase 4 ML tests.
+- PHP CLI available on PATH (you used `php tests/...` previously).
+- Python packages for the ML service, including uvicorn and xgboost, installed.
+- Permission for local loopback (127.0.0.1) connections.
+
+SAFETY
+- Does NOT load your .env, connect to Supabase, or modify your live database.
+- Copies PHP source into a temporary private directory for test data.
+- Generates an ephemeral random bearer token; never writes it to evidence.
+- Runs the real ML server briefly, bound to 127.0.0.1 on a random port.
+- Exercises negative responses through a disposable loopback-only test server.
+- Does not require starting Start FortressAuth.bat.
+- Removes temporary records when finished; only the summary JSON is retained.
+
+LIMITATIONS
+- Does not prove PostgreSQL queue persistence, cloud downtime recovery,
+  authenticated admin session behavior or full deployed deterministic defenses.
+- No live malicious network traffic is generated.
+- Those checks remain for Phase 4 Step 5 after Supabase restores.
+
+IF A CHECK FAILS
+Do not change security policy or delete files. Copy the failed check and
+terminal output into ChatGPT for troubleshooting. If a firewall blocks the
+loopback test server, allow only local loopback for this command.

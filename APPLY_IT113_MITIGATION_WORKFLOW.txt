@@ -1,0 +1,79 @@
+FORTRESSAUTH / IT113 — MITIGATION CASE STATUS TRACKING
+===================================================
+
+WHAT THIS PATCH DOES
+--------------------
+Completes the remaining Phase 3 feature: persistent analyst case status and notes
+on saved, non-normal ML predictions in the protected Threat Center.
+Workflow: OPEN -> INVESTIGATING -> MITIGATED -> RESOLVED, with evidence notes,
+reopening, current revision checks, and administrator activity history.
+An analyst's case status does NOT trigger ML inference, account bans, or enforcement.
+
+INSTALLATION
+------------
+1. Start with your current cumulative Phase 3 installation, including the
+   Phase 3 Completion patch. Keep a backup of your working project.
+2. Extract this ZIP and open its TankWeb-v3 folder.
+3. Merge the files and folders into your existing TankWeb-v3 directory.
+   Replace the named files. Do NOT delete existing folders.
+4. Keep your current .env, trained ML models, Supabase credentials and wolf art.
+5. Run Start FortressAuth.bat as before. When the database is healthy, open
+   the protected Threats page and expand a saved non-normal ML prediction.
+6. Record a note of at least eight bytes, choose an allowed status, then save.
+   The history and current status will persist across ordinary local restarts.
+
+IMPORTANT DATABASE STATUS
+-------------------------
+- Your Supabase restoration was still pending when this patch was prepared.
+- This patch DOES NOT connect to Supabase or execute any SQL migration.
+- The protected Threat Center still requires a working database and admin login.
+- The standalone local persistence module and tests work without Supabase.
+- Until the migration is installed, data is saved in data/it113_mitigation_cases.json.
+- This local fallback is suitable for local development on a persistent disk.
+  Render/Vercel or other ephemeral/multi-instance hosts cannot guarantee its
+  survival after restarts, redeployment or scaling.
+
+AFTER SUPABASE HAS RESTORED
+--------------------------
+1. Confirm the existing database and Phase 2 telemetry migration are healthy.
+2. Make a backup of data/it113_mitigation_cases.json if it exists.
+3. Run sql/ml_mitigation_workflow.sql in the Supabase SQL Editor, as owner.
+   This adds two new tables only and does NOT remove existing records.
+4. BEFORE actively using the new PostgreSQL workflow, inspect the dry-run:
+      php scripts/import_it113_mitigation_cases.php
+5. If there are pre-existing local analyst case notes, import them once using:
+      php scripts/import_it113_mitigation_cases.php --apply
+   The importer skips existing database cases instead of overwriting them.
+6. Confirm the protected Threat Center displays POSTGRESQL · DURABLE and the
+   correct saved statuses/history; then perform live integration testing.
+7. If your PHP database role cannot read/write the tables, grant only the
+   needed access: SELECT/INSERT/UPDATE on ml_mitigation_cases, SELECT/INSERT
+   on ml_mitigation_events, and sequence USAGE for event_id. Never grant
+   access to the anon or authenticated Supabase public API roles.
+8. Do NOT delete the local JSON file before confirming successful import.
+
+Security choices
+----------------
+- All mutations require existing admin login and session CSRF token.
+- Server re-checks that the submitted case belongs to a saved ML prediction.
+- Status transitions and note size are validated; the previous revision must
+  match or the update fails safely.
+- Notes/history are stored outside public/ and excluded by .gitignore.
+- Audit logs record who changed which case/status, but not the note contents.
+- Normal/unknown predictions cannot be turned into mitigation cases.
+- The login-free academic assessment dashboard remains read-only.
+- Never place real passwords, tokens or private personal information in notes.
+
+LOCAL VERIFICATION
+------------------
+  php tests/test_it113_mitigation_workflow.php
+  php tests/test_it113_phase3_completion.php
+  python -m pytest -q ml-service/tests
+  node scripts/build-vercel.mjs
+
+LIMITATIONS
+-----------
+- Full login-protected web flow, real PostgreSQL writes, Supabase permissions,
+  cloud persistence, and deployed UI were NOT tested during the outage.
+- Local test fixtures do not constitute genuine logged incidents.
+- Case notes track analyst actions; they are NOT proof of a successful attack.

@@ -5,7 +5,7 @@ services:
     environment:
       ML_SERVICE_ENABLED: "true"
       ML_SERVICE_URL: "http://ml-service:8000"
-      ML_SERVICE_TOKEN: "${ML_SERVICE_TOKEN:-}"
+      ML_SERVICE_TOKEN: "${ML_SERVICE_TOKEN:?Set a private 24-plus character ML_SERVICE_TOKEN in .env}"
     ports:
       - "8080:80"
     depends_on:
@@ -15,7 +15,7 @@ services:
   ml-service:
     build: ./ml-service
     environment:
-      ML_SERVICE_TOKEN: "${ML_SERVICE_TOKEN:-}"
+      ML_SERVICE_TOKEN: "${ML_SERVICE_TOKEN:?Set a private 24-plus character ML_SERVICE_TOKEN in .env}"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
       interval: 10s

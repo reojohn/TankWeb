@@ -1,3 +1,15 @@
+> **IT113 Phase 2 (2026-11-20):** The Phase 1 premium wolf-logo assessment remains public/read-only. Phase 2 hardens the private ML service with mandatory bearer authentication and validated numeric inference, adds PostgreSQL request telemetry with local fallback, and records per-prediction trace/provenance. Apply `sql/ml_request_telemetry.sql` and configure a private shared `ML_SERVICE_TOKEN` before turning on ML. `ML_ASSISTED_ENFORCEMENT` now defaults **false** (advisory). See `IT113_PHASE2_IMPLEMENTATION.md`.
+
+# IT113 Academic Assessment Entry (2026 Update)
+
+**Start here:** `Start FortressAuth.bat` or open `http://127.0.0.1:8082/` after starting PHP. This now routes to `/assessment/` **without a login**. The assessment is public, read-only, and uses **synthetic model evidence only**. The legacy admin React/PHP screens (for security controls, user accounts, and private audit history) remain session-protected under `/app/` and the respective PHP routes. It is not safe to make those privileged actions public.
+
+**Phase 1 complete:** repaired synthetic dataset invariants, separated train/validation/test, retrained XGBoost and autoencoder, regenerated evaluation metadata, created synthetic test predictions, and added reproducibility tests. See `IT113_PHASE1_EVALUATION.md` and `ml-service/README.md`.
+
+**Remaining work:** Phase 2 (telemetry/authentication of ML service), Phase 3 (full live assessment UI/report integration), Phase 4 (integration and deployment testing), Phase 5 (final academic PDF and presentation). Do not represent this early phase as the fully completed project.
+
+---
+
 # FortressAuth
 
 FortressAuth is a hardened PHP/PostgreSQL authentication lab designed for a defensive penetration-testing exercise.

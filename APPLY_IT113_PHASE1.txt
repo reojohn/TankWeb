@@ -1,0 +1,11 @@
+FortressAuth - IT113 Phase 1 update / Login-free academic assessment
+
+Two ways to apply this package:
+
+1. Use the complete ZIP as a new folder, add back your OWN private .env file (never share it).
+2. Apply this changed-files-only ZIP by extracting directly into your existing backed-up TankWeb-v3 root. The paths are relative to TankWeb-v3, and unchanged original files must remain present.
+
+Start FortressAuth.bat now opens http://127.0.0.1:8082/assessment/ with no login.
+The secured /app/ route and privileged controls still require administrator credentials.
+Phase 1 is complete. Phases 2-5 are NOT implemented yet.
+See IT113_PHASE1_EVALUATION.md for test results and commands.

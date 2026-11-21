@@ -169,6 +169,8 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $mlHistory = fortress_report_prediction_history(min(25, $eventLimit));
     $trainingReport = fortress_report_read_json(__DIR__ . '/../ml-service/data/training_report.json');
     if (!$trainingReport) $trainingReport = fortress_report_read_json(__DIR__ . '/../ml-service/models/model_metadata.json');
+    // Bundled, synthetic-only evaluation metadata works on PHP-only deployment images.
+    if (!$trainingReport) $trainingReport = fortress_report_read_json(__DIR__ . '/model_evaluation_snapshot.json');
 
     $latestResult = is_array($latestPrediction['result'] ?? null) ? $latestPrediction['result'] : [];
     $latestFeatures = is_array($latestPrediction['features'] ?? null) ? $latestPrediction['features'] : [];
@@ -329,6 +331,10 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $aiLatest = [
         ['Metric', 'ML service state', 'Value', $mlEnabled ? 'ENABLED' : 'DISABLED'],
         ['Metric', 'Model', 'Value', (string)($latestResult['model'] ?? ($trainingReport['project'] ?? 'FortressAuth Hybrid ML'))],
+        ['Metric', 'Model version', 'Value', (string)($latestResult['model_version'] ?? 'No completed prediction')],
+        ['Metric', 'Prediction trace', 'Value', (string)($latestResult['trace_id'] ?? 'No completed prediction')],
+        ['Metric', 'Evidence request source', 'Value', (string)($latestPrediction['evidence']['request_source'] ?? 'Not recorded')],
+        ['Metric', 'Evidence event source', 'Value', (string)($latestPrediction['evidence']['security_event_source'] ?? 'Not recorded')],
         ['Metric', 'Latest analysis', 'Value', fortress_report_epoch_time($latestPrediction['ts'] ?? 0)],
         ['Metric', 'Source IP', 'Value', (string)($latestPrediction['ip'] ?? 'Not recorded')],
         ['Metric', 'Classification', 'Value', $latestResult ? fortress_report_label((string)($latestResult['classification'] ?? 'UNKNOWN')) : 'No completed analysis'],
@@ -377,14 +383,22 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         ['Field' => 'Project / model family', 'Details' => (string)($trainingReport['project'] ?? 'FortressAuth Hybrid Intelligent Threat Detection')],
         ['Field' => 'Training data type', 'Details' => (string)($dataset['type'] ?? 'Not recorded')],
         ['Field' => 'Training rows', 'Details' => (string)($dataset['training_rows'] ?? 'Not recorded')],
+        ['Field' => 'Validation rows', 'Details' => (string)($dataset['validation_rows'] ?? 'Not recorded')],
+        ['Field' => 'Independent test rows', 'Details' => (string)($dataset['test_rows'] ?? 'Not recorded')],
         ['Field' => 'Holdout rows', 'Details' => (string)($dataset['holdout_rows'] ?? 'Not recorded')],
         ['Field' => 'Behavior classes', 'Details' => $classes ? implode(', ', array_map(static fn($v): string => fortress_report_label((string)$v), $classes)) : 'Not recorded'],
         ['Field' => 'Behavioral features', 'Details' => $trainingFeatures ? count($trainingFeatures) . ' non-sensitive numerical features' : 'Not recorded'],
         ['Field' => 'XGBoost holdout accuracy', 'Details' => fortress_report_percent($xgboost['accuracy'] ?? null, 2, true)],
+        ['Field' => 'XGBoost macro precision', 'Details' => fortress_report_percent($xgboost['macro_precision'] ?? null, 2, true)],
+        ['Field' => 'XGBoost macro recall', 'Details' => fortress_report_percent($xgboost['macro_recall'] ?? null, 2, true)],
         ['Field' => 'XGBoost macro F1', 'Details' => fortress_report_percent($xgboost['macro_f1'] ?? null, 2, true)],
         ['Field' => 'Autoencoder implementation', 'Details' => (string)($autoencoder['implementation'] ?? 'Not recorded')],
         ['Field' => 'Autoencoder normal error p95', 'Details' => is_numeric($autoencoder['normal_error_p95'] ?? null) ? number_format((float)$autoencoder['normal_error_p95'], 4) : 'Not recorded'],
         ['Field' => 'Autoencoder threshold p99', 'Details' => is_numeric($autoencoder['threshold_p99'] ?? null) ? number_format((float)$autoencoder['threshold_p99'], 4) : 'Not recorded'],
+        ['Field' => 'Threshold calibrated from', 'Details' => (string)($autoencoder['threshold_calibrated_from'] ?? 'Not recorded')],
+        ['Field' => 'Test anomaly precision', 'Details' => fortress_report_percent($autoencoder['test_anomaly_precision'] ?? null, 2, true)],
+        ['Field' => 'Test anomaly F1', 'Details' => fortress_report_percent($autoencoder['test_anomaly_f1'] ?? null, 2, true)],
+        ['Field' => 'Test anomaly ROC AUC', 'Details' => is_numeric($autoencoder['test_anomaly_roc_auc'] ?? null) ? number_format((float)$autoencoder['test_anomaly_roc_auc'], 4) : 'Not recorded'],
         ['Field' => 'Holdout anomaly recall', 'Details' => fortress_report_percent($autoencoder['holdout_anomaly_recall'] ?? null, 2, true)],
         ['Field' => 'Normal false-positive rate', 'Details' => fortress_report_percent($autoencoder['holdout_normal_false_positive_rate'] ?? null, 2, true)],
         ['Field' => 'Hybrid fusion weights', 'Details' => 'Rules ' . fortress_report_percent($fusion['rule_weight'] ?? null, 0, true) . ' | XGBoost ' . fortress_report_percent($fusion['xgboost_weight'] ?? null, 0, true) . ' | Autoencoder ' . fortress_report_percent($fusion['autoencoder_weight'] ?? null, 0, true)],
@@ -421,6 +435,16 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
         ['Source' => 'FortressAuth audit log', 'Purpose' => 'Authentication, Personal ID, account-management, network-defense, request-defense, session, and documentation events.', 'Privacy Boundary' => 'Sensitive request values, CSRF tokens, cookies, authorization headers, and session identifiers are excluded.'],
         ['Source' => 'ML latest analysis / history', 'Purpose' => 'XGBoost classification, Autoencoder anomaly score, hybrid risk, safe behavioral feature window, and AI analysis history.', 'Privacy Boundary' => 'Only non-sensitive numerical behavior and source IP evidence are used in the model report.'],
         ['Source' => 'ML training metadata', 'Purpose' => 'Model validation metrics, class performance, feature importance, Autoencoder validation, and fusion weights.', 'Privacy Boundary' => 'Training metadata describes the course-project model and does not contain user credentials.'],
+    ];
+
+    $mitigationMatrix = [
+        ['Behavior Class'=>'Normal', 'Verify'=>'Compare deviations against a permitted baseline', 'Mitigation'=>'Continue monitoring and retain minimal audit data'],
+        ['Behavior Class'=>'Brute Force', 'Verify'=>'Review failed-authentication volume and source history', 'Mitigation'=>'Apply rate limits, account cooldowns and MFA'],
+        ['Behavior Class'=>'Credential Stuffing', 'Verify'=>'Correlate targeted accounts and suspected reuse', 'Mitigation'=>'Rate-limit, enforce MFA and evaluate compromised credentials'],
+        ['Behavior Class'=>'Reconnaissance', 'Verify'=>'Inspect sanitized request paths and scanner indicators', 'Mitigation'=>'Restrict admin endpoints, patch and monitor probes'],
+        ['Behavior Class'=>'Web Attack', 'Verify'=>'Validate application logs and affected endpoints', 'Mitigation'=>'Parameterize SQL, validate inputs and encode output'],
+        ['Behavior Class'=>'MFA Abuse', 'Verify'=>'Correlate second-factor rejections and expired challenges', 'Mitigation'=>'Limit attempts, bind challenges and enforce expiration'],
+        ['Behavior Class'=>'Session Abuse', 'Verify'=>'Review session state anomalies and CSRF rejection logs', 'Mitigation'=>'Rotate session IDs, use CSRF tokens and secure cookies'],
     ];
 
     $limitations = [
@@ -468,6 +492,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
             'class_metrics' => $classMetrics,
         ],
         'threat_findings' => $threatFindings,
+        'mitigation_matrix' => $mitigationMatrix,
         'top_sources' => $topSources,
         'authentication_events' => $authEvents,
         'administrators' => $administrators,
@@ -775,6 +800,12 @@ function fortress_report_pdf(array $report): string
             foreach ($report['ai']['class_metrics'] as $row) {
                 $addWrapped($row['Behavior Class'] . ' | Precision ' . $row['Precision'] . ' | Recall ' . $row['Recall'] . ' | F1 ' . $row['F1 Score'] . ' | Support ' . $row['Support'], 88, 8.25, false, 13);
             }
+        }
+
+        $section('Threat-specific mitigation recommendations');
+        foreach (($report['mitigation_matrix'] ?? []) as $row) {
+            $addWrapped($row['Behavior Class'] . ': ' . $row['Mitigation'], 90, 8.7, true, 8);
+            $addWrapped('Validate first: ' . $row['Verify'], 88, 8.15, false, 13);
         }
 
         $section('Threat findings - last 24 hours');
@@ -1187,6 +1218,7 @@ function fortress_report_xlsx(array $report): string
         $addAssocSheet($sheets, 'Feature Importance', $report['ai']['feature_importance'] ?? [], ['Rank', 'Feature', 'Importance'], [10, 42, 18], 'MODEL EXPLAINABILITY', '8B5CF6');
         $addAssocSheet($sheets, 'Class Metrics', $report['ai']['class_metrics'] ?? [], ['Behavior Class', 'Precision', 'Recall', 'F1 Score', 'Support'], [28, 16, 16, 16, 14], 'XGBOOST HOLDOUT VALIDATION', '8B5CF6');
         $addAssocSheet($sheets, 'Threat Findings', $report['threat_findings'] ?? [], ['Threat Signal', '24-Hour Count', 'Interpretation'], [42, 18, 88], 'RECORDED SECURITY SIGNALS', 'B83280');
+        $addAssocSheet($sheets, 'Mitigation Matrix', $report['mitigation_matrix'] ?? [], ['Behavior Class','Verify','Mitigation'], [26,74,84], 'THREAT RESPONSE RECOMMENDATIONS', '6D28D9');
         $addAssocSheet($sheets, 'Threat Sources', $report['top_sources'] ?? [], ['Source IP', 'Security Events / 24h', 'Note'], [24, 22, 92], 'NETWORK EVIDENCE', 'B83280');
     }
 
@@ -1408,6 +1440,15 @@ function fortress_report_pptx(array $report): string
             $classMetricLines[] = ['text' => $row['Behavior Class'] . ' | Precision ' . $row['Precision'] . ' | Recall ' . $row['Recall'] . ' | F1 ' . $row['F1 Score'] . ' | Support ' . $row['Support'], 'size' => 1060, 'bold' => true, 'height' => 405000, 'fill' => 'FFFFFF'];
         }
         if ($classMetricLines) $slideSpecs[] = ['type' => 'content', 'title' => 'Class-Level Holdout Metrics', 'kicker' => 'XGBOOST VALIDATION', 'lines' => $classMetricLines];
+
+        $mitigationLines = [];
+        foreach (($report['mitigation_matrix'] ?? []) as $row) {
+            $mitigationLines[] = ['text'=>$row['Behavior Class'] . ': ' . $row['Mitigation'], 'size'=>1030, 'bold'=>true, 'height'=>435000, 'fill'=>'F7F1FF'];
+            $mitigationLines[] = ['text'=>'Check: ' . $row['Verify'], 'size'=>980, 'height'=>330000, 'fill'=>'FFFFFF'];
+        }
+        foreach (array_chunk($mitigationLines, 10) as $index=>$chunk) {
+            $slideSpecs[] = ['type'=>'content', 'title'=>'Threat Mitigation Matrix' . ($index ? ' (' . ($index+1) . ')' : ''), 'kicker'=>'EVIDENCE-GUIDED RESPONSE', 'lines'=>$chunk];
+        }
 
         $threatLines = [];
         foreach (($report['threat_findings'] ?? []) as $row) {

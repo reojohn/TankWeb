@@ -137,6 +137,16 @@ $featureLabels = [
     'off_hours' => 'Off-hours activity',
 ];
 
+// Phase 3: trusted operational provenance, visible only after require_admin_auth().
+// Never expose raw model feature vectors, private tokens, or live IPs in /assessment/.
+$mlTraceId = $mlResult ? (string)($mlResult['trace_id'] ?? '') : '';
+$mlModelVersion = $mlResult ? (string)($mlResult['model_version'] ?? '') : '';
+$mlFeatureDigest = $mlResult ? (string)($mlResult['feature_digest'] ?? '') : '';
+$mlProvenance = is_array($mlLatest['evidence'] ?? null) ? $mlLatest['evidence'] : [];
+$mlEvidenceSignals = $mlResult && is_array($mlResult['indicator_evidence'] ?? null) ? $mlResult['indicator_evidence'] : [];
+$mlWindowSource = (string)($mlProvenance['request_source'] ?? 'not available');
+$mlEventSource = (string)($mlProvenance['security_event_source'] ?? 'not available');
+$mlWindowTruncated = !empty($mlProvenance['window_truncated']);
 $predictionHistory = fortress_ml_prediction_history(20);
 
 
@@ -410,6 +420,23 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <span><i class="fa-solid fa-list-check"></i> ML queue: <?= $mlQueuePending ?> pending<?php if ($mlQueueCompleted24h > 0): ?> · <?= $mlQueueCompleted24h ?> replayed / 24h<?php endif; ?></span>
         <?php if ($mlAnalysisMode === 'QUEUED_REPLAY'): ?><span><i class="fa-solid fa-clock-rotate-left"></i> Analysis: QUEUED REPLAY · <?= $mlQueueDelaySeconds ?>s delayed</span><?php endif; ?>
     </div>
+    <div class="ai-analysis-meta phase3-trace-panel" aria-label="Authenticated model evidence and traceability">
+        <span><i class="fa-solid fa-fingerprint"></i> Prediction trace: <code><?= e($mlTraceId !== '' ? $mlTraceId : 'No completed prediction') ?></code></span>
+        <span><i class="fa-solid fa-code-branch"></i> Model fingerprint: <code><?= e($mlModelVersion !== '' ? $mlModelVersion : 'Not available') ?></code></span>
+        <span><i class="fa-solid fa-database"></i> Request evidence: <?= e(str_replace('_', ' ', $mlWindowSource)) ?></span>
+        <span><i class="fa-solid fa-file-shield"></i> Event evidence: <?= e(str_replace('_', ' ', $mlEventSource)) ?></span>
+        <?php if ($mlProvenance): ?>
+            <span><i class="fa-solid fa-list"></i> Window: <?= (int)($mlProvenance['window_seconds'] ?? 900) ?>s · <?= (int)($mlProvenance['request_records'] ?? 0) ?> request records · <?= (int)($mlProvenance['security_event_records'] ?? 0) ?> security events</span>
+            <span><i class="fa-solid fa-link"></i> Feature digest: <code><?= e($mlFeatureDigest !== '' ? substr($mlFeatureDigest, 0, 20) : 'Not available') ?></code>…</span>
+            <?php if ($mlWindowTruncated): ?><span class="phase3-truncated"><i class="fa-solid fa-triangle-exclamation"></i> Incomplete evidence window: AI enforcement disabled</span><?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <?php if ($mlEvidenceSignals): ?>
+      <details class="phase3-evidence-details"><summary><i class="fa-solid fa-magnifying-glass-chart"></i> Inspect model threshold indicators (<?= count($mlEvidenceSignals) ?>)</summary>
+        <p>These rules describe notable numeric inputs, not causal XGBoost attributions or proof of exploitation.</p>
+        <ul><?php foreach (array_slice($mlEvidenceSignals, 0, 5) as $signal): if (!is_array($signal)) continue; ?><li><strong><?= e((string)($signal['description'] ?? 'Indicator')) ?></strong> · <?= e((string)($signal['feature'] ?? 'feature')) ?>: <?= number_format((float)($signal['observed'] ?? 0), 2) ?> (threshold <?= number_format((float)($signal['threshold'] ?? 0), 2) ?>)</li><?php endforeach; ?></ul>
+      </details>
+    <?php endif; ?>
     <?php if ($mlIndicators): ?>
         <div class="ai-indicator-list">
             <?php foreach ($mlIndicators as $indicator): ?><span><i class="fa-solid fa-circle-exclamation"></i><?= e((string)$indicator) ?></span><?php endforeach; ?>

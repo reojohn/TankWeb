@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import csv
 import json
+import hashlib
+import platform
 from pathlib import Path
 
 import joblib
 import numpy as np
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+import sklearn
+import xgboost
+from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix, f1_score,
+                             precision_score, recall_score, roc_auc_score, average_precision_score)
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
@@ -61,6 +66,25 @@ COUNT_FEATURES = {
 }
 
 
+def validate_features(x: np.ndarray) -> dict[str, int]:
+    """Report impossible count/window relationships. Zero violations are required."""
+    index = {name: i for i, name in enumerate(FEATURES)}
+    get = lambda name: x[:, index[name]]
+    checks = {
+        "requests_1m_gt_requests_5m": get("requests_1m") > get("requests_5m"),
+        "unique_paths_gt_requests_5m": get("unique_paths_5m") > get("requests_5m"),
+        "auth_requests_gt_requests_5m": get("auth_endpoint_requests_5m") > get("requests_5m"),
+        "failed_logins_5m_gt_auth_requests_5m": get("failed_logins_5m") > get("auth_endpoint_requests_5m"),
+        "failed_logins_5m_gt_failed_logins_15m": get("failed_logins_5m") > get("failed_logins_15m"),
+        "post_ratio_outside_zero_one": (get("post_ratio_5m") < 0) | (get("post_ratio_5m") > 1),
+        "non_finite_values": ~np.isfinite(x).all(axis=1),
+    }
+    for name in COUNT_FEATURES:
+        vals = get(name)
+        checks["negative_or_fractional_" + name] = (vals < 0) | (np.abs(vals - np.round(vals)) > 1e-6)
+    return {name: int(np.sum(mask)) for name, mask in checks.items()}
+
+
 def _clip_round(values: dict[str, float]) -> np.ndarray:
     row = []
     for feature in FEATURES:
@@ -74,7 +98,14 @@ def _clip_round(values: dict[str, float]) -> np.ndarray:
         elif feature == "off_hours":
             value = 1.0 if value >= 0.5 else 0.0
         row.append(value)
-    return np.asarray(row, dtype=np.float32)
+    cleaned = dict(zip(FEATURES, row, strict=True))
+    # Generate physically possible nested time-window counts without altering
+    # the discriminative attack signals (failed attempts / auth attempts).
+    cleaned["failed_logins_15m"] = max(cleaned["failed_logins_15m"], cleaned["failed_logins_5m"])
+    cleaned["auth_endpoint_requests_5m"] = max(cleaned["auth_endpoint_requests_5m"], cleaned["failed_logins_5m"])
+    cleaned["requests_5m"] = max(cleaned["requests_5m"], cleaned["auth_endpoint_requests_5m"], cleaned["requests_1m"])
+    cleaned["unique_paths_5m"] = min(cleaned["unique_paths_5m"], cleaned["requests_5m"])
+    return np.asarray([cleaned[f] for f in FEATURES], dtype=np.float32)
 
 
 def _normal(rng: np.random.Generator, shift: float = 1.0) -> np.ndarray:
@@ -297,10 +328,18 @@ def save_csv(path: Path, x: np.ndarray, y: np.ndarray) -> None:
 
 
 def train() -> None:
-    # 35,000 training rows and 10,500 shifted hold-out rows.
+    # Three *independently seeded* simulated sets. Test data are never used
+    # for threshold calibration, model selection, or training.
     x_train, y_train = make_dataset(per_class=5000, seed=113, shifted=False)
+    x_validation, y_validation = make_dataset(per_class=1000, seed=2113, shifted=False)
     x_test, y_test = make_dataset(per_class=1500, seed=9113, shifted=True)
+    splits = {"train": (x_train, y_train), "validation": (x_validation, y_validation), "test": (x_test, y_test)}
+    data_quality = {key: validate_features(x) for key, (x, _) in splits.items()}
+    if any(any(count for count in findings.values()) for findings in data_quality.values()):
+        raise AssertionError(f"Synthetic dataset violates nested-counter constraints: {data_quality}")
     save_csv(DATA_DIR / "synthetic_security_dataset.csv", x_train, y_train)
+    save_csv(DATA_DIR / "synthetic_validation_dataset.csv", x_validation, y_validation)
+    save_csv(DATA_DIR / "synthetic_test_dataset.csv", x_test, y_test)
 
     classifier = XGBClassifier(
         n_estimators=320,
@@ -323,9 +362,11 @@ def train() -> None:
     report = classification_report(y_test, pred, target_names=CLASSES, output_dict=True, zero_division=0)
 
     normal_train = x_train[y_train == CLASS_TO_ID["NORMAL"]]
+    normal_validation = x_validation[y_validation == CLASS_TO_ID["NORMAL"]]
     normal_test = x_test[y_test == CLASS_TO_ID["NORMAL"]]
     scaler = StandardScaler()
     normal_train_scaled = scaler.fit_transform(normal_train)
+    normal_validation_scaled = scaler.transform(normal_validation)
     normal_test_scaled = scaler.transform(normal_test)
 
     autoencoder = MLPRegressor(
@@ -335,16 +376,22 @@ def train() -> None:
         alpha=0.0005,
         batch_size=128,
         learning_rate_init=0.001,
-        max_iter=450,
+        max_iter=500,
+        tol=0.001,
         early_stopping=True,
         validation_fraction=0.15,
         n_iter_no_change=25,
         random_state=113,
     )
     autoencoder.fit(normal_train_scaled, normal_train_scaled)
+    # Calibrate the 99th percentile on VALIDATION normal samples only.
+    validation_recon = autoencoder.predict(normal_validation_scaled)
+    validation_errors = np.mean(np.square(normal_validation_scaled - validation_recon), axis=1)
+    threshold = float(np.quantile(validation_errors, 0.99))
+
+    # All evaluation metrics below use the untouched TEST set.
     normal_recon = autoencoder.predict(normal_test_scaled)
     normal_errors = np.mean(np.square(normal_test_scaled - normal_recon), axis=1)
-    threshold = float(np.quantile(normal_errors, 0.99))
     p95 = float(np.quantile(normal_errors, 0.95))
     p50 = float(np.quantile(normal_errors, 0.50))
 
@@ -354,6 +401,7 @@ def train() -> None:
     anomaly_scores = np.clip(all_errors / max(threshold, 1e-9), 0.0, 3.0) / 3.0
     anomaly_binary = (all_errors > threshold).astype(int)
     true_anomaly = (y_test != CLASS_TO_ID["NORMAL"]).astype(int)
+    ae_cm = confusion_matrix(true_anomaly, anomaly_binary, labels=[0, 1])
 
     joblib.dump(autoencoder, MODEL_DIR / "autoencoder.joblib", compress=3)
     joblib.dump(scaler, MODEL_DIR / "autoencoder_scaler.joblib", compress=3)
@@ -369,14 +417,24 @@ def train() -> None:
         "dataset": {
             "type": "synthetic/simulated course-project security telemetry",
             "training_rows": int(len(y_train)),
+            "validation_rows": int(len(y_validation)),
             "holdout_rows": int(len(y_test)),
+            "test_rows": int(len(y_test)),
+            "split_seeds": {"train": 113, "validation": 2113, "test": 9113},
+            "split_role": "Independent synthetic training, normal-threshold calibration, and distribution-shifted final test sets",
+            "class_counts": {key: {CLASSES[i]: int(np.sum(y == i)) for i in range(len(CLASSES))} for key, (_, y) in splits.items()},
+            "data_quality_invariant_violations": data_quality,
+            "data_quality_checks_passed": True,
             "classes": CLASSES,
             "features": FEATURES,
-            "note": "Synthetic data supports project demonstration and is not presented as production incident prevalence.",
+            "note": "Class-balanced, artificially generated security activity. The test set introduces a limited synthetic shift, not real traffic or field validation. Performance cannot establish production detection rates.",
         },
         "xgboost": {
             "accuracy": float(accuracy_score(y_test, pred)),
             "macro_f1": float(f1_score(y_test, pred, average="macro")),
+            "weighted_f1": float(f1_score(y_test, pred, average="weighted")),
+            "macro_precision": float(precision_score(y_test, pred, average="macro", zero_division=0)),
+            "macro_recall": float(recall_score(y_test, pred, average="macro", zero_division=0)),
             "classification_report": report,
             "confusion_matrix": confusion_matrix(y_test, pred).tolist(),
             "top_feature_importance": feature_importance[:10],
@@ -386,9 +444,25 @@ def train() -> None:
             "normal_error_p50": p50,
             "normal_error_p95": p95,
             "threshold_p99": threshold,
+            "threshold_calibrated_from": "validation_normal_only",
+            "validation_normal_rows": int(len(normal_validation)),
+            "validation_normal_error_p99": threshold,
+            "test_confusion_matrix_binary_normal_then_anomaly": ae_cm.tolist(),
+            "test_anomaly_precision": float(precision_score(true_anomaly, anomaly_binary, zero_division=0)),
+            "test_anomaly_f1": float(f1_score(true_anomaly, anomaly_binary, zero_division=0)),
+            "test_anomaly_roc_auc": float(roc_auc_score(true_anomaly, all_errors)),
+            "test_anomaly_average_precision": float(average_precision_score(true_anomaly, all_errors)),
             "holdout_anomaly_recall": float(np.sum((anomaly_binary == 1) & (true_anomaly == 1)) / max(1, np.sum(true_anomaly == 1))),
             "holdout_normal_false_positive_rate": float(np.sum((anomaly_binary == 1) & (true_anomaly == 0)) / max(1, np.sum(true_anomaly == 0))),
             "mean_normalized_anomaly_score": float(np.mean(anomaly_scores)),
+        },
+        "reproducibility": {
+            "training_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "python": platform.python_version(), "numpy": np.__version__,
+            "scikit_learn": sklearn.__version__, "xgboost": xgboost.__version__,
+            "random_state": 113,
+            "algorithm_notes": "XGBoost 320 trees / max depth 5. MLPRegressor encoder-decoder 16-8-4-8-16 trained on normal-only behavior.",
+            "limitation": "Rule weights are illustrative; measured classifier accuracy is not an end-to-end threat-prevention success rate. No real-world external validation has been performed.",
         },
         "risk_fusion": {
             "rule_weight": 0.35,
@@ -397,11 +471,14 @@ def train() -> None:
             "bands": {"NORMAL": "0-29", "WATCH": "30-49", "SUSPICIOUS": "50-69", "HIGH": "70-84", "CRITICAL": "85-100"},
         },
     }
+    # Both endpoints and the public academic dashboard use this SAME evaluated
+    # metadata. The dashboard shows metrics, never private telemetry or secrets.
     (MODEL_DIR / "model_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     (DATA_DIR / "training_report.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
     print(json.dumps({
         "training_rows": len(y_train),
+        "validation_rows": len(y_validation),
         "holdout_rows": len(y_test),
         "xgboost_accuracy": metadata["xgboost"]["accuracy"],
         "xgboost_macro_f1": metadata["xgboost"]["macro_f1"],

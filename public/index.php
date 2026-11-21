@@ -21,7 +21,7 @@ if (!in_array($path, ['/', '/index.php'], true)) {
     exit;
 }
 
-require __DIR__ . '/../src/middleware.php';
-
-header('Location: /login.php');
+// The public academic assessment is isolated from privileged administration.
+// It contains synthetic evaluation artifacts only and does not require DB access.
+header('Location: /assessment/');
 exit;

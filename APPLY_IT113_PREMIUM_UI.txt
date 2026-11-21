@@ -1,0 +1,49 @@
+FORTRESSAUTH IT113 — WOLF LOGO RESTORE + PREMIUM ASSESSMENT UI
+=================================================================
+This is a design-only update for the Phase 1 login-free assessment workspace.
+No ML models, backend services, authentication rules, reports or private data
+were changed.
+
+HOW TO APPLY
+1. Keep your backed-up TankWeb-v3 folder and close the running server.
+2. Open this ZIP. You will see one top-level directory named TankWeb-v3.
+3. Copy/merge its CONTENTS onto your current TankWeb-v3 project folder.
+   When prompted, replace ONLY the three assessment UI files listed below.
+   The two original logo images are bundled to restore any missing assets.
+4. Start the project as before with "Start FortressAuth.bat".
+5. Open http://127.0.0.1:8082/assessment/ and hard-refresh (Ctrl+Shift+R).
+
+CHANGED UI FILES (project-relative paths)
+- public/assessment/index.html       Restored original wolf identity + redesigned layout
+- public/assessment/site.css         Premium dark styling, responsive UI and animations
+- public/assessment/site.js          Functional hero shortcuts + accessible mobile navigation
+
+ORIGINAL ASSETS INCLUDED UNCHANGED (from the old TankWeb-v3.zip)
+- public/images/wolf1.png            Wolf-with-dagger emblem used on sidebar / hero
+- public/images/wolf.png             Full wolf-with-dagger FortressAuth wordmark (preserved)
+
+Verified animations from old CSS (public/css/login.css):
+- logoFloat: gentle 5.5-second floating movement
+- glowDrift: soft 8-second ambient glow animation
+Extra animation: rotating orbit rings and fade-in transitions.
+Animations are reduced/disabled with prefers-reduced-motion accessibility setting.
+
+WHAT STAYS THE SAME
+- All Phase 1 datasets and model evaluation results
+- Login-free academic workspace /assessment/
+- Existing privileged PHP and React admin authentication (not exposed publicly)
+- Existing model API, training scripts, backend, reports, database and deployments
+
+DEPLOYMENT NOTE
+Local PHP automatically serves files from /public/assessment/.
+If deployed on Vercel, rerun your existing Vercel build/deployment so the
+updated public/assessment files are copied to vercel-dist/assessment/.
+The old private /app/ routes should still require authentication.
+
+TESTING
+- HTML views, IDs and static file references checked
+- Both image assets compared byte-for-byte to original TankWeb-v3.zip
+- JavaScript syntax and CSS parsing validated
+- Static local HTTP asset requests returned 200
+- Full graphical browser screenshot test wasn't available in this environment;
+  review visual rendering on your PC at desktop and mobile widths.

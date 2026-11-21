@@ -1,0 +1,62 @@
+FORTRESSAUTH / IT113 PHASE 3 COMPLETION PATCH
+=========================================
+
+This package updates ONLY the two unfinished Phase 3 tasks:
+  1) protected Threat Findings presentation in public/threats.php
+  2) React source / deployed bundle / PHP navigation synchronization
+
+INSTALLATION
+------------
+1. Your project must already contain Phase 1 + original wolf premium UI +
+   Phase 2 + Phase 3 files. Do NOT apply this patch to the old original zip.
+2. Back up your current TankWeb-v3 folder (you already made a backup earlier).
+3. Extract this ZIP, open the TankWeb-v3/ folder inside it, and merge its
+   contents into YOUR TankWeb-v3/ folder, preserving subdirectories.
+4. Replace only files with matching names. Do not delete other files.
+5. Local: start with 'Start FortressAuth.bat'.
+   Public research: http://127.0.0.1:8082/assessment/
+   Protected operations: /app/ (existing admin authentication still required).
+6. Use Ctrl+Shift+R after updating the local web application.
+7. If deploying, commit the changed source files and deploy the PHP backend
+   and Vercel frontend using the existing deployment pipelines.
+   scripts/build-vercel.mjs copies the new versioned React bundle to vercel-dist.
+
+IMPORTANT SAFETY NOTES
+----------------------
+- NO SQL scripts or schema changes are included in this patch.
+- NO .env or credentials are included. Do not share private credentials.
+- DO NOT run Phase 2 telemetry migration while Supabase is restoring.
+- The public /assessment/ remains a read-only synthetic-data workspace.
+- The actual /threats.php and /app/ remain administrator-protected.
+- If the database is offline, stored prediction data may show an empty state.
+- Production DB, session, and live deployment verification are still pending.
+- The new active deployed bundle has a unique filename to avoid stale immutable
+  cache: /app/assets/v3-fast-navigation-it113-20261120.js.
+- frontend/src/AppShell.jsx and deployed bundle were BOTH patched. Do not
+  overwrite the protected public/app/index.php entry or swap out the existing
+  parity runtime for a Vite build without regression testing.
+
+WHAT CHANGED
+------------
+  public/threats.php                     Model prediction cards and audit triage
+  src/it113_threat_guidance.php          Non-causal guidance for 7 ML classes
+  public/css/it113_phase3_completion.css Threat Findings styling
+  public/css/dashboard.css              Shared IT113 research nav styling
+  public/partials/command_header.php    Direct PHP admin navigation
+  frontend/src/components/AppShell.jsx  React source admin navigation
+  public/app/index.html                 New bundle + CSS references
+  public/app/assets/v3-fast-navigation-it113-20261120.js
+                                        New versioned active runtime bundle
+  tests/test_it113_phase3_completion.php Lightweight PHP guidance tests
+
+VALIDATE LOCALLY
+----------------
+php tests/test_it113_phase3_completion.php
+php -l public/threats.php
+php -l src/it113_threat_guidance.php
+php -l public/partials/command_header.php
+node --check public/app/assets/v3-fast-navigation-it113-20261120.js
+node scripts/build-vercel.mjs
+
+The dashboard may contain no live findings while Supabase is restoring.
+Do not insert or simulate production incident records to populate the view.

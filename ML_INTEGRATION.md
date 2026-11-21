@@ -1,3 +1,5 @@
+> **2026 Phase 2 update:** The ML API now refuses startup without a strong private token. The PHP client sends inference only to HTTPS remote URLs (or loopback/Docker HTTP). `python start_local.py` loads the root `.env` securely; `sql/ml_request_telemetry.sql` enables PostgreSQL-backed rolling telemetry. New academic deployments default to advisory-only ML. Follow `IT113_PHASE2_IMPLEMENTATION.md` for the authoritative setup and test results. Older example model metrics below describe historical training and should be superseded by `IT113_PHASE1_EVALUATION.md`.
+
 # FortressAuth Hybrid ML Integration
 
 ## What was added
@@ -56,7 +58,7 @@ Start the ML service in another terminal:
 ```bash
 cd ml-service
 pip install -r requirements.txt
-ML_SERVICE_TOKEN=choose-a-private-token uvicorn app:app --host 127.0.0.1 --port 8001
+python start_local.py
 ```
 
 Add matching settings to the root `.env`:
@@ -64,10 +66,10 @@ Add matching settings to the root `.env`:
 ```env
 ML_SERVICE_ENABLED=true
 ML_SERVICE_URL=http://127.0.0.1:8001
-ML_SERVICE_TOKEN=choose-a-private-token
+ML_SERVICE_TOKEN=<your independently generated 64-character hex secret>
 ML_TIMEOUT_MS=400
 ML_MIN_LOG_RISK=30
-ML_ASSISTED_ENFORCEMENT=true
+ML_ASSISTED_ENFORCEMENT=false
 ML_ASSISTED_STRIKE_RISK=65
 ML_ASSISTED_REPEAT_BLOCK_RISK=72
 ML_ASSISTED_IMMEDIATE_BLOCK_RISK=85

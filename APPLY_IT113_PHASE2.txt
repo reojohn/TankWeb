@@ -1,0 +1,23 @@
+FORTRESSAUTH — IT113 PHASE 2 CHANGED FILES (20 NOV 2026)
+
+This patch is for the Phase 1 build AFTER the Wolf Logo Premium UI update.
+Your wolf1.png / wolf.png and premium assessment layout are NOT overwritten.
+
+1. Extract the ZIP. Open the extracted TankWeb-v3 folder.
+2. Copy the contents into your actual TankWeb-v3 root; choose Replace for matches.
+3. Keep your existing PRIVATE .env. No .env file is included.
+4. Generate a strong shared ML token:
+      python -c "import secrets; print(secrets.token_hex(32))"
+   Put the same result in ML_SERVICE_TOKEN in your root .env and hosted ML env.
+5. Set ML_SERVICE_ENABLED=true and ML_ASSISTED_ENFORCEMENT=false in .env.
+6. Run the NEW sql/ml_request_telemetry.sql in Supabase SQL Editor (owner account).
+   Also verify earlier persistent_security_history.sql and ml_analysis_queue.sql.
+7. Install Python packages if needed: cd ml-service && python -m pip install -r requirements.txt
+8. Run Start FortressAuth.bat; open http://127.0.0.1:8082/assessment/
+9. Testing: cd ml-service && python -m unittest discover -s tests -v
+10. See IT113_PHASE2_IMPLEMENTATION.md for security, deployment and fallback notes.
+
+IMPORTANT: This patch is NOT a complete production rollout. No private Supabase,
+Render or Vercel integration was tested in this environment. Static public
+assessment remains synthetic/read-only. No passwords, tokens, private data or
+model files are included in the patch ZIP.

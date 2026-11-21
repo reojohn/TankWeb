@@ -113,6 +113,14 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>
+            <div class="it113-research-nav" aria-label="IT113 academic research links">
+                <p class="it113-research-nav-title"><i class="fa-solid fa-flask" aria-hidden="true"></i> IT113 Research</p>
+                <a href="/assessment/#dataset"><i class="fa-solid fa-database" aria-hidden="true"></i><span>Dataset Assessment</span></a>
+                <a href="/assessment/#evaluation"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Model Evaluation</span></a>
+                <a href="/assessment/#mitigations"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Threat Mitigations</span></a>
+                <a href="/assessment/#reports"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><span>Research Reports</span></a>
+                <small>Read-only synthetic results · no sign-in</small>
+            </div>
         </div>
     </nav>
 

@@ -5806,3 +5806,9 @@
   }
 }
 
+
+/* Phase 3 traceability: authenticated live evidence (not public research snapshot) */
+.ai-analysis-meta.phase3-trace-panel{display:flex;flex-wrap:wrap;gap:9px 17px;margin-top:11px;padding:12px 13px;border:1px solid rgba(160,111,218,.24);border-radius:12px;background:rgba(89,54,123,.08)}
+.phase3-trace-panel span{overflow-wrap:anywhere;font-size:11px}.phase3-trace-panel code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;color:#d9bcff}.phase3-trace-panel .phase3-truncated{color:#ffbcb7}
+.phase3-evidence-details{border:1px solid rgba(182,130,219,.22);padding:12px 16px;margin:12px 0;border-radius:12px;background:rgba(104,70,149,.08);color:#d3bee9}
+.phase3-evidence-details summary{cursor:pointer;font-weight:750;font-size:12px}.phase3-evidence-details p,.phase3-evidence-details li{font-size:11px;line-height:1.7}.phase3-evidence-details ul{padding-left:17px}

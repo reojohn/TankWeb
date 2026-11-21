@@ -1,0 +1,42 @@
+FORTRESSAUTH — IT113 PHASE 3 (OFFLINE-READY UI AND REPORTS)
+===========================================================
+
+PREREQUISITE: Already applied Phase 1, Wolf Logo Premium UI, and Phase 2
+changed-files ZIPs in that order. Do not apply directly to the original old
+TankWeb-v3 without these previous phases.
+
+INSTALL:
+1. Close the FortressAuth local server if running.
+2. Extract this archive.
+3. Copy the CONTENTS inside the archive's TankWeb-v3 folder onto your
+   current TankWeb-v3 project folder; agree to replace matching files.
+4. Do not overwrite or share your private .env; this archive has no .env.
+5. Run Start FortressAuth.bat; open http://127.0.0.1:8082/assessment/.
+6. Press Ctrl+Shift+R once to refresh browser caches.
+7. Open AI Defense and Research Reports from the sidebar.
+
+NO DATABASE CHANGES:
+- Do NOT run or repeat a Supabase restoration, reset, SQL migration or grant.
+- Phase 2 SQL migration (sql/ml_request_telemetry.sql) still waits until
+  restoration has ended and existing data can be verified.
+- The public login-free dashboard only uses synthetic model_summary.json and
+  evidence.json; it does not contact the private ML API or PostgreSQL.
+- Protected administrator routes and report_export.php retain login/CSRF.
+
+VERIFY:
+  cd ml-service
+  python -m unittest discover -s tests -v
+  cd ..
+  node --check public/assessment/site.js
+  node --check public/assessment/phase3.js
+  php -l public/ai_threat_intelligence.php
+  php -l src/report_exporter.php
+
+PDF GENERATION (OPTIONAL):
+  python -m pip install reportlab
+  python scripts/export_phase3_eval_pdf.py
+
+Phase 3 academic PDF is a MODEL EVALUATION BRIEF, not the complete Phase 5
+submission or proof of live incident detection.
+
+For a detailed file inventory, read IT113_PHASE3_IMPLEMENTATION.md.

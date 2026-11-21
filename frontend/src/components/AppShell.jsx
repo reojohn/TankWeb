@@ -351,6 +351,14 @@ export default function AppShell({ children }) {
                   {location.pathname === path && <span className="nav-active-rail" aria-hidden="true" />}
                 </NavLink>
               ))}
+              <div className="it113-research-nav" aria-label="IT113 academic research links">
+                <p className="it113-research-nav-title"><i className="fa-solid fa-flask" aria-hidden="true" /> IT113 Research</p>
+                <a href="/assessment/#dataset"><i className="fa-solid fa-database" aria-hidden="true" /><span>Dataset Assessment</span></a>
+                <a href="/assessment/#evaluation"><i className="fa-solid fa-chart-line" aria-hidden="true" /><span>Model Evaluation</span></a>
+                <a href="/assessment/#mitigations"><i className="fa-solid fa-shield-halved" aria-hidden="true" /><span>Threat Mitigations</span></a>
+                <a href="/assessment/#reports"><i className="fa-solid fa-file-lines" aria-hidden="true" /><span>Research Reports</span></a>
+                <small>Read-only synthetic results · no sign-in</small>
+              </div>
               <NavLink
                 className={({isActive}) => `nav-crown-jewel ${isActive ? 'active' : ''}`}
                 to="/vault"

@@ -1,0 +1,32 @@
+FORTRESSAUTH V3 - LAUNCHER PATCH ONLY
+
+This ZIP intentionally includes ONLY new files, not the application itself.
+
+INSTALL (do not replace your original project):
+1. Extract this ZIP somewhere temporary.
+2. Open the extracted TankWeb-v3 folder.
+3. Copy "Start FortressAuth.bat" into your EXISTING TankWeb-v3 project folder,
+   at the same level as public, ml-service, and .env.
+4. Double-click "Start FortressAuth.bat".
+
+EXPECTED STRUCTURE AFTER COPYING:
+TankWeb-v3/
+  Start FortressAuth.bat      <-- new file
+  public/                     <-- existing, unchanged
+  ml-service/                 <-- existing, unchanged
+  .env                        <-- existing, unchanged
+  (all your other existing files remain unchanged)
+
+MAIN SITE: http://127.0.0.1:8082/login.php
+ML HEALTH: http://127.0.0.1:8001/health
+
+NOTES:
+- PHP must be on PATH or in C:\xampp\php or C:\xampp3\php.
+- ML service requires installed Python packages from ml-service/requirements.txt.
+- If ML dependencies are missing, the launcher still starts the PHP site.
+- Your existing environment variables must point to the right local ML URL
+  (http://127.0.0.1:8001) if you want PHP-to-ML integration outside Docker.
+- Your database connection and PHP extensions still need to be configured.
+- This patch does not modify project code, credentials, or configuration.
+- Port 8082 / 8001 must be available; check the terminal if startup fails.
+- This launcher was checked against the ZIP structure, not run on Windows.

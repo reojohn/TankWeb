@@ -1,0 +1,108 @@
+{
+  "title": "FortressAuth IT113 Phase 4 Step 4 - Local Failure and Recovery",
+  "tested_at_utc": "2026-11-21T01:08:17+00:00",
+  "data_origin": "synthetic payload, isolated temporary PHP data",
+  "network_scope": "127.0.0.1 only; no Supabase or remote hosts",
+  "overall": "PASS",
+  "checks_passed": 18,
+  "checks_failed": 0,
+  "checks": [
+    {
+      "check": "ML API refuses startup with an unset token",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP rejects insecure remote HTTP ML URLs",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP refuses missing/placeholder service credentials",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Offline ML predictions are queued once without blocking PHP",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Outage queue contains one synthetic pending item",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Failed replay retains item with a retry backoff",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Recovered real ML server responds on loopback",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Sensitive endpoints reject anonymous/incorrect tokens",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "API rejects inconsistent rolling-window data",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP detects ML token disagreement without accepting a prediction",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP records 422 invalid-feature response safely",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Recovered service replays and clears the pending snapshot",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Recovered prediction retains trace, evidence and non-blocking history",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP discards mismatched-trace responses",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "PHP handles HTTP 503 without accepting a prediction",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Slow ML response is bounded by the PHP timeout",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Deterministic policy remains configured; AI enforcement stays advisory",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "check": "Service status evidence excludes secrets and destination URL",
+      "result": "PASS",
+      "detail": ""
+    }
+  ],
+  "model_version": "24112c5d14aaeac3",
+  "limitations": [
+    "Actual Supabase/PostgreSQL queue persistence and recovery were not tested.",
+    "A full deployed PHP session, security middleware and administrator UI were not exercised.",
+    "Timeouts and malformed responses were exercised with a loopback negative-response fixture.",
+    "Results are a controlled local integration test, not a production penetration test."
+  ]
+}

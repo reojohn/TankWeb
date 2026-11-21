@@ -1,0 +1,48 @@
+FORTRESSAUTH IT113 PHASE 4 - STEP 3: TEST ALL SEVEN THREAT CATEGORIES
+=====================================================================
+
+FILES IN THIS PATCH
+  ml-service/tests/run_phase4_category_scenarios.py   (new; no original file overwritten)
+
+HOW TO INSTALL
+1. Extract this ZIP.
+2. Copy its TankWeb-v3 contents into your existing cumulative TankWeb-v3 project.
+3. Open PowerShell in your TankWeb-v3 project root.
+4. Run:
+     python ml-service/tests/run_phase4_category_scenarios.py
+
+   Or, if you are already inside ml-service:
+     python tests/run_phase4_category_scenarios.py
+
+EXPECTED
+- Seven categories printed: NORMAL, BRUTE_FORCE, CREDENTIAL_STUFFING,
+  RECONNAISSANCE, WEB_ATTACK, MFA_ABUSE, SESSION_ABUSE.
+- Should display around 96.76% hold-out accuracy on the Phase 1 bundled models.
+- Should show both correct and misclassified counts; mismatches are expected.
+- Creates local synthetic evidence files in ml-service/phase4-results/:
+     phase4_scenario_evidence.csv
+     phase4_category_summary.json
+- Errors stop the script rather than claiming success.
+
+HOW IT WORKS
+- Validates all 10,500 rows in the independent SYNTHETIC held-out test set.
+- Recomputes XGBoost predictions and compares the whole confusion matrix to
+  the bundled saved metadata, detecting model/dataset mismatches.
+- Sends one correct and up to one incorrect example per category through the
+  REAL FastAPI /predict handler, running in-process using TestClient.
+- Requires the same bearer-token authorization check as normal inference.
+- Checks confidence, anomaly score, trace IDs, feature digest and model version.
+- Does NOT listen on any TCP port; no server/launcher or DB connection needed.
+- No Supabase project, production system, or security logs are read/written.
+
+SECURITY / INTERPRETATION
+- The examples are synthetic and do NOT simulate real unauthorized activity.
+- A correct sample for every class is selected as an illustration only.
+- All 10,500 held-out examples determine the objective accuracy result.
+- Some misclassifications are expected and must be documented honestly.
+- An anomaly score is not a causal attribution for an attack type.
+- Evidence files contain only synthetic data and derived numeric results.
+
+PLEASE SEND BACK
+- PowerShell output from running the script (without secrets),
+- and whether both CSV and JSON files were generated.
