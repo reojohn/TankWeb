@@ -24,6 +24,52 @@
   const metric=(label,value,note)=>`<div class="metric"><span class="metric-label">${esc(label)}</span><span class="metric-value">${esc(value)}</span><small>${esc(note)}</small></div>`;
   let model=null, samples=[], featureNames=[], entries=readLocal(), selectedTrace='', busy=false, queuedCsv=[], persistence=false, processingCsv=false, storeState='not_checked';
   let pair={active:false, role:null, members:0, max_members:2}, pairEnabled=false, inviteLink='';
+  // Public findings are NEVER merged into a visitor's mutable private history.
+  // This is the default view for instructors and anyone opening the live link.
+  let publicEntries=[], publicEnabled=false, publicError='', displayMode='public';
+  const viewEntries=()=>displayMode==='public'?publicEntries:entries;
+  function isPublicView(){return displayMode==='public';}
+  function updateModeControls(){
+    document.querySelectorAll('[data-project-mode]').forEach(button=>{
+      const active=button.dataset.projectMode===displayMode;
+      button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+    });
+    document.querySelectorAll('[data-project-mode-note]').forEach(node=>{
+      node.textContent=isPublicView()?(publicEnabled?
+        'Published synthetic project findings · visible to everyone · read-only. Only the two invited editors may change records.':
+        publicError||'The project has not been published yet. The research team must publish its workspace in Render.'):
+        (pair.active?'Team editing mode · changes are saved in the shared academic workspace.':'Your private sandbox · results are visible only in this browser session.');
+    });
+    const panel=$('pair-workspace-panel');if(panel)panel.hidden=isPublicView();
+    const clear=$('findings-clear');if(clear){clear.disabled=isPublicView()||pair.active;
+      clear.title=isPublicView()?'Public project findings cannot be cleared by visitors.':pair.active?'Shared findings cannot be cleared from one browser.':'Clear your private history';}
+    const refresh=$('findings-refresh');if(refresh)refresh.textContent=isPublicView()?'Refresh public project':'Refresh saved history';
+  }
+  async function syncPublic(){
+    try {
+      const response=await fetch('/it113_public_project.php',{cache:'no-store',credentials:'omit'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||data.ok!==true||data.read_only!==true)throw Error(data.error||`HTTP ${response.status}`);
+      publicEnabled=data.enabled===true;
+      publicEntries=publicEnabled&&Array.isArray(data.entries)?data.entries.filter(e=>e?.synthetic===true&&e.public_read_only===true&&categories.includes(e.classification)).map(normalized).slice(0,80):[];
+      publicError='';
+    }catch(e){publicEntries=[];publicEnabled=false;publicError='Published research is temporarily unavailable. Please retry later.';}
+    updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();renderPublicOverview();
+  }
+  function renderPublicOverview(){
+    const el=$('public-project-overview');if(!el)return;
+    const flagged=publicEntries.filter(e=>e.classification!=='NORMAL').length;
+    el.innerHTML=`<div class="panel-head"><h2>Public research findings</h2><span>LIVE PROJECT / READ-ONLY</span></div>
+      <p class="hint">Anyone with this website link can explore the team's published synthetic assessments and recommendations. New visitor tests stay private unless published by the research team.</p>
+      <div class="metric-grid">${metric('PUBLISHED ASSESSMENTS',num(publicEntries.length),publicEnabled?'Shared project evidence':'Not yet published')}${metric('FLAGGED PREDICTIONS',num(flagged),'Synthetic model findings')}${metric('MITIGATION FOLLOW-UPS',num(publicEntries.filter(e=>e.status!=='OPEN').length),'Recorded academic review statuses')}</div>
+      <div class="pair-controls-actions"><button class="primary-cta" type="button" data-go-to="findings">View public project findings ↗</button><button class="subtle-btn" type="button" data-go-to="reports">View published research report ↗</button></div>`;
+  }
+  function setDisplayMode(mode){
+    if(mode!=='public'&&mode!=='session')return;
+    displayMode=mode;selectedTrace='';updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();
+    if(mode==='public')syncPublic();else syncHistory();
+  }
+
   function readLocal(){ try { const x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x.filter(e=>e?.synthetic===true&&categories.includes(e.classification)).slice(0,80):[];} catch {return [];} }
   function saveLocal(){if(pair.active)return;try{localStorage.setItem(key,JSON.stringify(entries.slice(0,80)));}catch{/* unavailable */}}
   function normalized(e){return {...e, synthetic:true, status:e.status||'OPEN',revision:Number(e.revision||0),indicator_evidence:Array.isArray(e.indicator_evidence)?e.indicator_evidence:[]};}
@@ -31,6 +77,11 @@
   function setEngine(label,state){const e=$('live-engine-status');if(e){e.textContent=label;e.dataset.state=state;}}
   function storageBadge(){
     const e=$('store-status');if(!e)return;
+    if(isPublicView()){
+      e.innerHTML=publicEnabled?'<span class="storage-dot"></span><strong>Public project evidence</strong><span>Visible to everyone · read-only · synthetic data only. Private analyst notes are not published.</span>':
+        '<span class="storage-dot off"></span><strong>Public project unavailable</strong><span>'+esc(publicError||'The project has not been published yet.')+'</span>';
+      return;
+    }
     const messages={disabled:'Server persistence is disabled. Check IT113_DEMO_PERSISTENCE_ENABLED.',
       missing_database_config:'Database configuration is missing in the running PHP process.',
       pgsql_driver_missing:'PHP needs the pdo_pgsql driver.',
@@ -154,22 +205,23 @@
     }finally{processingCsv=false;$('csv-run').disabled=false;$('live-run-button').disabled=false;}
   }
   function renderFindings(){
-    const flagged=entries.filter(x=>x.classification!=='NORMAL').length;
-    $('findings-overview').innerHTML=metric('ANALYZED RECORDS',num(entries.length),pair.active?'Shared two-person database':persistence?'Private browser-scoped database':'Local browser history')+metric('FLAGGED PREDICTIONS',num(flagged),'Not confirmed incidents')+metric('NORMAL PREDICTIONS',num(entries.length-flagged),'Synthetic baseline')+metric('OPEN REVIEWS',num(entries.filter(e=>e.classification!=='NORMAL'&&e.status!=='RESOLVED').length),'Academic mitigation cases');
+    const visible=viewEntries();
+    const flagged=visible.filter(x=>x.classification!=='NORMAL').length;
+    $('findings-overview').innerHTML=metric('ANALYZED RECORDS',num(visible.length),isPublicView()?'Published research project':pair.active?'Shared two-person database':persistence?'Private browser-scoped database':'Local browser history')+metric('FLAGGED PREDICTIONS',num(flagged),'Not confirmed incidents')+metric('NORMAL PREDICTIONS',num(visible.length-flagged),'Synthetic baseline')+metric('OPEN REVIEWS',num(visible.filter(e=>e.classification!=='NORMAL'&&e.status!=='RESOLVED').length),'Academic mitigation cases');
     const list=$('findings-timeline');
-    if(!entries.length){list.innerHTML='<div class="empty-state"><span>◇</span><h3>No assessments recorded</h3><p>Analyze a curated sample or import numeric features in AI Defense to populate this timeline.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>';$('finding-detail').innerHTML='<p class="hint">Select an assessment to inspect evidence and recommendations.</p>';return;}
-    if(!entries.some(e=>e.trace_id===selectedTrace))selectedTrace=entries[0].trace_id;
-    list.innerHTML=entries.map(e=>`<button type="button" class="finding-row ${selectedTrace===e.trace_id?'active':''}" data-trace="${esc(e.trace_id)}"><div class="finding-row-icon ${e.classification==='NORMAL'?'icon-safe':'icon-risk'}">${e.classification==='NORMAL'?'✓':'!'}</div><div class="finding-row-main"><strong>${esc(pretty(e.classification))}</strong><small>${esc(e.sample_id||'NUMERIC_CSV')} · ${esc(new Date(e.at).toLocaleString())}</small></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span><b>${Number(e.risk_score).toFixed(1)}<small>/100</small></b><span class="finding-arrow">↗</span></button>`).join('');
+    if(!visible.length){list.innerHTML=isPublicView()?'<div class="empty-state"><span>◇</span><h3>No published project findings yet</h3><p>The research team can create a workspace and publish it for instructors and other visitors. Everyone can still inspect the model evaluation and run their own synthetic tests.</p></div>':'<div class="empty-state"><span>◇</span><h3>No assessments recorded</h3><p>Analyze a curated sample or import numeric features in AI Defense to populate this timeline.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>';$('finding-detail').innerHTML='<p class="hint">Select an assessment to inspect evidence and recommendations.</p>';return;}
+    if(!visible.some(e=>e.trace_id===selectedTrace))selectedTrace=visible[0].trace_id;
+    list.innerHTML=visible.map(e=>`<button type="button" class="finding-row ${selectedTrace===e.trace_id?'active':''}" data-trace="${esc(e.trace_id)}"><div class="finding-row-icon ${e.classification==='NORMAL'?'icon-safe':'icon-risk'}">${e.classification==='NORMAL'?'✓':'!'}</div><div class="finding-row-main"><strong>${esc(pretty(e.classification))}</strong><small>${esc(e.sample_id||'NUMERIC_CSV')} · ${esc(new Date(e.at).toLocaleString())}</small></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span><b>${Number(e.risk_score).toFixed(1)}<small>/100</small></b><span class="finding-arrow">↗</span></button>`).join('');
     showFinding(selectedTrace);
   }
   function showFinding(trace){
     selectedTrace=trace;document.querySelectorAll('[data-trace]').forEach(b=>b.classList.toggle('active',b.dataset.trace===trace));
-    const e=entries.find(x=>x.trace_id===trace);if(!e)return;
+    const e=viewEntries().find(x=>x.trace_id===trace);if(!e)return;
     const a=advice[e.classification]||advice.NORMAL;
     const showStatus=e.classification!=='NORMAL';
-    $('finding-detail').innerHTML=`<div class="finding-topline"><div><span class="section-micro">SYNTHETIC INFERENCE / ${e.database_written?'PRIVATE HISTORY':'BROWSER HISTORY'}</span><h3>${esc(pretty(e.classification))}</h3></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span></div><div class="finding-data-grid"><div><small>MODEL CONFIDENCE</small><b>${pct(e.confidence)}</b></div><div><small>HYBRID RISK</small><b>${Number(e.risk_score).toFixed(1)} / 100</b></div><div><small>TRUE TEST LABEL</small><b>${e.expected_label?esc(pretty(e.expected_label)):'Unlabeled'}</b></div><div><small>ANOMALY</small><b>${pct(e.anomaly_score)}</b></div></div><div class="finding-advice"><span class="section-micro">RECOMMENDATION / REVIEW ONLY</span><h4>${esc(a[0])}</h4><p>${esc(a[1])}</p></div><h4 class="finding-subhead">Supporting indicators</h4>${(e.indicator_evidence||[]).length?(e.indicator_evidence||[]).map(f=>`<div class="result-evidence-row"><span>${esc(f.description)}</span><b>${num(f.observed)}</b></div>`).join(''):'<p class="hint">No static threshold exceeded.</p>'}<div class="result-trace"><span>TRACE <code>${esc(e.trace_id)}</code></span><span>MODEL <code>${esc(e.model_version)}</code></span></div>${showStatus?`<div class="case-workflow"><div class="section-micro">MITIGATION TRACKING / ${e.database_written&&persistence?'PERSISTENT':'LOCAL ONLY'}</div><h4>Review status</h4><div class="case-form"><select id="case-status" class="premium-select" aria-label="Mitigation status">${states.map(st=>`<option ${st===(e.status||'OPEN')?'selected':''} ${transitions[e.status||'OPEN']?.includes(st)?'':'disabled'} value="${st}">${pretty(st)}</option>`).join('')}</select><input type="text" id="case-note" maxlength="240" placeholder="Optional analyst note (240 characters)" aria-label="Analyst note" /><button class="subtle-btn" type="button" id="case-save">Save status</button></div><p class="hint" id="case-feedback">These are academic follow-up actions, not automated enforcement.</p><div id="case-events" class="case-events"></div></div>`:''}<p class="hint">These are synthetic numeric behavior indicators, not verified network incidents or confirmed vulnerabilities.</p>`;
+    $('finding-detail').innerHTML=`<div class="finding-topline"><div><span class="section-micro">SYNTHETIC INFERENCE / ${isPublicView()?'PUBLIC PROJECT / READ-ONLY':e.database_written?'PRIVATE HISTORY':'BROWSER HISTORY'}</span><h3>${esc(pretty(e.classification))}</h3></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span></div><div class="finding-data-grid"><div><small>MODEL CONFIDENCE</small><b>${pct(e.confidence)}</b></div><div><small>HYBRID RISK</small><b>${Number(e.risk_score).toFixed(1)} / 100</b></div><div><small>TRUE TEST LABEL</small><b>${e.expected_label?esc(pretty(e.expected_label)):'Unlabeled'}</b></div><div><small>ANOMALY</small><b>${pct(e.anomaly_score)}</b></div></div><div class="finding-advice"><span class="section-micro">RECOMMENDATION / REVIEW ONLY</span><h4>${esc(a[0])}</h4><p>${esc(a[1])}</p></div><h4 class="finding-subhead">Supporting indicators</h4>${(e.indicator_evidence||[]).length?(e.indicator_evidence||[]).map(f=>`<div class="result-evidence-row"><span>${esc(f.description)}</span><b>${num(f.observed)}</b></div>`).join(''):'<p class="hint">No static threshold exceeded.</p>'}<div class="result-trace"><span>TRACE <code>${esc(e.trace_id)}</code></span><span>MODEL <code>${esc(e.model_version)}</code></span></div>${showStatus&&isPublicView()?`<div class="case-workflow"><div class="section-micro">PUBLIC CASE STATUS / READ-ONLY</div><h4>Mitigation status: ${esc(pretty(e.status||'OPEN'))}</h4><p class="hint">Only authorized research partners may edit the shared project. Private analyst notes and membership information are not public.</p></div>`:showStatus?`<div class="case-workflow"><div class="section-micro">MITIGATION TRACKING / ${e.database_written&&persistence?'PERSISTENT':'LOCAL ONLY'}</div><h4>Review status</h4><div class="case-form"><select id="case-status" class="premium-select" aria-label="Mitigation status">${states.map(st=>`<option ${st===(e.status||'OPEN')?'selected':''} ${transitions[e.status||'OPEN']?.includes(st)?'':'disabled'} value="${st}">${pretty(st)}</option>`).join('')}</select><input type="text" id="case-note" maxlength="240" placeholder="Optional analyst note (240 characters)" aria-label="Analyst note" /><button class="subtle-btn" type="button" id="case-save">Save status</button></div><p class="hint" id="case-feedback">These are academic follow-up actions, not automated enforcement.</p><div id="case-events" class="case-events"></div></div>`:''}<p class="hint">These are synthetic numeric behavior indicators, not verified network incidents or confirmed vulnerabilities.</p>`;
     $('case-save')?.addEventListener('click',()=>updateCase(trace));
-    if(showStatus&&e.database_written&&persistence)loadEvents(trace);
+    if(!isPublicView()&&showStatus&&e.database_written&&persistence)loadEvents(trace);
   }
   async function loadEvents(trace){
     try{
@@ -179,7 +231,8 @@
     }catch{/* history optional */}
   }
   async function updateCase(trace){
-    const e=entries.find(x=>x.trace_id===trace);if(!e)return;
+    if(isPublicView())return;
+    const e=viewEntries().find(x=>x.trace_id===trace);if(!e)return;
     const status=$('case-status')?.value;const note=$('case-note')?.value.trim()||'';const feedback=$('case-feedback');
     if(!states.includes(status)||!transitions[e.status||'OPEN']?.includes(status))return;
     $('case-save').disabled=true;
@@ -193,21 +246,24 @@
     const button=$('case-save');if(button)button.disabled=false;
   }
   function renderAnalytics(){
-    const labeled=entries.filter(e=>!!e.expected_label),matches=labeled.filter(e=>e.expected_label===e.classification).length;
-    $('analytics-overview').innerHTML=metric('HELD-OUT ACCURACY',model?pct(model.xgboost.accuracy):'—','Independent 10,500-record evaluation')+metric('RECENT ASSESSMENTS',num(entries.length),pair.active?'Two-person synthetic history':'Browser-scoped synthetic history')+metric('LABELED SAMPLE MATCHES',labeled.length?`${matches} / ${labeled.length}`:'—','Not real-world accuracy')+metric('CASE FOLLOW-UPS',num(entries.filter(e=>e.status==='INVESTIGATING'||e.status==='MITIGATED'||e.status==='RESOLVED').length),'Recorded academic review statuses');
+    const visible=viewEntries();
+    const labeled=visible.filter(e=>!!e.expected_label),matches=labeled.filter(e=>e.expected_label===e.classification).length;
+    $('analytics-overview').innerHTML=metric('HELD-OUT ACCURACY',model?pct(model.xgboost.accuracy):'—','Independent 10,500-record evaluation')+metric('RECENT ASSESSMENTS',num(visible.length),isPublicView()?'Public research project':pair.active?'Two-person synthetic history':'Browser-scoped synthetic history')+metric('LABELED SAMPLE MATCHES',labeled.length?`${matches} / ${labeled.length}`:'—','Not real-world accuracy')+metric('CASE FOLLOW-UPS',num(visible.filter(e=>e.status==='INVESTIGATING'||e.status==='MITIGATED'||e.status==='RESOLVED').length),'Recorded academic review statuses');
     if(model){$('analytics-recall').innerHTML=model.dataset.classes.map(cls=>{const r=Number(model.xgboost.classification_report[cls].recall)*100;return `<div class="analytic-bar"><div><span>${esc(pretty(cls))}</span><strong>${r.toFixed(2)}%</strong></div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,r))}%"></div></div></div>`;}).join('');}
-    const counts=Object.fromEntries(categories.map(cls=>[cls,0]));for(const e of entries)counts[e.classification]=(counts[e.classification]||0)+1;
-    const max=Math.max(1,...Object.values(counts));$('analytics-session').innerHTML=entries.length?categories.map(cls=>`<div class="analytic-bar"><div><span>${esc(pretty(cls))}</span><strong>${counts[cls]}</strong></div><div class="bar-track"><div class="bar-fill" style="width:${100*counts[cls]/max}%"></div></div></div>`).join(''):'<div class="empty-state"><span>⌁</span><h3>Nothing analyzed yet</h3><p>Run AI Defense to populate the dynamic distribution.</p></div>';
+    const counts=Object.fromEntries(categories.map(cls=>[cls,0]));for(const e of visible)counts[e.classification]=(counts[e.classification]||0)+1;
+    const max=Math.max(1,...Object.values(counts));$('analytics-session').innerHTML=visible.length?categories.map(cls=>`<div class="analytic-bar"><div><span>${esc(pretty(cls))}</span><strong>${counts[cls]}</strong></div><div class="bar-track"><div class="bar-fill" style="width:${100*counts[cls]/max}%"></div></div></div>`).join(''):'<div class="empty-state"><span>⌁</span><h3>Nothing analyzed yet</h3><p>Run AI Defense to populate the dynamic distribution.</p></div>';
   }
   function renderReport(){
+    const visible=viewEntries();
     const target=$('dynamic-report-preview');if(!target)return;
-    const flagged=entries.filter(e=>e.classification!=='NORMAL').length;
-    const labeled=entries.filter(e=>e.expected_label);const correct=labeled.filter(e=>e.expected_label===e.classification).length;
-    target.innerHTML=`<div class="dynamic-report-lead"><div class="section-micro">GENERATED ${esc(new Date().toLocaleString())}</div><h3>${pair.active?'Shared research pair':'Academic'} assessment summary</h3><p>${num(entries.length)} actual model inference(s) on synthetic numeric behavior; ${flagged} flagged predictions. Results are advisory, and no real incidents were evaluated.</p><p>${labeled.length?`${correct}/${labeled.length} labeled curated examples matched. This is not the model's held-out test accuracy.`:'No ground-truth labels were provided for the current records.'}</p></div><div class="table-scroll"><table class="dynamic-table"><thead><tr><th>Classification</th><th>Risk</th><th>Confidence</th><th>Case status</th><th>Source</th></tr></thead><tbody>${entries.length?entries.slice(0,30).map(e=>`<tr><td>${esc(pretty(e.classification))}</td><td>${Number(e.risk_score).toFixed(1)}</td><td>${pct(e.confidence)}</td><td>${esc(pretty(e.status))}</td><td>${esc(e.source_type==='numeric_csv'?'Numeric CSV':'Curated sample')}</td></tr>`).join(''):'<tr><td colspan="5">Analyze a synthetic sample to populate this live report.</td></tr>'}</tbody></table></div><p class="hint">Model version: ${esc(entries[0]?.model_version||'No run yet')}. Held-out evaluation and dynamically analyzed records are separate sources. Maximum 30 findings displayed in this print preview; JSON/CSV exports include the bounded current history.</p>`;
+    const flagged=visible.filter(e=>e.classification!=='NORMAL').length;
+    const labeled=visible.filter(e=>e.expected_label);const correct=labeled.filter(e=>e.expected_label===e.classification).length;
+    target.innerHTML=`<div class="dynamic-report-lead"><div class="section-micro">GENERATED ${esc(new Date().toLocaleString())}</div><h3>${isPublicView()?'Published public project':pair.active?'Shared research pair':'Personal academic'} assessment summary</h3><p>${num(visible.length)} actual model inference(s) on synthetic numeric behavior; ${flagged} flagged predictions. Results are advisory, and no real incidents were evaluated.</p><p>${labeled.length?`${correct}/${labeled.length} labeled curated examples matched. This is not the model's held-out test accuracy.`:'No ground-truth labels were provided for the current records.'}</p></div><div class="table-scroll"><table class="dynamic-table"><thead><tr><th>Classification</th><th>Risk</th><th>Confidence</th><th>Case status</th><th>Source</th></tr></thead><tbody>${visible.length?visible.slice(0,30).map(e=>`<tr><td>${esc(pretty(e.classification))}</td><td>${Number(e.risk_score).toFixed(1)}</td><td>${pct(e.confidence)}</td><td>${esc(pretty(e.status))}</td><td>${esc(e.source_type==='numeric_csv'?'Numeric CSV':'Curated sample')}</td></tr>`).join(''):'<tr><td colspan="5">Analyze a synthetic sample to populate this live report.</td></tr>'}</tbody></table></div><p class="hint">Model version: ${esc(visible[0]?.model_version||'No run yet')}. Held-out evaluation and dynamically analyzed records are separate sources. Maximum 30 findings displayed in this print preview; JSON/CSV exports include the bounded current history.</p>`;
   }
-  function exportJson(){download('fortressauth-it113-dynamic-findings.json',JSON.stringify({source:'IT113 synthetic numeric academic assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:pair.active?'shared_pair':persistence?'private_session':'browser_only',entries},null,2),'application/json');}
-  function exportCsv(){const cols=['at','source_type','sample_id','expected_label','classification','confidence','risk_score','anomaly_score','severity','status','model_version','trace_id'];const csv=[cols.join(','),...entries.map(e=>cols.map(k=>`"${String(e[k]??'').replace(/"/g,'""')}"`).join(','))].join('\r\n');download('fortressauth-it113-dynamic-findings.csv',csv,'text/csv');}
+  function exportJson(){download('fortressauth-it113-dynamic-findings.json',JSON.stringify({source:'IT113 synthetic numeric academic assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:isPublicView()?'public_project_read_only':pair.active?'shared_pair':persistence?'private_session':'browser_only',entries:viewEntries()},null,2),'application/json');}
+  function exportCsv(){const cols=['at','source_type','sample_id','expected_label','classification','confidence','risk_score','anomaly_score','severity','status','model_version','trace_id'];const csv=[cols.join(','),...viewEntries().map(e=>cols.map(k=>`"${String(e[k]??'').replace(/"/g,'""')}"`).join(','))].join('\r\n');download('fortressauth-it113-dynamic-findings.csv',csv,'text/csv');}
   async function clearHistory(){
+    if(isPublicView()){window.alert('Public project records are read-only. Switch to My Session to manage your own history.');return;}
     if(pair.active){window.alert('Shared research findings cannot be cleared from one browser. The owner can remove a partner instead.');return;}
     if(!entries.length)return;
     if(!window.confirm('Delete your current demo history? This removes server-saved findings for this anonymous browser too, if enabled.'))return;
@@ -222,7 +278,7 @@
     const badge=$('pair-seat-badge'),host=$('pair-workspace-controls');if(!badge||!host)return;
     badge.textContent=pair.active?`${pair.members}/2 MEMBERS · ${String(pair.role||'').toUpperCase()}`:'PRIVATE MODE';
     badge.dataset.active=String(pair.active);
-    const clear=$('findings-clear');if(clear){clear.disabled=pair.active;clear.title=pair.active?'Clearing all shared findings is disabled.':"Clear this browser's private history";}
+    const clear=$('findings-clear');if(clear){clear.disabled=isPublicView()||pair.active;clear.title=isPublicView()?'Public project findings cannot be cleared.':pair.active?'Clearing all shared findings is disabled.':"Clear this browser's private history";}
     if(!pairEnabled){host.innerHTML='<p class="pair-warning">Pair sharing is not enabled on this server. Your private assessment history remains available.</p>';return;}
     if(!pair.active){
       host.innerHTML=`<label><input type="checkbox" id="pair-import-private" /> Include my existing <b>server-saved private findings</b> when creating a shared workspace</label>
@@ -239,7 +295,12 @@
       <span class="pair-member-chip">${pair.members} of 2 research seats occupied</span></div>
       <div class="pair-controls-actions">${pair.role==='owner'?(pair.members===1?'<button type="button" class="primary-cta" id="pair-invite">Generate private invite ↗</button>':'<button type="button" class="subtle-btn danger" id="pair-remove">Remove partner access</button>'):'<button type="button" class="subtle-btn danger" id="pair-leave">Leave shared workspace</button>'}
       <button type="button" class="subtle-btn" id="pair-refresh">Refresh team history</button></div>
-      <p class="pair-warning">One workspace, two approved browser sessions. Invitation links work once and expire after 48 hours. Shared findings and notes are visible to both partners. No raw traffic or personal records are shared.</p>`;
+      <p class="pair-warning">One workspace, two authorized editors. Once you pin this workspace ID in Render and enable public publication, its synthetic assessments and mitigation statuses become visible to everyone. Private analyst notes remain restricted. New visitor experiments stay private.</p>
+      ${pair.role==='owner'?`<div class="pair-publication"><b>Publication setup · workspace ID</b><code id="pair-workspace-id">${esc(pair.workspace_id||'')}</code><button type="button" class="subtle-btn" id="pair-copy-id">Copy ID for Render</button><small>Only the owner should set IT113_PUBLIC_PROJECT_WORKSPACE_ID on Render. Do not publish a different visitor's workspace.</small></div>`:''}`;
+    $('pair-copy-id')?.addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(pair.workspace_id);pairMessage('Workspace ID copied. Paste it into Render as IT113_PUBLIC_PROJECT_WORKSPACE_ID.');}
+      catch{window.prompt('Workspace ID:',pair.workspace_id);}
+    });
     if(inviteLink&&pair.role==='owner'&&pair.members===1){
       const actions=document.createElement('div');actions.className='pair-controls-actions';
       actions.innerHTML='<span class="pair-member-chip">Invite ready · expires in 48 hours · one use</span><button type="button" class="subtle-btn" id="pair-copy">Copy invitation link</button>';
@@ -305,7 +366,8 @@
   $('csv-input')?.addEventListener('change',ev=>importCsv(ev.target.files?.[0]));
   $('csv-run')?.addEventListener('click',analyzeCsv);
   $('findings-timeline')?.addEventListener('click',e=>{const b=e.target.closest('[data-trace]');if(b)showFinding(b.dataset.trace);});
-  $('findings-refresh')?.addEventListener('click',()=>syncHistory());
+  $('findings-refresh')?.addEventListener('click',()=>isPublicView()?syncPublic():syncHistory());
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-project-mode]');if(b)setDisplayMode(b.dataset.projectMode);});
   $('findings-clear')?.addEventListener('click',clearHistory);
   $('findings-export')?.addEventListener('click',exportJson);
   $('report-export-session')?.addEventListener('click',exportJson);
@@ -322,5 +384,5 @@
     sel.addEventListener('change',()=>{const s=samples.find(x=>x.id===sel.value);$('live-sample-note').textContent=s?`Expected label: ${pretty(s.true_label)} · ${s.correct?'Correct':'Misclassified'} during saved evaluation · 20 features`:'';});sel.dispatchEvent(new Event('change'));
     renderAnalytics();setEngine('READY FOR REAL INFERENCE','ready');
   }).catch(e=>{setEngine('EVIDENCE UNAVAILABLE','error');$('live-result').textContent=`Unable to load synthetic catalog: ${e.message}`;});
-  initializePair();
+  initializePair();syncPublic();
 })();

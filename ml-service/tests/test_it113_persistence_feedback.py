@@ -27,8 +27,8 @@ class StoreFeedbackContracts(unittest.TestCase):
         self.assertIn('database_write_failed', js)
         self.assertIn('persistence_status', js)
         self.assertIn('Private Supabase history active', js)
-        self.assertIn('it113-live.js?v=7', html)
-        self.assertIn('it113-premium.css?v=7', html)
+        self.assertIn('it113-live.js?v=8', html)
+        self.assertIn('it113-premium.css?v=8', html)
 
     def test_launcher_clears_stale_local_process_overrides_only_with_dotenv(self):
         bat=(ROOT/'Start FortressAuth.bat').read_text(encoding='utf-8')

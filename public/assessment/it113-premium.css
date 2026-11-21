@@ -130,3 +130,22 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .pair-warning{font-size:11px!important;color:#a9a0b8!important}
 @media(max-width:720px){.pair-workspace{padding:17px}.pair-workspace-heading{flex-direction:column}.pair-workspace h2{font-size:19px}.pair-controls-actions .primary-cta,.pair-controls-actions .subtle-btn{flex:1}}
 @media print{.pair-workspace{display:none!important}}
+
+/* Public project front door: visitors see published synthetic research without login.
+   Editing controls remain behind the pair membership session. */
+.project-view-switch{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:0 0 18px;padding:12px 16px;border:1px solid rgba(180,131,241,.3);border-radius:16px;background:linear-gradient(120deg,rgba(60,37,89,.52),rgba(19,24,41,.76));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.project-view-buttons{display:inline-flex;gap:5px;padding:4px;border:1px solid rgba(186,142,239,.21);border-radius:12px;background:rgba(14,10,28,.65)}
+.project-mode-button{font:inherit;border:0;border-radius:9px;background:transparent;color:#baaccf;padding:10px 14px;cursor:pointer;font-size:12px;font-weight:760;transition:background .16s,color .16s}
+.project-mode-button:hover{color:#f7eeff;background:rgba(180,130,248,.13)}
+.project-mode-button.active{background:linear-gradient(115deg,#9b6ad4,#c49af9);color:#1a1127;box-shadow:0 4px 18px rgba(163,106,221,.22)}
+.project-view-switch p{color:#c6b5d8;font-size:11px;line-height:1.6;max-width:570px;margin:0}
+.public-research-hero{margin:0 0 19px;border-color:rgba(162,111,222,.34);background:linear-gradient(120deg,rgba(56,34,83,.5),rgba(24,23,45,.78))}
+.public-research-hero .metric-grid{margin:14px 0 16px}
+.public-research-hero .pair-controls-actions{margin-top:13px}
+.pair-publication{display:flex;flex-wrap:wrap;gap:9px;align-items:center;border:1px solid rgba(187,151,234,.26);background:rgba(10,8,22,.45);border-radius:12px;padding:13px}
+.pair-publication b{color:#e8d5fc;font-size:12px}
+.pair-publication code{color:#a7ead6;font-size:11px;overflow-wrap:anywhere}
+.pair-publication small{flex-basis:100%;color:#b3a6c5;font-size:11px}
+#pair-workspace-panel[hidden]{display:none!important}
+@media(max-width:720px){.project-view-switch{align-items:stretch;padding:11px}.project-view-buttons{width:100%}.project-mode-button{flex:1;padding:10px 7px;font-size:11px}}
+@media print{.project-view-switch,.public-research-hero{display:none!important}}
