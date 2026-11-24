@@ -8,11 +8,11 @@ function fortress_render_security_error(int $status, string $reason = 'request_b
     $status = in_array($status, [400, 401, 403, 404, 405, 429], true) ? $status : 403;
 
     $copy = [
-        400 => ['Request Rejected', 'The request could not be accepted by the FortressAuth security gateway.', 'fa-triangle-exclamation'],
+        400 => ['Request Rejected', 'The request could not be accepted by the Aegis AI security gateway.', 'fa-triangle-exclamation'],
         401 => ['Authentication Required', 'A verified authentication session is required to continue.', 'fa-user-shield'],
-        403 => ['Access Forbidden', 'FortressAuth blocked this request because the required security authorization was not satisfied.', 'fa-shield-halved'],
-        404 => ['Route Concealed', 'The requested route is not exposed by FortressAuth. Unknown-path probes are intercepted and may be recorded as reconnaissance evidence.', 'fa-crosshairs'],
-        405 => ['Method Blocked', 'The HTTP method used for this request is not permitted by the FortressAuth security policy.', 'fa-hand'],
+        403 => ['Access Forbidden', 'Aegis AI blocked this request because the required security authorization was not satisfied.', 'fa-shield-halved'],
+        404 => ['Route Concealed', 'The requested route is not exposed by Aegis AI. Unknown-path probes are intercepted and may be recorded as reconnaissance evidence.', 'fa-crosshairs'],
+        405 => ['Method Blocked', 'The HTTP method used for this request is not permitted by the Aegis AI security policy.', 'fa-hand'],
         429 => ['Request Rate Limited', 'Too many security-sensitive requests were detected. Access has been temporarily restricted.', 'fa-gauge-high'],
     ];
 
@@ -85,7 +85,7 @@ function fortress_render_security_error(int $status, string $reason = 'request_b
             <div class="security-error-recon-copy">
                 <small>PERIMETER RESPONSE</small>
                 <strong>Unknown route intercepted</strong>
-                <span>FortressAuth disclosed no protected resource details.</span>
+                <span>Aegis AI disclosed no protected resource details.</span>
             </div>
         </div>
 HTML : '';
@@ -115,7 +115,7 @@ HTML : '';
 <meta name="theme-color" content="#160817">
 <meta name="robots" content="noindex,nofollow">
 {$redirectHead}
-<title>FortressAuth — {$statusEsc} {$titleEsc}</title>
+<title>Aegis AI — {$statusEsc} {$titleEsc}</title>
 <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
 <link rel="stylesheet" href="/css/all.min.css">
 <link rel="stylesheet" href="/css/security_error.css">
@@ -126,9 +126,9 @@ HTML : '';
 <div class="security-error-ambient two" aria-hidden="true"></div>
 <main class="security-error-shell">
     <section class="security-error-card" role="alert" aria-live="assertive">
-        <div class="security-error-brand"><img src="/images/wolf1.png" alt=""><span><small>SECURE ACCESS</small><strong>FortressAuth</strong></span></div>
+        <div class="security-error-brand"><img src="/images/wolf1.png" alt=""><span><small>SECURE ACCESS</small><strong>Aegis AI</strong></span></div>
         <div class="security-error-beacon"><i class="fa-solid {$iconEsc}"></i><span></span></div>
-        <div class="security-error-code">FORTRESSAUTH · PERIMETER GATEWAY · HTTP {$statusEsc}</div>
+        <div class="security-error-code">AEGIS AI · PERIMETER GATEWAY · HTTP {$statusEsc}</div>
         <h1>{$titleEsc}</h1>
         <p>{$messageEsc}</p>
         {$reconPanel}

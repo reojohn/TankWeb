@@ -97,11 +97,11 @@
       balanced: {
         title: 'Balanced',
         label: 'ENGINE READY',
-        description: 'Current FortressAuth policy with strong protection and measured automated enforcement.',
+        description: 'Current Aegis AI policy with strong protection and measured automated enforcement.',
         iconPath: '/images/balanced.png',
       },
       fortress_boost: {
-        title: 'Fortress Boost',
+        title: 'Aegis Boost',
         label: 'BOOST ACTIVE',
         description: 'High-alert defense profile with faster corroborated blocking and accelerated ML replay.',
         iconPath: '/images/fortressboost.png',
@@ -299,7 +299,7 @@
 
         if (overlayTitle) {
           overlayTitle.textContent = mode === 'fortress_boost'
-            ? 'ENGAGING FORTRESS BOOST'
+            ? 'ENGAGING AEGIS BOOST'
             : mode === 'balanced'
               ? 'CALIBRATING BALANCED DEFENSE'
               : 'APPLYING STANDARD DEFENSE';
@@ -330,7 +330,7 @@
             return;
           }
           if (!response.ok || payload.ok === false) {
-            throw new Error(payload.message || 'FortressAuth could not change the defense profile.');
+            throw new Error(payload.message || 'Aegis AI could not change the defense profile.');
           }
 
           const activeMode = payload?.data?.mode || mode;
@@ -652,7 +652,7 @@
   };
 
   const drawGlassPlot = (ctx, left, top, graphWidth, graphHeight) => {
-    // Reference-inspired recessed chart surface, kept in FortressAuth purple glass.
+    // Reference-inspired recessed chart surface, kept in Aegis AI purple glass.
     ctx.save();
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(left, top, graphWidth, graphHeight, 18);

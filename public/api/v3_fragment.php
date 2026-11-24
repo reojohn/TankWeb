@@ -24,7 +24,7 @@ if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {
     http_response_code(405);
     header('Allow: GET');
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'FortressAuth page fragments are read-only.';
+    echo 'Aegis AI page fragments are read-only.';
     exit;
 }
 
@@ -32,7 +32,7 @@ $page = strtolower(trim((string)($_GET['page'] ?? 'dashboard')));
 if (!isset($allowed[$page])) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'Unknown FortressAuth page fragment.';
+    echo 'Unknown Aegis AI page fragment.';
     exit;
 }
 
@@ -52,7 +52,7 @@ $endPos = strrpos($html, $endNeedle);
 if ($hostPos === false || $endPos === false || $endPos <= $hostPos) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'FortressAuth could not extract the requested page content.';
+    echo 'Aegis AI could not extract the requested page content.';
     exit;
 }
 
@@ -60,7 +60,7 @@ $fragmentStart = strpos($html, '</div>', $hostPos);
 if ($fragmentStart === false) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'FortressAuth could not locate the page content boundary.';
+    echo 'Aegis AI could not locate the page content boundary.';
     exit;
 }
 $fragmentStart += strlen('</div>');

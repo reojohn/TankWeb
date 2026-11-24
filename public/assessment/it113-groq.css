@@ -6,7 +6,7 @@
 .it113-groq-panel .groq-subheading{font-size:1.05rem;font-weight:700;margin:8px 0}
 .it113-groq-panel .groq-chat-messages{display:flex;flex-direction:column;gap:11px;max-height:420px;overflow:auto;scroll-behavior:smooth;padding:14px 3px;min-height:70px}
 .it113-groq-panel .groq-chat-turn{padding:12px 15px;border:1px solid rgba(166,157,218,.22);border-radius:12px;max-width:95%;overflow-wrap:anywhere}
-.it113-groq-panel .groq-chat-turn strong{display:block;margin-bottom:6px;font-size:.82rem}
+.it113-groq-panel .groq-chat-turn > strong{display:block;margin-bottom:6px;font-size:.82rem}
 .it113-groq-panel .groq-chat-turn p{margin:0;white-space:pre-wrap;line-height:1.55}
 .it113-groq-panel .groq-chat-turn--user{align-self:flex-end;background:rgba(147,126,232,.15)}
 .it113-groq-panel .groq-chat-turn--assistant{align-self:flex-start;background:rgba(65,75,107,.13)}
@@ -43,6 +43,190 @@
 .it113-groq-panel .groq-evidence-table td{background:rgba(26,22,43,.33)}
 .it113-groq-panel .groq-evidence-table tr:nth-child(even) td{background:rgba(129,97,181,.07)}
 .it113-groq-panel .groq-evidence-table tbody tr:last-child td{border-bottom:0}
-.it113-groq-panel .groq-chat-turn .groq-rich-content p{margin:6px 0}
+.it113-groq-panel .groq-chat-turn .groq-rich-content p{margin:6px 0;white-space:normal}
 .it113-groq-panel .groq-chat-turn .groq-rich-content .groq-section-title{font-size:.96rem;margin:13px 0 8px}
 @media(max-width:520px){.it113-groq-panel .groq-result{padding:13px}.it113-groq-panel .groq-evidence-table{font-size:.82rem}.it113-groq-panel .groq-evidence-table td,.it113-groq-panel .groq-evidence-table th{padding:9px 10px}}
+/* Non-sensitive model identity from the Python service (API-reported when present). */
+.it113-groq-panel .groq-api-model-note{font-size:.79rem;color:#b8ecd2;line-height:1.45;margin:-6px 0 14px;overflow-wrap:anywhere}
+
+/* Inline emphasis must remain inline inside chat answers, not turn into full-width blocks. */
+.it113-groq-panel .groq-chat-turn .groq-rich-content strong{display:inline;margin:0;font-size:inherit}
+
+/* v4: premium assessment / conversation workspace. Scoped to this one panel. */
+.it113-groq-panel{
+  position:relative;overflow:hidden;isolation:isolate;
+  padding:clamp(19px,2.1vw,30px)!important;
+  background:radial-gradient(ellipse at 94% -7%,rgba(168,102,232,.17),transparent 43%),linear-gradient(140deg,#211630 0%,#161022 54%,#130e20 100%)!important;
+  border:1px solid rgba(194,151,241,.33)!important;
+  border-radius:24px!important;
+  box-shadow:0 22px 58px rgba(4,2,13,.21),inset 0 1px rgba(255,255,255,.07)!important;
+}
+.it113-groq-panel:before{
+  content:"";position:absolute;inset:0 0 auto;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,transparent 2%,rgba(197,138,255,.75) 35%,rgba(124,224,191,.45) 70%,transparent);
+}
+.it113-groq-panel button:focus-visible,.it113-groq-panel textarea:focus-visible{
+  outline:2px solid #d5adff;outline-offset:3px;
+}
+.it113-groq-panel .groq-panel-top{display:flex;align-items:center;gap:16px;margin:1px 0 18px;min-width:0}
+.it113-groq-panel .groq-brand-icon{
+  display:grid;place-items:center;flex:0 0 53px;width:53px;height:53px;
+  color:#f1dcff;border:1px solid rgba(205,165,255,.42);border-radius:16px;
+  background:linear-gradient(135deg,rgba(180,119,243,.28),rgba(94,54,157,.12));
+  box-shadow:0 10px 30px rgba(164,103,236,.14),inset 0 1px rgba(255,255,255,.09);
+}
+.it113-groq-panel .groq-brand-icon svg{width:27px;height:27px}
+.it113-groq-panel .groq-panel-titles{min-width:0;flex:1}
+.it113-groq-panel .groq-overline{font-size:9px;letter-spacing:1.9px;font-weight:800;color:#bfa1db;margin:0 0 6px}
+.it113-groq-panel .groq-overline span{padding:0 5px;opacity:.5}
+.it113-groq-panel #groq-title{font-size:clamp(17px,1.6vw,22px);letter-spacing:-.3px;line-height:1.25;margin:0 0 7px;color:#f6edff}
+.it113-groq-panel .groq-title-plus{color:#d2a1ff}
+.it113-groq-panel .groq-panel-titles p{font-size:12px;line-height:1.65;margin:0;color:#c3b0d7}
+.it113-groq-panel .groq-privacy-pill{
+  align-self:flex-start;display:inline-flex;gap:7px;align-items:center;flex:0 0 auto;
+  padding:8px 11px;border-radius:99px;font-size:10px;letter-spacing:.15px;font-weight:700;
+  color:#a5eed1;background:rgba(39,113,88,.16);border:1px solid rgba(100,206,163,.2);
+}
+.it113-groq-panel .groq-pill-dot{width:6px;height:6px;border-radius:50%;background:#73dbb6;box-shadow:0 0 9px #6ee2b7}
+.it113-groq-panel .groq-disclosure{display:flex;align-items:flex-start;gap:10px;margin-bottom:23px;padding:12px 14px;border:1px solid rgba(194,155,243,.15);border-radius:12px;background:rgba(171,119,220,.045)}
+.it113-groq-panel .groq-disclosure>span{color:#caa3f5;font-size:16px;line-height:1.3}
+.it113-groq-panel .groq-disclosure p{margin:0;font-size:11.5px;color:#ad9cbf;line-height:1.65}
+.it113-groq-panel .groq-analyst-card,.it113-groq-panel .groq-chat-card{
+  padding:19px;min-width:0;
+  border:1px solid rgba(190,156,229,.2);border-radius:17px;
+  background:linear-gradient(150deg,rgba(20,15,35,.79),rgba(16,13,28,.85));
+  box-shadow:inset 0 1px rgba(255,255,255,.028);
+}
+.it113-groq-panel .groq-chat-card{margin-top:17px}
+.it113-groq-panel .groq-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.it113-groq-panel .groq-card-eyebrow{display:block;font-weight:800;letter-spacing:1.6px;font-size:9px;color:#ac92ca;margin-bottom:5px}
+.it113-groq-panel #groq-assessment-title{margin:0;font-weight:800;font-size:15px;color:#f6ebff}
+.it113-groq-panel .groq-private-tag{flex:0 0 auto;border:1px solid rgba(180,151,218,.24);padding:6px 9px;border-radius:7px;color:#b9a3cf;font-size:10px;font-weight:700}
+.it113-groq-panel .groq-choices{display:flex;align-items:center;gap:13px;margin:0 0 14px}
+.it113-groq-panel #groq-run-analyst{min-height:42px;gap:9px;white-space:normal;text-align:center}
+.it113-groq-panel .groq-btn-spark{font-size:14px;line-height:1}
+.it113-groq-panel .groq-status{font-size:11px;color:#b8a8cb;line-height:1.55;min-width:0;overflow-wrap:anywhere}
+.it113-groq-panel #groq-status[data-kind="pending"]{color:#ebd7ff}
+.it113-groq-panel #groq-status[data-kind="error"]{color:#f6a2ac}
+.it113-groq-panel #groq-status[data-kind="success"]{color:#a2e7cb}
+.it113-groq-panel #groq-status[data-kind="fallback"]{color:#efd29a}
+.it113-groq-panel .groq-result{
+  padding:19px;margin:0;min-height:115px;max-height:510px;overflow-y:auto;overflow-x:hidden;
+  border:1px solid rgba(194,157,240,.21);border-radius:13px;
+  background:linear-gradient(135deg,rgba(17,13,29,.94),rgba(22,16,37,.91));
+  scrollbar-width:thin;scrollbar-color:#665077 transparent;
+}
+.it113-groq-panel .groq-placeholder{min-height:90px;display:flex;align-items:center;justify-content:center;gap:12px;color:#a99abb;text-align:center}
+.it113-groq-panel .groq-placeholder>span{font-size:27px;color:#b88fe4}
+.it113-groq-panel .groq-placeholder p{max-width:420px;margin:0;line-height:1.65;font-size:12px}
+.it113-groq-panel .groq-model-summary{background:linear-gradient(100deg,rgba(136,87,198,.2),rgba(97,57,158,.085));padding:14px 15px;border-radius:11px;margin:0 0 17px;color:#f2dfff}
+.it113-groq-panel .groq-rich-content .groq-section-title{font-size:1rem}
+.it113-groq-panel .groq-chat-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}
+.it113-groq-panel .groq-chat-header-left{display:flex;gap:11px;align-items:center;min-width:0}
+.it113-groq-panel .groq-chat-icon{display:grid;place-items:center;flex:0 0 35px;width:35px;height:35px;border-radius:11px;background:rgba(171,123,232,.13);color:#d7b6ff;border:1px solid rgba(193,151,244,.21)}
+.it113-groq-panel .groq-chat-icon svg{width:19px;height:19px}
+.it113-groq-panel #groq-chat-title{margin:0;color:#f4e9ff;font-size:15px;font-weight:800}
+.it113-groq-panel .groq-chat-header-left p{margin:3px 0 0;font-size:11px;color:#9d8fb2}
+.it113-groq-panel .groq-clear-button{flex:0 0 auto;background:rgba(151,104,199,.08)}
+.it113-groq-panel .groq-chat-messages{
+  min-height:76px;max-height:470px;margin:0 0 12px;padding:15px;gap:14px;overflow-y:auto;overflow-x:hidden;
+  scroll-behavior:auto;scrollbar-width:thin;scrollbar-color:#6d4c8b transparent;
+  border-radius:13px;border:1px solid rgba(181,151,213,.17);background:rgba(12,10,23,.44);
+}
+.it113-groq-panel .groq-chat-messages:empty{min-height:118px;display:grid;place-items:center}
+.it113-groq-panel .groq-chat-messages:empty:after{content:"Your conversation will appear here";color:#817390;font-size:12px}
+.it113-groq-panel .groq-chat-turn{
+  max-width:min(91%,850px);padding:13px 16px;border-radius:15px;
+  border:1px solid rgba(170,145,210,.22);background:rgba(60,49,86,.23);
+  box-shadow:inset 0 1px rgba(255,255,255,.035);word-break:normal;
+}
+.it113-groq-panel .groq-chat-turn--user{
+  align-self:flex-end;border-color:rgba(201,155,255,.32);
+  background:linear-gradient(125deg,rgba(105,69,159,.38),rgba(77,51,117,.42));border-bottom-right-radius:6px;
+}
+.it113-groq-panel .groq-chat-turn--assistant{align-self:flex-start;border-bottom-left-radius:6px;background:rgba(44,36,62,.36)}
+.it113-groq-panel .groq-chat-turn-heading{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.it113-groq-panel .groq-chat-turn-heading strong{margin:0;font-size:11px;font-weight:800;color:#e8d8fa}
+.it113-groq-panel .groq-chat-avatar{display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;border-radius:8px;border:1px solid rgba(183,155,232,.23);background:rgba(142,95,198,.17);color:#f3dbff;font-size:12px;font-weight:800}
+.it113-groq-panel .groq-chat-turn--user .groq-chat-avatar{background:rgba(191,143,245,.21);color:#f2e0ff}
+.it113-groq-panel .groq-chat-body{font-size:12px;line-height:1.74;overflow-wrap:anywhere;white-space:pre-wrap}
+.it113-groq-panel .groq-chat-body .groq-rich-content{white-space:normal}
+.it113-groq-panel .groq-chat-body .groq-rich-content p{margin:5px 0;line-height:1.72}
+.it113-groq-panel .groq-chat-turn--pending{border-color:rgba(160,126,221,.38)}
+.it113-groq-panel .groq-thinking{display:flex;gap:11px;align-items:center;color:#c1acd8;font-size:12px;white-space:normal}
+.it113-groq-panel .groq-thinking-dots{display:inline-flex;gap:4px;align-items:center;min-height:18px}
+.it113-groq-panel .groq-thinking-dots i{width:6px;height:6px;background:#c7a3f5;border-radius:50%;animation:groqThink 1.15s ease-in-out infinite}
+.it113-groq-panel .groq-thinking-dots i:nth-child(2){animation-delay:.16s}
+.it113-groq-panel .groq-thinking-dots i:nth-child(3){animation-delay:.32s}
+@keyframes groqThink{0%,65%,100%{transform:translateY(0);opacity:.35}35%{transform:translateY(-4px);opacity:1}}
+.it113-groq-panel .groq-chat-turn--error{border-color:rgba(247,139,159,.38)}
+.it113-groq-panel .groq-chat-turn--error p{margin:0 0 12px;color:#f1b2bd}
+.it113-groq-panel .groq-retry-button{border:1px solid rgba(248,149,168,.3);padding:8px 11px;border-radius:9px;background:rgba(169,61,87,.15);color:#ffe4e8;cursor:pointer;font-size:11px;font-weight:700}
+.it113-groq-panel .groq-retry-button:hover{background:rgba(169,61,87,.26)}
+.it113-groq-panel .groq-chat-suggestions{margin:0 0 13px}
+.it113-groq-panel .groq-chat-suggestions[hidden]{display:none!important}
+.it113-groq-panel .groq-chat-suggestions>p{font-size:9px;letter-spacing:1.5px;font-weight:800;color:#9783b1;margin:0 0 8px}
+.it113-groq-panel .groq-chat-suggestions>div{display:flex;flex-wrap:wrap;gap:8px}
+.it113-groq-panel .groq-chat-suggestions button{cursor:pointer;text-align:left;border:1px solid rgba(179,145,221,.22);border-radius:999px;background:rgba(124,88,169,.095);color:#cbb8de;padding:9px 12px;font-size:10px}
+.it113-groq-panel .groq-chat-suggestions button:hover{color:#f2e5ff;border-color:rgba(209,170,255,.53);background:rgba(164,117,218,.18)}
+.it113-groq-panel .groq-compose{display:flex;gap:10px;flex-wrap:nowrap;align-items:flex-end;margin:0;min-width:0}
+.it113-groq-panel .groq-compose-field{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:rgba(12,10,23,.65);border:1px solid rgba(195,163,236,.35);border-radius:13px;transition:border-color .2s,box-shadow .2s}
+.it113-groq-panel .groq-compose-field:focus-within{border-color:#ac86ed;box-shadow:0 0 0 3px rgba(178,123,235,.11)}
+.it113-groq-panel #groq-chat-input{display:block;width:100%;height:auto;min-height:44px;max-height:192px;resize:none;box-sizing:border-box;border:0;outline:none!important;box-shadow:none!important;background:transparent;color:#f6ecff;line-height:1.55;font-size:12px;font-family:inherit;font-weight:400;padding:12px 14px 7px;overflow-y:hidden}
+.it113-groq-panel #groq-chat-input::placeholder{color:#887996;opacity:1}
+.it113-groq-panel #groq-chat-input:disabled{opacity:.6;cursor:not-allowed}
+.it113-groq-panel .groq-compose-foot{display:flex;justify-content:space-between;gap:8px;padding:2px 14px 9px;min-width:0;font-size:10px;color:#90839d}
+.it113-groq-panel #groq-chat-count{white-space:nowrap;font-variant-numeric:tabular-nums}
+.it113-groq-panel #groq-chat-count[data-near-limit="true"]{color:#e6c48f}
+.it113-groq-panel .groq-send-button{flex:0 0 auto;min-height:54px;gap:12px;border-radius:12px;white-space:nowrap}
+.it113-groq-panel .groq-send-button svg{width:15px;height:15px;transition:transform .2s}
+.it113-groq-panel .groq-send-button:hover:not(:disabled) svg{transform:translateX(3px)}
+.it113-groq-panel .groq-send-button:disabled,.it113-groq-panel #groq-run-analyst:disabled{opacity:.48;cursor:not-allowed;transform:none!important;box-shadow:none}
+.it113-groq-panel .groq-is-busy:before{content:"";width:12px;height:12px;flex:0 0 12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:groqSpin .7s linear infinite}
+@keyframes groqSpin{to{transform:rotate(360deg)}}
+.it113-groq-panel .groq-chat-disclaimer{margin:12px 0 0;color:#897d9f;font-size:10.5px;line-height:1.65}
+@media(max-width:760px){
+ .it113-groq-panel .groq-panel-top{align-items:flex-start;flex-wrap:wrap}
+ .it113-groq-panel .groq-privacy-pill{margin-left:69px;margin-top:-5px}
+ .it113-groq-panel .groq-choices{align-items:stretch;flex-direction:column}
+ .it113-groq-panel #groq-run-analyst{align-self:flex-start}
+ .it113-groq-panel .groq-chat-turn{max-width:96%}
+}
+@media(max-width:520px){
+ .it113-groq-panel{padding:15px!important;border-radius:17px!important}
+ .it113-groq-panel .groq-panel-top{gap:11px}
+ .it113-groq-panel .groq-brand-icon{width:43px;height:43px;flex-basis:43px;border-radius:13px}
+ .it113-groq-panel .groq-brand-icon svg{width:23px;height:23px}
+ .it113-groq-panel .groq-privacy-pill{margin-left:0;margin-top:0}
+ .it113-groq-panel .groq-overline{font-size:8px;letter-spacing:1.2px}
+ .it113-groq-panel .groq-panel-titles p{font-size:11px}
+ .it113-groq-panel .groq-analyst-card,.it113-groq-panel .groq-chat-card{padding:12px;border-radius:14px}
+ .it113-groq-panel .groq-result{padding:12px;max-height:420px}
+ .it113-groq-panel #groq-run-analyst{width:100%;align-self:auto}
+ .it113-groq-panel .groq-chat-messages{padding:10px;max-height:420px}
+ .it113-groq-panel .groq-chat-turn{max-width:100%;padding:11px 12px}
+ .it113-groq-panel .groq-chat-header{align-items:flex-start}
+ .it113-groq-panel .groq-compose{flex-wrap:wrap}
+ .it113-groq-panel .groq-compose-field{flex-basis:100%}
+ .it113-groq-panel .groq-send-button{width:100%;min-height:42px}
+ .it113-groq-panel .groq-compose-foot{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.it113-groq-panel .groq-thinking-dots i,.it113-groq-panel .groq-is-busy:before{animation:none}}
+/* The original form label must remain accessible but not occupy a visible column. */
+.it113-groq-panel .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:520px){
+ .it113-groq-panel .groq-panel-titles{flex:1 1 calc(100% - 56px)}
+ .it113-groq-panel .groq-privacy-pill{order:3;margin-left:54px!important}
+}
+
+/* Decorative original dotted thinking-orb status visuals. Visible text remains authoritative. */
+.it113-groq-panel .groq-brand-icon{position:relative;overflow:hidden;isolation:isolate}
+.it113-groq-panel .groq-brand-icon.groq-has-orb{background:radial-gradient(circle at 50% 45%,rgba(175,113,246,.17),rgba(71,43,105,.14));border-color:rgba(206,163,255,.33)}
+.it113-groq-panel .groq-brand-icon.groq-has-orb > svg{display:none}
+.it113-groq-panel .fortress-thinking-orb{display:block;flex:0 0 auto;pointer-events:none}
+.it113-groq-panel .groq-status-orb{display:inline-flex;flex:0 0 22px;align-items:center;justify-content:center;vertical-align:middle;margin-right:-8px}
+.it113-groq-panel .groq-status-orb[hidden]{display:none!important}
+.it113-groq-panel .groq-thinking-orb{width:32px;height:32px;display:inline-grid;place-items:center;flex:0 0 32px;position:relative}
+.it113-groq-panel .groq-chat-turn--pending .groq-thinking{min-height:34px;gap:10px}
+.it113-groq-panel .groq-status-orb .fortress-thinking-orb{filter:drop-shadow(0 0 4px rgba(196,154,255,.28))}
+@media(prefers-reduced-motion:reduce){.it113-groq-panel .fortress-thinking-orb{filter:none!important}}

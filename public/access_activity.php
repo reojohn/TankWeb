@@ -85,7 +85,7 @@ audit_log('access_activity_viewed uid=' . $userId);
     <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813">
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
-    <title>FortressAuth — Access Activity</title>
+    <title>Aegis AI — Access Activity</title>
     <link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
@@ -96,7 +96,7 @@ audit_log('access_activity_viewed uid=' . $userId);
     <?php require __DIR__ . '/partials/command_header.php'; ?>
 
     <section class="page-hero compact-page-hero">
-        <div><span class="eyebrow">AUTHENTICATION OPERATIONS</span><h1>Access Activity</h1><p>Review successful and rejected authentication factors, Personal ID checks, session openings, and access history recorded by FortressAuth.</p></div>
+        <div><span class="eyebrow">AUTHENTICATION OPERATIONS</span><h1>Access Activity</h1><p>Review successful and rejected authentication factors, Personal ID checks, session openings, and access history recorded by Aegis AI.</p></div>
         <div class="page-hero-icon"><i class="fa-solid fa-wave-square"></i></div>
     </section>
 
@@ -139,7 +139,7 @@ audit_log('access_activity_viewed uid=' . $userId);
         </div>
     </article>
 
-    <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth access evidence</span><span>Current operator: <?= e($usernameRaw) ?> · Client: <?= e($clientIp) ?></span></footer>
+    <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> Aegis AI access evidence</span><span>Current operator: <?= e($usernameRaw) ?> · Client: <?= e($clientIp) ?></span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main>

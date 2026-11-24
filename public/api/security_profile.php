@@ -93,8 +93,8 @@ try {
 } catch (RuntimeException $e) {
     fortress_profile_json(['ok' => false, 'message' => $e->getMessage()], 503);
 } catch (Throwable $e) {
-    error_log('FortressAuth defense-profile update failed: ' . $e->getMessage());
-    fortress_profile_json(['ok' => false, 'message' => 'FortressAuth could not change the defense profile right now.'], 500);
+    error_log('Aegis AI defense-profile update failed: ' . $e->getMessage());
+    fortress_profile_json(['ok' => false, 'message' => 'Aegis AI could not change the defense profile right now.'], 500);
 }
 
 $definition = fortress_security_profile_definition($requestedMode);

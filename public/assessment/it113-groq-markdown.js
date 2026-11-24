@@ -11,6 +11,29 @@
     if (className) node.className = className;
     return node;
   };
+  function normalizeText(raw) {
+    // Decode numeric and common named entities as TEXT ONLY; safe DOM creation
+    // below prevents a decoded <tag> from becoming executable markup.
+    let value = String(raw || '');
+    const named = {amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:' '};
+    for (let pass = 0; pass < 3; pass++) {
+      const next = value.replace(/&(#(?:x[0-9a-f]+|[0-9]+)|amp|lt|gt|quot|apos|nbsp);/gi, (match, entity) => {
+        if (entity[0] === '#') {
+          const hex = entity[1]?.toLowerCase() === 'x';
+          const code = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10);
+          if (!Number.isFinite(code) || code < 32 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return match;
+          return String.fromCodePoint(code);
+        }
+        return named[entity.toLowerCase()] ?? match;
+      });
+      if (next === value) break;
+      value = next;
+    }
+    // Join boundaries like `does**not**prove` with readable spaces.
+    value = value.replace(/([a-z0-9])(\*\*[^*\n]{1,100}\*\*)/gi, '$1 $2')
+      .replace(/(\*\*[^*\n]{1,100}\*\*)([a-z0-9])/gi, '$1 $2');
+    return value;
+  }
   function inline(parent, raw) {
     const value = String(raw || '');
     // Inline formatting is assembled exclusively from text nodes and DOM elements.
@@ -84,7 +107,7 @@
   }
   function render(text) {
     const root = el('div', 'groq-rich-content');
-    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n').slice(0, 350);
+    const lines = normalizeText(text).replace(/\r\n?/g, '\n').split('\n').slice(0, 350);
     let i = 0;
     while (i < lines.length) {
       const line = lines[i].trim();

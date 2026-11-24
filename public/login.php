@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'success' => false,
                 'verified' => false,
                 'stage' => 'request_security',
-                'message' => 'The sign-in request was rejected by FortressAuth security controls.',
+                'message' => 'The sign-in request was rejected by Aegis AI security controls.',
                 'verification' => [
                     'network' => 'passed',
                     'csrf' => 'not_run',
@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'success' => false,
                 'verified' => false,
                 'stage' => 'request_security',
-                'message' => 'The sign-in request was rejected by FortressAuth security controls.',
+                'message' => 'The sign-in request was rejected by Aegis AI security controls.',
                 'verification' => [
                     'network' => 'passed',
                     'csrf' => 'not_run',
@@ -338,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([(int) $user_id]);
                 $schoolId = $stmt->fetch(PDO::FETCH_ASSOC);
             } catch (Throwable $e) {
-                error_log('FortressAuth account security lookup failed for uid=' . (int)$user_id);
+                error_log('Aegis AI account security lookup failed for uid=' . (int)$user_id);
                 $schoolId = false;
             }
 

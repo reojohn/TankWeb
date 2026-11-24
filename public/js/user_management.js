@@ -67,7 +67,7 @@
                 liveStatus.textContent = '';
                 if (generatedCopy) {
                     if (!editing || currentFactor !== 'generated_qr' || !hasQr) {
-                        generatedCopy.textContent = 'FortressAuth will issue a unique QR after this account is saved. The administrator must save or print it before leaving the one-time handoff screen.';
+                        generatedCopy.textContent = 'Aegis AI will issue a unique QR after this account is saved. The administrator must save or print it before leaving the one-time handoff screen.';
                     } else if (currentAccount) {
                         generatedCopy.textContent = 'This account already uses an issued QR. Another active administrator is required to regenerate the credential for the account currently signed in.';
                     } else {
@@ -133,7 +133,7 @@
             const username = (target.dataset.qrUsername || 'administrator').replace(/[^A-Za-z0-9_-]+/g, '_');
             const link = document.createElement('a');
             link.href = url;
-            link.download = `FortressAuth-2FA-${username}.png`;
+            link.download = `Aegis AI-2FA-${username}.png`;
             document.body.appendChild(link);
             link.click();
             link.remove();

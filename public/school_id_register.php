@@ -56,7 +56,7 @@ $csrfToken = generate_csrf_token();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-    <title>FortressAuth — Register Personal ID</title>
+    <title>Aegis AI — Register Personal ID</title>
     <link rel="stylesheet" href="/css/login.css">
 </head>
 
@@ -64,10 +64,10 @@ $csrfToken = generate_csrf_token();
 <main class="verify-shell" id="verification-card">
     <section class="verify-side">
         <div class="verify-brand">
-            <img src="/images/wolf.png" alt="FortressAuth">
+            <img src="/images/wolf.png" alt="Aegis AI">
             <div>
                 <span class="eyebrow">SECURITY ENROLLMENT</span>
-                <h1>FortressAuth</h1>
+                <h1>Aegis AI</h1>
             </div>
         </div>
 

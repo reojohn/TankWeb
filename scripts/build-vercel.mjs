@@ -26,7 +26,7 @@ const appScripts = collectTagUrls(
 );
 
 if (appStyles.length === 0 || appScripts.length === 0) {
-  throw new Error('Unable to read FortressAuth frontend dependencies from public/app/index.html');
+  throw new Error('Unable to read Aegis AI frontend dependencies from public/app/index.html');
 }
 
 function assertSameOriginStaticUrls(label, urls, allowedPrefixes) {
@@ -65,22 +65,10 @@ await copyDir('app/assets');
 await copyDir('app/vendor');
 // Login-free read-only course-project dashboard contains synthetic evidence only.
 await copyDir('assessment');
+// Public landing page: lightweight, self-contained assets.
+await copyDir('landing');
 
-const rootIndex = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta http-equiv="refresh" content="0;url=/assessment/">
-  <title>FortressAuth</title>
-</head>
-<body>
-  <script>location.replace('/assessment/');</script>
-  <noscript><a href="/assessment/">Open FortressAuth Assessment</a></noscript>
-</body>
-</html>
-`;
+const rootIndex = await readFile(path.join(publicDir, 'landing', 'index.html'), 'utf8');
 
 await writeFile(path.join(out, 'index.html'), rootIndex, 'utf8');
 
@@ -98,7 +86,7 @@ const appIndex = `<!doctype html>
   <meta name="theme-color" content="#10071f" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813" />
-  <title>FortressAuth v3</title>
+  <title>Aegis AI | Security Workspace</title>
   <style>
     html,body{margin:0;min-height:100%;background:#09030f;color:#d9cdea;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     body{min-height:100vh}
@@ -175,8 +163,8 @@ await writeFile(path.join(out, 'app', 'index.html'), appIndex, 'utf8');
 
 await writeFile(
   path.join(out, 'VERCEL_STATIC_ONLY.txt'),
-  'FortressAuth v3 static frontend output. Dynamic/security requests are reverse-proxied to Render.\n',
+  'Aegis AI v3 static frontend output. Dynamic/security requests are reverse-proxied to Render.\n',
   'utf8',
 );
 
-console.log(`FortressAuth Vercel static output prepared at ${out}`);
+console.log(`Aegis AI Vercel static output prepared at ${out}`);

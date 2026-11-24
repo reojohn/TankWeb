@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stage === 'request_security') {
             return {
                 title: 'Sign-in request blocked',
-                message: 'FortressAuth rejected this request because it matched a security rule.'
+                message: 'Aegis AI rejected this request because it matched a security rule.'
             };
         }
 
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setVerificationStage(
             1,
             'Preparing sign in...',
-            'FortressAuth is ready to evaluate your access request.',
+            'Aegis AI is ready to evaluate your access request.',
             0
         );
 
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setVerificationStage(
                         2,
                         'Reviewing access context...',
-                        'FortressAuth is assessing the current sign-in request.',
+                        'Aegis AI is assessing the current sign-in request.',
                         30
                     );
                 }, 140);

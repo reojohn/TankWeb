@@ -211,7 +211,7 @@ export default function AppShell({ children }) {
   const defenseProfileVisual = activeDefenseMode === 'standard'
     ? { label: 'Standard', image: '/images/standard.png', className: 'standard' }
     : activeDefenseMode === 'fortress_boost'
-      ? { label: 'Fortress Boost', image: '/images/fortressboost.png', className: 'fortress-boost' }
+      ? { label: 'Aegis Boost', image: '/images/fortressboost.png', className: 'fortress-boost' }
       : { label: 'Balanced', image: '/images/balanced.png', className: 'balanced' };
 
   const runtimeAttrs = {
@@ -292,7 +292,7 @@ export default function AppShell({ children }) {
         <button className="fortress-mobile-menu" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
           <i className="fa-solid fa-bars" />
         </button>
-        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>{boostActive ? 'FortressAuth · Fortress Boost active' : 'FortressAuth · Protection enforced'}</span></div>
+        <div className="fortress-mobile-title"><strong>{meta[0]}</strong><span>{boostActive ? 'Aegis AI · Aegis Boost active' : 'Aegis AI · Protection enforced'}</span></div>
         <div className="fortress-mobile-actions">
           <button className="fortress-mobile-notifications fortress-notification-toggle" type="button" data-notification-toggle aria-label="Open notifications"><i className="fa-solid fa-bell" /><span className="fortress-notification-badge" data-notification-badge hidden>0</span></button>
           <button className="fortress-mobile-refresh" type="button" onClick={refreshWorkspace} aria-label="Refresh security status"><i className="fa-solid fa-arrows-rotate" /></button>
@@ -307,13 +307,13 @@ export default function AppShell({ children }) {
             <NavLink
               className="brand-lockup"
               to="/overview"
-              aria-label="FortressAuth command center"
+              aria-label="Aegis AI command center"
               onMouseEnter={prefetch('dashboard', '/dashboard.php')}
               onFocus={prefetch('dashboard', '/dashboard.php')}
               onClick={openLegacyRoute('/overview', 'dashboard', '/dashboard.php')}
             >
               <span className="topbar-logo"><img src="/images/wolf1.png" alt="" /></span>
-              <span className="brand-copy"><small>SECURE ACCESS</small><strong>FortressAuth</strong><em>Command Center</em></span>
+              <span className="brand-copy"><small>THREAT INTELLIGENCE</small><strong>Aegis AI</strong><em>Command Center</em></span>
             </NavLink>
             <button type="button" className="sidebar-close" onClick={() => setOpen(false)} aria-label="Close navigation"><i className="fa-solid fa-xmark" /></button>
           </div>
@@ -333,7 +333,7 @@ export default function AppShell({ children }) {
             <span className="operator-card-copy"><small>Current operator</small><strong>{header.username}</strong><em className="operator-manage-hint"><i className="fa-solid fa-users-gear" /> Users <span>+</span> <i className="fa-solid fa-id-card" /> ID <span>+</span> <i className="fa-solid fa-file-export" /> Reports</em></span>
             <span className={`sidebar-operator-badge ${header.role === 'superadmin' ? 'superadmin' : ''}`}>{header.roleLabel}</span>
           </NavLink>
-          <nav className="command-nav" aria-label="FortressAuth navigation">
+          <nav className="command-nav" aria-label="Aegis AI navigation">
             <p className="sidebar-section-label">Navigation</p>
             <div className="command-nav-links" id="command-nav-links">
               {navItems.map(([path, page, legacyUrl, icon, label, sub]) => (
@@ -376,7 +376,7 @@ export default function AppShell({ children }) {
           <header className="fortress-page-header">
             <div className="page-heading-left">
               <span className="page-heading-icon"><i className={`fa-solid ${meta[2]}`} /></span>
-              <div><div className="page-heading-chips"><span>FORTRESSAUTH</span><span className={`status-chip ${boostActive ? 'boost-active' : ''}`}><i className={boostActive ? 'fa-solid fa-bolt' : 'live-dot'} /> {boostActive ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED'}</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
+              <div><div className="page-heading-chips"><span>AEGIS AI</span><span className={`status-chip ${boostActive ? 'boost-active' : ''}`}><i className={boostActive ? 'fa-solid fa-bolt' : 'live-dot'} /> {boostActive ? 'AEGIS BOOST ACTIVE' : 'PROTECTION ENFORCED'}</span></div><h1>{meta[0]}</h1><p>{meta[1]} · {header.activeDefenseCount}/{header.defenseTotal} defense layers operational</p></div>
             </div>
             <div className="page-heading-actions">
               <div className={`header-engine-card ${defenseProfileVisual.className}`} title={`Active defense profile: ${defenseProfileVisual.label}`}>
@@ -397,7 +397,7 @@ export default function AppShell({ children }) {
             <div className="fortress-notification-panel-glow fortress-notification-panel-glow-two" aria-hidden="true" />
             <div className="fortress-notification-panel-header"><div className="fortress-notification-panel-heading"><span className="fortress-notification-panel-icon"><i className="fa-solid fa-bell" /></span><div><h2>Fortress security notifications</h2><p>Threat detections, blocked attacks, authentication events, account changes, and security reports.</p></div></div><button type="button" className="fortress-notification-close" data-notification-close aria-label="Close notifications"><i className="fa-solid fa-xmark" /></button></div>
             <div className="fortress-notification-toolbar"><button type="button" className="fortress-notification-tool" data-notification-mark-all><i className="fa-solid fa-check-double" /><span>Mark all read</span></button><button type="button" className="fortress-notification-tool" data-notification-enable-toggle><i className="fa-solid fa-bell" /><span>Live notifications on</span></button></div>
-            <div className="fortress-notification-list" data-notification-list><div className="fortress-notification-empty fortress-notification-clear"><span className="fortress-notification-empty-icon"><i className="fa-solid fa-circle-check" /></span><strong>No notification events yet</strong><span>Saved notifications appear instantly here while FortressAuth syncs newer security events in the background.</span></div></div>
+            <div className="fortress-notification-list" data-notification-list><div className="fortress-notification-empty fortress-notification-clear"><span className="fortress-notification-empty-icon"><i className="fa-solid fa-circle-check" /></span><strong>No notification events yet</strong><span>Saved notifications appear instantly here while Aegis AI syncs newer security events in the background.</span></div></div>
           </section>
           <div id="fortress-security-alert-host" className="fortress-security-alert-host" aria-live="assertive" aria-atomic="false" />
 

@@ -163,7 +163,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#10071f">
-    <title>FortressAuth — Security Analytics</title>
+    <title>Aegis AI — Security Analytics</title>
     <link rel="stylesheet" href="/css/all.min.css">
     <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
@@ -178,7 +178,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     <div>
         <span class="eyebrow">SECURITY INTELLIGENCE</span>
         <h1>Security Analytics</h1>
-        <p>Explore authentication, identity, network, and threat telemetry as visual trends. Every chart below is calculated from FortressAuth audit evidence, current session state, honeypot activity, and database-backed ban records.</p>
+        <p>Explore authentication, identity, network, and threat telemetry as visual trends. Every chart below is calculated from Aegis AI audit evidence, current session state, honeypot activity, and database-backed ban records.</p>
         <div class="analytics-interaction-hint"><i class="fa-solid fa-arrow-pointer"></i><span>Interactive analytics</span><small>Hover over bars, rings, slices, lines, and radar nodes for exact values.</small></div>
     </div>
     <div class="page-hero-icon"><i class="fa-solid fa-chart-pie"></i></div>
@@ -199,7 +199,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     </article>
 
     <article class="panel analytics-card span-6 analytics-card-compact">
-        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY DISTRIBUTION</span><h2>Security Category Spiral</h2><p>Concentric activity rings compare all recorded FortressAuth security event categories.</p></div><i class="fa-solid fa-circle-notch panel-symbol"></i></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY DISTRIBUTION</span><h2>Security Category Spiral</h2><p>Concentric activity rings compare all recorded Aegis AI security event categories.</p></div><i class="fa-solid fa-circle-notch panel-symbol"></i></div>
         <div class="analytics-chart-wrap small spiral-chart-wrap"><canvas data-security-chart="spiral" data-chart-title="Security Category Spiral" role="img" aria-label="Interactive concentric security category activity rings" data-labels='<?= e(json_encode($categoryLabels)) ?>' data-values='<?= e(json_encode($categoryValues)) ?>' data-colors='<?= e(json_encode($spiralColors)) ?>'></canvas></div>
         <div class="analytics-insight-strip"><div><span>Most active</span><strong><?= e($mostActiveCategory) ?></strong></div><div><span>Total categorized</span><strong><?= array_sum($categoryValues) ?></strong></div><div><span>Window</span><strong>30 days</strong></div></div>
     </article>
@@ -211,7 +211,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     </article>
 
     <article class="panel analytics-card span-4">
-        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY VOLUME</span><h2>Security Event Volume</h2><p>Thirty-day volume across the FortressAuth security event categories.</p></div></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">CATEGORY VOLUME</span><h2>Security Event Volume</h2><p>Thirty-day volume across the Aegis AI security event categories.</p></div></div>
         <div class="analytics-chart-wrap"><canvas data-security-chart="bar" data-chart-title="Security Event Volume" role="img" aria-label="Interactive security event volume bar chart" data-labels='<?= e(json_encode($categoryLabels)) ?>' data-series='<?= e(json_encode($categorySeries)) ?>' data-colors='<?= e(json_encode($spiralColors)) ?>'></canvas></div>
     </article>
 
@@ -235,7 +235,7 @@ audit_log('security_analytics_viewed uid=' . $userId);
     </tbody></table></div>
 </article>
 
-<footer class="command-footer"><span><i class="fa-solid fa-chart-line"></i> FortressAuth security analytics</span><span>Charts use recorded audit and runtime security data</span></footer>
+<footer class="command-footer"><span><i class="fa-solid fa-chart-line"></i> Aegis AI security analytics</span><span>Charts use recorded audit and runtime security data</span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main>

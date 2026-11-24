@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stage: 1,
         progress: 18,
         title: 'Preparing secure sign in...',
-        message: 'Initializing the FortressAuth protected access workflow.',
+        message: 'Initializing the Aegis AI protected access workflow.',
       },
       {
         delay: 340,

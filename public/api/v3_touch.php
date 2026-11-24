@@ -41,7 +41,7 @@ $routes = [
 if (!isset($routes[$page])) {
     http_response_code(404);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'message' => 'Unknown FortressAuth route.']);
+    echo json_encode(['ok' => false, 'message' => 'Unknown Aegis AI route.']);
     exit;
 }
 

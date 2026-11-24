@@ -35,7 +35,7 @@ $isKnownBrowserDiscoveryPath = in_array($probeBasename, $benignBrowserBasenames,
     || str_starts_with($lowerProbePath, '/.well-known/appspecific/')
     || $lowerProbePath === '/.well-known/traffic-advice';
 
-// Missing browser assets are not reconnaissance. In production FortressAuth
+// Missing browser assets are not reconnaissance. In production Aegis AI
 // sits behind Vercel/Render, and some proxies/clients do not preserve
 // Sec-Fetch-Dest. Requiring that header caused harmless image misses such as
 // /fortress.png to be persisted as Recon / 404 probes every time the login

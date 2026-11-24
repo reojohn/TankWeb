@@ -106,7 +106,7 @@ audit_log('dashboard_access uid=' . $userId);
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
     <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813">
     <meta charset="utf-8">
-    <title>FortressAuth — Command Center</title>
+    <title>Aegis AI — Command Center</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#10071f">
     <link rel="stylesheet" href="/css/all.min.css">
@@ -124,9 +124,9 @@ audit_log('dashboard_access uid=' . $userId);
         <section class="command-hero">
             <div class="hero-copy">
                 <span class="eyebrow">FORTRESS STATUS / ONLINE</span>
-                <h1>FortressAuth <span>Command Center</span></h1>
+                <h1>Aegis AI <span>Command Center</span></h1>
                 <p>
-                    FortressAuth protects privileged administrator access using password authentication,
+                    Aegis AI protects privileged administrator access using password authentication,
                     optional per-account Personal ID 2FA, CSRF protection, brute-force defense,
                     IP enforcement, suspicious-input detection, protected sessions, and auditable security evidence.
                 </p>
@@ -142,11 +142,11 @@ audit_log('dashboard_access uid=' . $userId);
                 </div>
             </div>
 
-            <div class="fortress-core" aria-label="FortressAuth protection core">
+            <div class="fortress-core" aria-label="Aegis AI protection core">
                 <div class="core-ring ring-one"></div>
                 <div class="core-ring ring-two"></div>
                 <div class="core-ring ring-three"></div>
-                <div class="core-center"><img src="/images/wolf1.png" alt="FortressAuth shield"></div>
+                <div class="core-center"><img src="/images/wolf1.png" alt="Aegis AI shield"></div>
                 <div class="core-label core-label-top">IDENTITY</div>
                 <div class="core-label core-label-right">SESSION</div>
                 <div class="core-label core-label-bottom">AUDIT</div>
@@ -236,7 +236,7 @@ audit_log('dashboard_access uid=' . $userId);
                         </button>
                         <button type="button" class="engine-mode-button mode-fortress-boost boost <?= $engineMode === 'fortress_boost' ? 'active' : '' ?>" data-defense-mode="fortress_boost" <?= $engineCanManage ? '' : 'disabled' ?>>
                             <span class="engine-mode-visual" aria-hidden="true"><img src="/images/fortressboost.png" alt="" class="engine-mode-image" /></span>
-                            <span class="engine-mode-copy"><span class="engine-mode-title">Fortress Boost</span><small class="engine-mode-description">High-alert defense</small></span>
+                            <span class="engine-mode-copy"><span class="engine-mode-title">Aegis Boost</span><small class="engine-mode-description">High-alert defense</small></span>
                         </button>
                     </div>
 
@@ -284,7 +284,7 @@ audit_log('dashboard_access uid=' . $userId);
                     </div>
                     <div class="posture-copy">
                         <span class="posture-label"><?= e($protectionLabel) ?></span>
-                        <p>Live composite score derived from the operational state of the active FortressAuth defense layers.</p>
+                        <p>Live composite score derived from the operational state of the active Aegis AI defense layers.</p>
                         <div class="posture-factors">
                             <?php foreach ($defenseLayers as $layer): ?>
                                 <span class="<?= $layer[1] ? 'on' : 'off' ?>"><i class="fa-solid <?= $layer[1] ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i> <?= e($layer[0]) ?> +<?= (int)$layer[3] ?></span>
@@ -468,7 +468,7 @@ audit_log('dashboard_access uid=' . $userId);
         <!-- 06 Recent authentication attempts -->
         <article class="panel attempts-panel">
             <div class="panel-heading">
-                <div><span class="eyebrow">RECENT ACCESS ATTEMPTS</span><h2>Authentication Attempts</h2><p>Factor-level authentication history reconstructed from FortressAuth audit evidence.</p></div>
+                <div><span class="eyebrow">RECENT ACCESS ATTEMPTS</span><h2>Authentication Attempts</h2><p>Factor-level authentication history reconstructed from Aegis AI audit evidence.</p></div>
                 <a class="text-link" href="/access_activity.php">View complete activity <i class="fa-solid fa-arrow-right"></i></a>
             </div>
             <div class="responsive-table-wrap">
@@ -560,7 +560,7 @@ audit_log('dashboard_access uid=' . $userId);
             </article>
         </section>
 
-        <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth layered identity and access defense</span><span>Session timeout: <?= e(fortress_policy_minutes((int)fortress_security_policy()['session_idle_seconds'])) ?> · Client: <?= $clientIpEscaped ?></span></footer>
+        <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> Aegis AI layered identity and access defense</span><span>Session timeout: <?= e(fortress_policy_minutes((int)fortress_security_policy()['session_idle_seconds'])) ?> · Client: <?= $clientIpEscaped ?></span></footer>
     
 </div><!-- /.fortress-main-column -->
 </main>

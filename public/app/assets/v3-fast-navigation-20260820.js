@@ -1,4 +1,4 @@
-/* FortressAuth v3 parity runtime - generated without network build tooling. */
+/* Aegis AI v3 parity runtime - generated without network build tooling. */
 (function(){
 'use strict';
 const React = window.React;
@@ -32,7 +32,7 @@ async function fetchView(view, {
       throw new Error('Authentication expired');
     }
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Unable to load FortressAuth data.');
+    if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Unable to load Aegis AI data.');
     const data = payload.data ?? payload;
     cache.set(key, {
       at: Date.now(),
@@ -68,7 +68,7 @@ async function postView(view, body) {
     body: JSON.stringify(body)
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok === false) throw new Error(payload.message || 'The FortressAuth action failed.');
+  if (!response.ok || payload.ok === false) throw new Error(payload.message || 'The Aegis AI action failed.');
   clearView(view);
   return payload;
 }
@@ -203,7 +203,7 @@ async function requestFragment(page, legacyUrl = '', {
       throw new Error('Authentication expired');
     }
     const html = await response.text();
-    if (!response.ok) throw new Error(html || 'Unable to load FortressAuth page content.');
+    if (!response.ok) throw new Error(html || 'Unable to load Aegis AI page content.');
     parityFragmentCache.set(key, {
       at: Date.now(),
       html
@@ -266,9 +266,9 @@ function LegacyParityPage({
       return;
     }
     const text = await response.text();
-    if (!response.ok) throw new Error('FortressAuth could not complete that action.');
+    if (!response.ok) throw new Error('Aegis AI could not complete that action.');
     const extracted = extractLegacyContent(text);
-    if (!extracted) throw new Error('FortressAuth could not read the updated page content.');
+    if (!extracted) throw new Error('Aegis AI could not read the updated page content.');
     const finalUrl = response.url ? new URL(response.url) : new URL(requestedUrl, window.location.origin);
     const normalized = finalUrl.pathname + finalUrl.search;
     currentLegacyUrl.current = normalized;
@@ -980,7 +980,7 @@ function AppShell({
     className: "fa-solid fa-bars"
   })), React.createElement("div", {
     className: "fortress-mobile-title"
-  }, React.createElement("strong", null, meta[0]), React.createElement("span", null, "FortressAuth \xB7 Protection enforced")), React.createElement("div", {
+  }, React.createElement("strong", null, meta[0]), React.createElement("span", null, "Aegis AI \xB7 Protection enforced")), React.createElement("div", {
     className: "fortress-mobile-actions"
   }, React.createElement("button", {
     className: "fortress-mobile-notifications fortress-notification-toggle",
@@ -1017,7 +1017,7 @@ function AppShell({
   }, React.createElement(NavLink, {
     className: "brand-lockup",
     to: "/overview",
-    "aria-label": "FortressAuth command center",
+    "aria-label": "Aegis AI command center",
     onMouseEnter: prefetch('dashboard', '/dashboard.php'),
     onFocus: prefetch('dashboard', '/dashboard.php'),
     onClick: openLegacyRoute('/overview', 'dashboard', '/dashboard.php')
@@ -1028,7 +1028,7 @@ function AppShell({
     alt: ""
   })), React.createElement("span", {
     className: "brand-copy"
-  }, React.createElement("small", null, "SECURE ACCESS"), React.createElement("strong", null, "FortressAuth"), React.createElement("em", null, "Command Center"))), React.createElement("button", {
+  }, React.createElement("small", null, "SECURE ACCESS"), React.createElement("strong", null, "Aegis AI"), React.createElement("em", null, "Command Center"))), React.createElement("button", {
     type: "button",
     className: "sidebar-close",
     onClick: () => setOpen(false),
@@ -1065,7 +1065,7 @@ function AppShell({
     className: `sidebar-operator-badge ${header.role === 'superadmin' ? 'superadmin' : ''}`
   }, header.roleLabel)), React.createElement("nav", {
     className: "command-nav",
-    "aria-label": "FortressAuth navigation"
+    "aria-label": "Aegis AI navigation"
   }, React.createElement("p", {
     className: "sidebar-section-label"
   }, "Navigation"), React.createElement("div", {
@@ -1126,7 +1126,7 @@ function AppShell({
     className: `fa-solid ${meta[2]}`
   })), React.createElement("div", null, React.createElement("div", {
     className: "page-heading-chips"
-  }, React.createElement("span", null, "FORTRESSAUTH"), React.createElement("span", {
+  }, React.createElement("span", null, "AEGIS AI"), React.createElement("span", {
     className: "status-chip"
   }, React.createElement("i", {
     className: "live-dot"
@@ -1217,7 +1217,7 @@ function AppShell({
     className: "fortress-notification-empty-icon"
   }, React.createElement("i", {
     className: "fa-solid fa-circle-check"
-  })), React.createElement("strong", null, "No notification events yet"), React.createElement("span", null, "Saved notifications appear instantly here while FortressAuth syncs newer security events in the background.")))), React.createElement("div", {
+  })), React.createElement("strong", null, "No notification events yet"), React.createElement("span", null, "Saved notifications appear instantly here while Aegis AI syncs newer security events in the background.")))), React.createElement("div", {
     id: "fortress-security-alert-host",
     className: "fortress-security-alert-host",
     "aria-live": "assertive",

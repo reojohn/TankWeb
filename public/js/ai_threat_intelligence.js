@@ -907,7 +907,7 @@
       xgb: 'XGBoost Agent',
       anomaly: 'Anomaly Agent',
       rule: 'Rule Agent',
-      core: 'FortressAuth Core',
+      core: 'Aegis AI Core',
       all: 'Agent Mesh'
     };
 
@@ -1449,8 +1449,8 @@
           simulated ? 'simulation' : 'threat',
           simulated ? 'Simulated hostile contact' : 'Live threat corroboration underway',
           simulated
-            ? `Defense drill: a simulated ${template.label.toLowerCase()} node is closing toward the FortressAuth Core. No fake security event or log is being created.`
-            : `Live hostile ${template.label.toLowerCase()} activity is closing toward the FortressAuth Core. Agents are intercepting before core contact.`
+            ? `Defense drill: a simulated ${template.label.toLowerCase()} node is closing toward the Aegis AI Core. No fake security event or log is being created.`
+            : `Live hostile ${template.label.toLowerCase()} activity is closing toward the Aegis AI Core. Agents are intercepting before core contact.`
         );
         setCommState(simulated ? `simulation · ${template.label.toLowerCase()}` : `live intercept · ${template.label.toLowerCase()}`);
 
@@ -1468,7 +1468,7 @@
 
       const contactPrefix = simulated ? 'simulated hostile' : 'live hostile';
       const engageLine = pattern.name === 'barrier'
-        ? `FortressAuth Core, raise the shield barrier and reject the ${contactPrefix} ${template.label.toLowerCase()} node before impact.`
+        ? `Aegis AI Core, raise the shield barrier and reject the ${contactPrefix} ${template.label.toLowerCase()} node before impact.`
         : pattern.name === 'swarm'
           ? `Agents, swarm and neutralize the ${contactPrefix} ${template.label.toLowerCase()} node before it reaches the core.`
           : pattern.name === 'quarantine'
@@ -2000,7 +2000,7 @@
       setConsensus(
         'analyzing',
         'Specialist analysis in progress',
-        'FortressAuth Core is distributing the same behavior window to classification, anomaly, and deterministic-rule specialists.'
+        'Aegis AI Core is distributing the same behavior window to classification, anomaly, and deterministic-rule specialists.'
       );
       setNodeState('core', 'processing', 'Dispatching');
 
@@ -2023,7 +2023,7 @@
       await speakDialogue(
         'core',
         'rule',
-        'Validate deterministic FortressAuth evidence and known signatures.'
+        'Validate deterministic Aegis AI evidence and known signatures.'
       );
       setNodeState('rule', 'processing', 'Validating');
       setStatusCard('rule', true);
@@ -2121,7 +2121,7 @@
         setConsensus(
           'consensus',
           'Core perimeter preserved',
-          `Hostile approach indicators were intercepted and quarantined outside the FortressAuth Core. Guarded action remains ${data.action}.`
+          `Hostile approach indicators were intercepted and quarantined outside the Aegis AI Core. Guarded action remains ${data.action}.`
         );
         setCommState('threats blocked · perimeter stable');
       } else {
@@ -2699,7 +2699,7 @@
         later(() => {
           setNodeState('rule', 'processing', 'Validating');
           setFeedActive('rule');
-          setRotator('Rule Engine is validating deterministic FortressAuth evidence...');
+          setRotator('Rule Engine is validating deterministic Aegis AI evidence...');
 
           later(() => {
             setNodeState('xgb', 'processing', 'Classifying');
@@ -2738,12 +2738,12 @@
                 later(() => {
                   setNodeState('shield', 'processing', 'Applying posture');
                   setFeedActive('hybrid');
-                  setRotator('FortressAuth Shield is evaluating guarded AI-assisted enforcement...');
+                  setRotator('Aegis AI Shield is evaluating guarded AI-assisted enforcement...');
 
                   later(() => {
                     setNodeState('shield', 'complete', 'Protected');
                     setFeedActive();
-                    setRotator('Defense cycle complete. FortressAuth remains protected and monitoring continues.');
+                    setRotator('Defense cycle complete. Aegis AI remains protected and monitoring continues.');
 
                     later(runCycle, hold);
                   }, processTime);
@@ -2768,7 +2768,7 @@
 
     const messages = [
       'Request monitor is preparing the current behavioral analysis window.',
-      'Rule engine is validating known FortressAuth attack signatures.',
+      'Rule engine is validating known Aegis AI attack signatures.',
       'XGBoost is classifying the current behavior pattern.',
       'Autoencoder is measuring deviation from the learned baseline.',
       'Hybrid engine is fusing signals into one guarded defense score.'
@@ -2951,14 +2951,14 @@
 
       const message =
         messages[index] ||
-        'I do not have a completed FortressAuth security finding to report yet.';
+        'I do not have a completed Aegis AI security finding to report yet.';
 
       visibleText.textContent = '';
       caret.classList.remove('typing');
       thinking.hidden = false;
       messageElement.hidden = true;
 
-      setWorkingState(true, 'Reviewing the latest FortressAuth security analysis...');
+      setWorkingState(true, 'Reviewing the latest Aegis AI security analysis...');
 
       const thinkingDelay = reduced ? 0 : 720;
 
@@ -3042,7 +3042,7 @@
       progressLabel.textContent = '0%';
       progressBar.style.width = '0%';
       visibleText.textContent =
-        'I do not have a completed FortressAuth security finding to report yet.';
+        'I do not have a completed Aegis AI security finding to report yet.';
       thinking.hidden = true;
       messageElement.hidden = false;
       caret.classList.remove('typing');

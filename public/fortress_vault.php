@@ -60,7 +60,7 @@ if (empty($_SESSION['fortress_vault_logged'])) {
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#090511">
     <meta name="robots" content="noindex,nofollow,noarchive">
-    <title>FortressAuth — Fortress Vault</title>
+    <title>Aegis AI — Fortress Vault</title>
     <link rel="stylesheet" href="/css/all.min.css">
     <link rel="stylesheet" href="/css/vault.css?v=20260824-0845">
 <link rel="stylesheet" href="/css/pjax.css">
@@ -73,10 +73,10 @@ if (empty($_SESSION['fortress_vault_logged'])) {
 
     <main class="vault-shell">
         <header class="vault-topbar">
-            <a class="vault-brand" href="/dashboard.php" aria-label="Return to FortressAuth overview">
+            <a class="vault-brand" href="/dashboard.php" aria-label="Return to Aegis AI overview">
                 <span class="vault-brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
                 <span>
-                    <small>FORTRESSAUTH</small>
+                    <small>AEGIS AI</small>
                     <strong>Fortress Vault</strong>
                 </span>
             </a>
@@ -91,7 +91,7 @@ if (empty($_SESSION['fortress_vault_logged'])) {
             <div class="vault-copy">
                 <span class="vault-eyebrow"><i class="fa-solid fa-crosshairs"></i> PENETRATION TEST OBJECTIVE</span>
                 <h1 id="vault-title">The Crown Jewel</h1>
-                <p>This page represents the protected asset at the center of the FortressAuth exercise. Reaching it with a fully verified administrator session means the penetration-test objective has been captured.</p>
+                <p>This page represents the protected asset at the center of the Aegis AI exercise. Reaching it with a fully verified administrator session means the penetration-test objective has been captured.</p>
 
                 <div class="vault-sequence" aria-live="polite">
                     <div class="vault-sequence-head">

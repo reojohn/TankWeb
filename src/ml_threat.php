@@ -153,7 +153,7 @@ function fortress_ml_recent_strike_count(string $ip, int $windowSeconds): int
             $stmt->execute(['ip' => $ip, 'seconds' => $windowSeconds]);
             $databaseCount = (int)$stmt->fetchColumn();
         } catch (Throwable $e) {
-            error_log('FortressAuth ML strike lookup failed: ' . $e->getMessage());
+            error_log('Aegis AI ML strike lookup failed: ' . $e->getMessage());
         }
     }
 
@@ -337,7 +337,7 @@ function fortress_ml_persist_prediction(array $record): bool
             'fingerprint' => fortress_ml_prediction_fingerprint($record),
             'analyzed_at' => gmdate('Y-m-d H:i:s+00:00', $ts),
             'source_ip' => substr((string)($record['ip'] ?? 'unknown'), 0, 64),
-            'model_name' => substr((string)($result['model'] ?? 'FortressAuth Hybrid ML'), 0, 120),
+            'model_name' => substr((string)($result['model'] ?? 'Aegis AI Hybrid ML'), 0, 120),
             'analysis_mode' => substr(strtoupper((string)($result['analysis_mode'] ?? 'LIVE')), 0, 32),
             'classification' => substr(strtoupper((string)($result['classification'] ?? 'UNKNOWN')), 0, 64),
             'confidence' => is_numeric($result['confidence'] ?? null) ? (float)$result['confidence'] : null,
@@ -361,7 +361,7 @@ function fortress_ml_persist_prediction(array $record): bool
         ]);
         return true;
     } catch (Throwable $e) {
-        error_log('FortressAuth ml_predictions persistence failed: ' . $e->getMessage());
+        error_log('Aegis AI ml_predictions persistence failed: ' . $e->getMessage());
         return false;
     }
 }
@@ -412,7 +412,7 @@ function fortress_ml_prediction_history(int $limit = 25): array
                 $rows[] = $record;
             }
         } catch (Throwable $e) {
-            error_log('FortressAuth ml_predictions read failed: ' . $e->getMessage());
+            error_log('Aegis AI ml_predictions read failed: ' . $e->getMessage());
         }
     }
 
@@ -505,7 +505,7 @@ function fortress_ml_record_request(): void
             $pdo->exec("DELETE FROM public.ml_request_telemetry WHERE occurred_at < NOW() - INTERVAL '24 hours'");
         }
     } catch (Throwable $e) {
-        error_log('FortressAuth ML durable telemetry write failed; local fallback retained.');
+        error_log('Aegis AI ML durable telemetry write failed; local fallback retained.');
     }
 }
 
@@ -562,7 +562,7 @@ function fortress_ml_request_window(string $ip, int $now): array
             $stmt->execute(['ip' => $ip, 'cutoff' => $now - 900]);
             return ['rows' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'source' => 'postgresql'];
         } catch (Throwable $e) {
-            error_log('FortressAuth ML request window read failed; using local fallback.');
+            error_log('Aegis AI ML request window read failed; using local fallback.');
         }
     }
     $rows = [];
@@ -601,7 +601,7 @@ function fortress_ml_security_event_window(string $ip, int $now): array
             }
             return ['rows' => $rows, 'source' => 'postgresql'];
         } catch (Throwable $e) {
-            error_log('FortressAuth ML security event window read failed; using local fallback.');
+            error_log('Aegis AI ML security event window read failed; using local fallback.');
         }
     }
     $rows = [];
@@ -742,7 +742,7 @@ function fortress_ml_rule_score(array $f): float
  * Durable ML replay queue.
  *
  * Why it exists: a free/idle ML service can be asleep exactly when a security
- * event arrives. FortressAuth still applies its deterministic defenses in real
+ * event arrives. Aegis AI still applies its deterministic defenses in real
  * time, then stores the telemetry snapshot so XGBoost/Autoencoder can analyse
  * it after the ML service becomes available again.
  *
@@ -906,7 +906,7 @@ function fortress_ml_queue_db_cleanup(): void
             $stmt->execute();
         }
     } catch (Throwable $e) {
-        error_log('FortressAuth ML queue cleanup failed.');
+        error_log('Aegis AI ML queue cleanup failed.');
     }
 }
 
@@ -946,7 +946,7 @@ function fortress_ml_queue_enqueue(string $ip, array $features, float $ruleScore
             ]);
             return $stmt->rowCount() > 0;
         } catch (Throwable $e) {
-            error_log('FortressAuth ML queue database insert failed; using file fallback.');
+            error_log('Aegis AI ML queue database insert failed; using file fallback.');
         }
     }
 
@@ -1053,7 +1053,7 @@ function fortress_ml_queue_claim_db(int $limit): array
         return $rows;
     } catch (Throwable $e) {
         if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) $pdo->rollBack();
-        error_log('FortressAuth ML queue claim failed.');
+        error_log('Aegis AI ML queue claim failed.');
         return [];
     }
 }
@@ -1086,7 +1086,7 @@ function fortress_ml_queue_finish_db(int $id, bool $ok, ?array $result = null): 
         );
         $stmt->execute(['retry' => $retry, 'state' => substr($state, 0, 64), 'id' => $id]);
     } catch (Throwable $e) {
-        error_log('FortressAuth ML queue completion update failed.');
+        error_log('Aegis AI ML queue completion update failed.');
     }
 }
 
@@ -1314,7 +1314,7 @@ function fortress_ml_post(array $payload): ?array
     $timeoutMs = (int)(getenv('ML_TIMEOUT_MS') ?: 1500);
     // A separately deployed Render ML service needs enough time for DNS/TLS,
     // routing, and inference. The request remains bounded so the ML layer can
-    // never stall normal FortressAuth navigation indefinitely.
+    // never stall normal Aegis AI navigation indefinitely.
     $timeoutMs = max(250, min(5000, $timeoutMs));
 
     $token = trim((string)(getenv('ML_SERVICE_TOKEN') ?: ''));
@@ -1372,7 +1372,7 @@ function fortress_ml_post(array $payload): ?array
             'http_code' => $httpCode,
             'latency_ms' => $latencyMs,
         ]);
-        error_log('FortressAuth ML request failed state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
+        error_log('Aegis AI ML request failed state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
         return null;
     }
 
@@ -1389,7 +1389,7 @@ function fortress_ml_post(array $payload): ?array
             'http_code' => $httpCode,
             'latency_ms' => $latencyMs,
         ]);
-        error_log('FortressAuth ML request rejected state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
+        error_log('Aegis AI ML request rejected state=' . $state . ' http=' . $httpCode . ' latency_ms=' . $latencyMs);
         return null;
     }
 
@@ -1412,7 +1412,7 @@ function fortress_ml_post(array $payload): ?array
             'http_code' => $httpCode,
             'latency_ms' => $latencyMs,
         ]);
-        error_log('FortressAuth ML request returned an invalid prediction response.');
+        error_log('Aegis AI ML request returned an invalid prediction response.');
         return null;
     }
 

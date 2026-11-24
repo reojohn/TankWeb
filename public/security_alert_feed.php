@@ -331,7 +331,7 @@ function fortress_alert_db_max_id(PDO $pdo): int
         $value = $pdo->query('SELECT COALESCE(MAX(id), 0) FROM public.security_events')->fetchColumn();
         return max(0, (int)$value);
     } catch (Throwable $e) {
-        error_log('FortressAuth alert stream max-id read failed: ' . $e->getMessage());
+        error_log('Aegis AI alert stream max-id read failed: ' . $e->getMessage());
         return -1;
     }
 }
@@ -374,7 +374,7 @@ function fortress_alert_db_history(PDO $pdo, array $priority, int $limit = 320):
         }
         return $lines;
     } catch (Throwable $e) {
-        error_log('FortressAuth alert history read failed: ' . $e->getMessage());
+        error_log('Aegis AI alert history read failed: ' . $e->getMessage());
         return [];
     }
 }
@@ -427,7 +427,7 @@ function fortress_alert_db_since(PDO $pdo, array $priority, int $cursor, int $li
             'limit' => $safeLimit,
         ];
     } catch (Throwable $e) {
-        error_log('FortressAuth alert incremental read failed: ' . $e->getMessage());
+        error_log('Aegis AI alert incremental read failed: ' . $e->getMessage());
         return ['rows' => [], 'max_id' => -1, 'limit' => max(1, $limit)];
     }
 }

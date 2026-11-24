@@ -60,7 +60,7 @@ try {
     echo $payload;
     exit;
 } catch (Throwable $e) {
-    error_log('FortressAuth report generation failed: ' . $e->getMessage());
+    error_log('Aegis AI report generation failed: ' . $e->getMessage());
     $_SESSION['user_management_flash'] = [
         'type' => 'error',
         'message' => 'The documentation report could not be generated. Please try again.',

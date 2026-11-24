@@ -5,7 +5,7 @@
   <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813">
 
   <meta charset="utf-8">
-  <title>FortressAuth — Secure Login</title>
+  <title>Aegis AI — Secure Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10071f">
 
@@ -307,7 +307,7 @@
 
     <section
       class="brand-panel"
-      aria-label="FortressAuth access overview"
+      aria-label="Aegis AI access overview"
     >
 
 
@@ -523,7 +523,7 @@
 
           <img
             src="/images/wolf.png"
-            alt="FortressAuth"
+            alt="Aegis AI"
           >
 
         </div>
@@ -536,7 +536,7 @@
           </span>
 
           <h1>
-            FortressAuth
+            Aegis AI
           </h1>
 
           <p>
@@ -741,11 +741,11 @@
 
           <img
             src="/images/wolf.png"
-            alt="FortressAuth"
+            alt="Aegis AI"
           >
 
           <span>
-            FORTRESS AUTH
+            AEGIS AI
           </span>
 
         </div>

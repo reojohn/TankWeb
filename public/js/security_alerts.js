@@ -73,7 +73,7 @@
     id: String(event.id || ''),
     key: String(event.key || 'security_event'),
     title: String(event.title || 'Security notification'),
-    description: String(event.description || 'A FortressAuth security event was recorded.'),
+    description: String(event.description || 'A Aegis AI security event was recorded.'),
     source_ip: String(event.source_ip || 'unknown'),
     time: String(event.time || 'Recent'),
     timestamp: String(event.timestamp || ''),
@@ -247,7 +247,7 @@
         <div class="fortress-notification-empty fortress-notification-clear">
           <span class="fortress-notification-empty-icon"><i class="fa-solid fa-circle-check"></i></span>
           <strong>No notification events yet</strong>
-          <span>FortressAuth will surface meaningful threat, authentication, and account events here.</span>
+          <span>Aegis AI will surface meaningful threat, authentication, and account events here.</span>
         </div>`;
       updateBellState();
       return;

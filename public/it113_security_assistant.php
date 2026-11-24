@@ -132,6 +132,12 @@ $payload=[
     'rule_score'=>fortress_ml_rule_score($features),
     'mode'=>$mode, 'question'=>$question, 'history'=>$historyOut,
 ];
+// A curated held-out label is evaluation metadata; it must not influence prediction.
+$expectedLabel = $sample['true_label'] ?? null;
+if (is_string($expectedLabel) && in_array($expectedLabel,
+        ['NORMAL','BRUTE_FORCE','CREDENTIAL_STUFFING','RECONNAISSANCE','WEB_ATTACK','MFA_ABUSE','SESSION_ABUSE'], true)) {
+    $payload['expected_label'] = $expectedLabel;
+}
 $body=json_encode($payload,JSON_UNESCAPED_SLASHES);
 if (!is_string($body)) assistant_reply(503,['ok'=>false,'error'=>'Unable to prepare assessment.']);
 $headers="Content-Type: application/json\r\nAccept: application/json\r\nConnection: close\r\nAuthorization: Bearer {$token}\r\n";
@@ -156,6 +162,14 @@ if (!is_array($result) || !in_array($result['engine']??null,['groq','determinist
     assistant_reply(503,['ok'=>false,'error'=>'AI response validation failed.']);
 }
 $assessment=$result['context'];
+// Non-secret model identifiers support verification of 120B analyst vs 20B chat.
+// Never echo SDK errors, tokens or arbitrary vendor metadata to the browser.
+$model_requested = $result['llm_model_requested'] ?? null;
+$model_reported = $result['llm_model_reported'] ?? null;
+foreach (['model_requested', 'model_reported'] as $name) {
+    if (!is_string($$name) || !preg_match('~^[A-Za-z0-9_./-]{3,100}$~D', $$name)) $$name = null;
+}
+if ($result['engine'] !== 'groq') { $model_requested = null; $model_reported = null; }
 assistant_reply(200,[
     'ok'=>true, 'sample_id'=>$id, 'engine'=>$result['engine'], 'mode'=>$mode,
     'answer'=>substr($result['answer'],0,4500),
@@ -164,5 +178,7 @@ assistant_reply(200,[
     'confidence'=>$assessment['confidence'],
     'severity'=>$assessment['severity'],
     'indicators'=>$assessment['indicator_evidence'] ?? [],
+    'llm_model_requested'=>$model_requested,
+    'llm_model_reported'=>$model_reported,
     'synthetic'=>true, 'publicly_shared'=>false,
 ]);

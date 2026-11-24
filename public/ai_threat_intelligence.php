@@ -111,7 +111,7 @@ try {
         }
     }
 } catch (Throwable $e) {
-    error_log('FortressAuth AI recent-threat visualization query failed: ' . $e->getMessage());
+    error_log('Aegis AI AI recent-threat visualization query failed: ' . $e->getMessage());
 }
 
 $featureLabels = [
@@ -170,7 +170,7 @@ $aiRiskInterpretation = $mlRisk >= 85
             : ($mlRisk >= 30 ? 'watch-level' : 'normal')));
 
 $aiClassFindingMap = [
-    'NORMAL' => 'I did not find a learned attack pattern in the latest behavior. The activity currently looks most similar to normal FortressAuth usage.',
+    'NORMAL' => 'I did not find a learned attack pattern in the latest behavior. The activity currently looks most similar to normal Aegis AI usage.',
     'BRUTE_FORCE' => 'I found a behavioral pattern that resembles brute-force activity, where repeated authentication attempts may be trying to guess valid credentials.',
     'CREDENTIAL_STUFFING' => 'I found a behavioral pattern that resembles credential stuffing, where multiple account credentials may be tested against the authentication system.',
     'RECONNAISSANCE' => 'I found a behavioral pattern that resembles reconnaissance. The source appears to be exploring paths or system behavior in a way that deserves review.',
@@ -189,33 +189,33 @@ $aiConversationMessages = [];
 
 if (!$mlEnabled) {
     $aiConversationMessages = [
-        'Hello. I am the FortressAuth AI security analyst. I checked the system, but the hybrid machine-learning service is currently disabled, so I cannot produce a live behavioral finding yet.',
-        'The core security system is still protecting FortressAuth. Password authentication, Personal ID verification, rate limits, rule-based detection, session controls, and audit logging remain operational without the ML service.',
+        'Hello. I am the Aegis AI AI security analyst. I checked the system, but the hybrid machine-learning service is currently disabled, so I cannot produce a live behavioral finding yet.',
+        'The core security system is still protecting Aegis AI. Password authentication, Personal ID verification, rate limits, rule-based detection, session controls, and audit logging remain operational without the ML service.',
         'Once the ML service is enabled, I can continuously review non-sensitive security telemetry and report what XGBoost, the Autoencoder, and the rule engine find about current activity.',
     ];
 } elseif (!$mlResult) {
     if (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])) {
         $aiConversationMessages = [
-            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled, but the latest analysis request did not complete successfully.',
+            'Hello. I am the Aegis AI AI security analyst. The ML layer is enabled, but the latest analysis request did not complete successfully.',
             'The safe connection diagnostic currently reports ' . strtolower(str_replace('_', ' ', $mlServiceState)) . '. The system does not expose the private ML URL, token, request body, or raw transport error in this interface.',
-            'FortressAuth continues enforcing its deterministic protections while the ML connection is unavailable. Once an analysis request succeeds, this page will automatically populate the XGBoost, Autoencoder, and hybrid-risk findings.',
+            'Aegis AI continues enforcing its deterministic protections while the ML connection is unavailable. Once an analysis request succeeds, this page will automatically populate the XGBoost, Autoencoder, and hybrid-risk findings.',
         ];
     } else {
         $aiConversationMessages = [
-            'Hello. I am the FortressAuth AI security analyst. The ML layer is enabled and I am waiting for the first completed behavioral analysis.',
+            'Hello. I am the Aegis AI AI security analyst. The ML layer is enabled and I am waiting for the first completed behavioral analysis.',
             'I have not found a saved security result yet. Normal protected-page activity will give the request monitor telemetry and trigger an analysis attempt.',
-            'While I wait, FortressAuth continues enforcing its normal protections. The AI layer is supplementary and does not replace authentication, rate limits, deterministic rules, or session security.',
+            'While I wait, Aegis AI continues enforcing its normal protections. The AI layer is supplementary and does not replace authentication, rate limits, deterministic rules, or session security.',
         ];
     }
 } else {
     if ($mlAnalysisMode === 'QUEUED_REPLAY') {
         $aiConversationMessages[] = sprintf(
-            'This result is a queued replay of security telemetry preserved while the ML service was unavailable. The original request was handled in real time by FortressAuth deterministic defenses, and the ML analysis completed %d seconds later after the model service recovered.',
+            'This result is a queued replay of security telemetry preserved while the ML service was unavailable. The original request was handled in real time by Aegis AI deterministic defenses, and the ML analysis completed %d seconds later after the model service recovered.',
             $mlQueueDelaySeconds
         );
     }
     $aiConversationMessages[] = sprintf(
-        'Hello. I reviewed the latest FortressAuth security activity from source %s. My current assessment is %s, with a hybrid risk score of %.1f out of 100.',
+        'Hello. I reviewed the latest Aegis AI security activity from source %s. My current assessment is %s, with a hybrid risk score of %.1f out of 100.',
         $mlSourceIp,
         strtolower($mlSeverity),
         $mlRisk
@@ -271,7 +271,7 @@ if (!$mlEnabled) {
     }
 
     if ($mlRuleScore <= 0.1) {
-        $aiConversationMessages[] = 'I checked the deterministic FortressAuth rule engine as well. It is currently contributing 0 out of 100 attack signal, so I did not find rule-based evidence of a known malicious request in this latest assessment.';
+        $aiConversationMessages[] = 'I checked the deterministic Aegis AI rule engine as well. It is currently contributing 0 out of 100 attack signal, so I did not find rule-based evidence of a known malicious request in this latest assessment.';
     } elseif ($mlRuleScore < 50) {
         $aiConversationMessages[] = sprintf(
             'The deterministic rule engine contributes %.1f out of 100. I found some rule-based security evidence, but it is not yet a strong deterministic signal by itself.',
@@ -324,7 +324,7 @@ if (!$mlEnabled) {
 
     if ($mlRisk < 30 && $aiClassKey === 'NORMAL') {
         $aiConversationMessages[] = sprintf(
-            'My overall conclusion is that FortressAuth currently appears to be operating normally. The hybrid score is only %.1f out of 100, XGBoost sees normal behavior, and the rule engine has not found deterministic attack evidence.',
+            'My overall conclusion is that Aegis AI currently appears to be operating normally. The hybrid score is only %.1f out of 100, XGBoost sees normal behavior, and the rule engine has not found deterministic attack evidence.',
             $mlRisk
         );
         $aiConversationMessages[] = 'I recommend continuing normal monitoring. If request volume, failed logins, anomaly deviation, scanning behavior, or rule evidence rises, I will reassess the activity on the next protected request.';
@@ -345,17 +345,17 @@ if (!$mlEnabled) {
             'My overall conclusion is a high-priority security finding. The hybrid risk score is %.1f out of 100 and the current activity deserves immediate review.',
             $mlRisk
         );
-        $aiConversationMessages[] = 'I recommend opening the related threat and audit records now, validating the deterministic evidence, and using FortressAuth enforcement controls if the activity is confirmed as malicious.';
+        $aiConversationMessages[] = 'I recommend opening the related threat and audit records now, validating the deterministic evidence, and using Aegis AI enforcement controls if the activity is confirmed as malicious.';
     }
 
     $aiConversationMessages[] = sprintf(
-        'This report is based on the latest analysis completed at %s. I will continue updating my findings as FortressAuth receives new protected requests.',
+        'This report is based on the latest analysis completed at %s. I will continue updating my findings as Aegis AI receives new protected requests.',
         $mlPredictionTime
     );
 
     $aiConversationMessages[] = $mlAssistedEnabled
         ? 'One final note: AI-assisted enforcement is active. I can contribute a threat strike when a malicious model result is corroborated by deterministic evidence. Temporary blocking requires either multiple qualified strikes or a very high-risk result with multiple independent evidence groups, so no model can ban a source by itself.'
-        : 'One final note: the AI layer is currently advisory. I can classify, compare, score, and explain what I find, while deterministic FortressAuth controls remain authoritative for enforcement.';
+        : 'One final note: the AI layer is currently advisory. I can classify, compare, score, and explain what I find, while deterministic Aegis AI controls remain authoritative for enforcement.';
 }
 
 
@@ -369,7 +369,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#10071f">
-    <title>FortressAuth — AI Defense</title>
+    <title>Aegis AI — AI Defense</title>
     <link rel="stylesheet" href="/css/all.min.css">
     <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
     <link rel="stylesheet" href="/css/ai_threat_intelligence.css?v=20260824-0845">
@@ -386,7 +386,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <div>
         <span class="eyebrow">HYBRID MACHINE LEARNING</span>
         <h1>AI Threat Intelligence</h1>
-        <p>FortressAuth combines XGBoost attack classification, Autoencoder behavioral anomaly detection, and deterministic rule evidence into one explainable risk assessment that can safely assist enforcement when independent signals agree.</p>
+        <p>Aegis AI combines XGBoost attack classification, Autoencoder behavioral anomaly detection, and deterministic rule evidence into one explainable risk assessment that can safely assist enforcement when independent signals agree.</p>
     </div>
     <div class="page-hero-icon"><i class="fa-solid fa-brain"></i></div>
 </section>
@@ -411,7 +411,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-gauge-high"></i></span><div><strong><?= number_format($mlRisk, 1) ?>/100</strong><span>Hybrid risk score</span><small><?= e($mlSeverity) ?></small></div></div>
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-diagram-project"></i></span><div><strong><?= e($mlClassDisplay) ?></strong><span>XGBoost classification</span><small><?= number_format($mlConfidence, 1) ?>% model confidence</small></div></div>
         <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-wave-square"></i></span><div><strong><?= number_format($mlAnomaly, 1) ?>%</strong><span>Autoencoder anomaly</span><small>Deviation from learned normal behavior</small></div></div>
-        <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-shield-halved"></i></span><div><strong><?= number_format($mlRuleScore, 1) ?>/100</strong><span>Rule-engine signal</span><small>Deterministic FortressAuth evidence</small></div></div>
+        <div class="attack-card"><span class="attack-icon"><i class="fa-solid fa-shield-halved"></i></span><div><strong><?= number_format($mlRuleScore, 1) ?>/100</strong><span>Rule-engine signal</span><small>Deterministic Aegis AI evidence</small></div></div>
     </div>
     <div class="ai-analysis-meta">
         <span><i class="fa-solid fa-network-wired"></i> Source: <code><?= e($mlSourceIp) ?></code></span>
@@ -444,7 +444,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     <?php elseif (!$mlEnabled): ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is currently disabled. Set <code>ML_SERVICE_ENABLED=true</code>, configure the private service URL/token, and start the ML service. Existing defenses continue working normally.</div>
     <?php elseif (is_array($mlServiceStatus) && empty($mlServiceStatus['ok'])): ?>
-        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest analysis connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active<?php if ($mlQueuePending > 0): ?> and <?= $mlQueuePending ?> ML analysis snapshot<?= $mlQueuePending === 1 ? ' is' : 's are' ?> safely queued for replay<?php endif; ?> while FortressAuth retries after the configured backoff.</div>
+        <div class="panel-note"><i class="fa-solid fa-triangle-exclamation"></i> The AI service is enabled, but the latest analysis connection reported <strong><?= e(str_replace('_', ' ', $mlServiceState)) ?></strong><?php if ($mlServiceHttpCode > 0): ?> (HTTP <?= $mlServiceHttpCode ?>)<?php endif; ?><?php if ($mlServiceLatencyMs > 0): ?> after <?= $mlServiceLatencyMs ?> ms<?php endif; ?>. Core deterministic defenses remain active<?php if ($mlQueuePending > 0): ?> and <?= $mlQueuePending ?> ML analysis snapshot<?= $mlQueuePending === 1 ? ' is' : 's are' ?> safely queued for replay<?php endif; ?> while Aegis AI retries after the configured backoff.</div>
     <?php else: ?>
         <div class="panel-note"><i class="fa-solid fa-circle-info"></i> The AI service is enabled. Use the system normally or run controlled security tests to populate the behavioral window and generate the first analysis.</div>
     <?php endif; ?>
@@ -459,7 +459,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <div class="fortress-ai-analyst-orbit fortress-ai-analyst-orbit-two"></div>
                 <div class="fortress-ai-analyst-glow"></div>
                 <div class="fortress-ai-analyst-image-frame">
-                    <img src="/images/ai.gif" alt="Animated FortressAuth AI security analyst" class="fortress-ai-analyst-image">
+                    <img src="/images/ai.gif" alt="Animated Aegis AI AI security analyst" class="fortress-ai-analyst-image">
                 </div>
                 <span class="fortress-ai-analyst-selected-badge"><span></span> LIVE ANALYST</span>
             </div>
@@ -470,9 +470,9 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                     <span><i class="fa-solid fa-satellite-dish"></i> <?= $mlServiceConnected ? 'ML ENGINE CONNECTED' : ($mlEnabled ? 'ML ENGINE RETRYING' : 'ML ENGINE OFFLINE') ?></span>
                 </div>
 
-                <h2>FortressAuth AI Analyst</h2>
+                <h2>Aegis AI AI Analyst</h2>
                 <p>
-                    Synthesizes XGBoost behavior classification, Autoencoder baseline deviation, deterministic FortressAuth evidence, and the hybrid risk score into one conversational security report.
+                    Synthesizes XGBoost behavior classification, Autoencoder baseline deviation, deterministic Aegis AI evidence, and the hybrid risk score into one conversational security report.
                 </p>
 
                 <div class="fortress-ai-analyst-tags">
@@ -536,7 +536,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                     <div class="fortress-ai-chat-header">
                         <div class="fortress-ai-chat-identity">
                             <div>
-                                <strong>FortressAuth AI Analyst</strong>
+                                <strong>Aegis AI AI Analyst</strong>
                                 <span class="fortress-ai-live-chip">LIVE</span>
                             </div>
                             <small>Hybrid security intelligence assistant</small>
@@ -661,7 +661,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <div class="fortress-defense-board-avatar"><img src="/images/ai7.png" alt="Rule engine defense agent"></div>
                 <div class="fortress-defense-board-copy">
                     <h3>Rule Engine</h3>
-                    <p>Validates known FortressAuth attack signatures and remains authoritative for deterministic enforcement.</p>
+                    <p>Validates known Aegis AI attack signatures and remains authoritative for deterministic enforcement.</p>
                     <div class="fortress-defense-board-tags"><span>Known signatures</span><span>Authoritative controls</span></div>
                 </div>
             </div>
@@ -721,9 +721,9 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 <span class="fortress-defense-board-state enforced"><i class="fa-solid fa-shield"></i>PROTECTED</span>
             </div>
             <div class="fortress-defense-board-main">
-                <div class="fortress-defense-board-avatar"><img src="/images/ai4.png" alt="FortressAuth shield defense agent"></div>
+                <div class="fortress-defense-board-avatar"><img src="/images/ai4.png" alt="Aegis AI shield defense agent"></div>
                 <div class="fortress-defense-board-copy">
-                    <h3>FortressAuth Shield</h3>
+                    <h3>Aegis AI Shield</h3>
                     <p>Keeps authentication, sessions, rate limits, and deterministic controls independent from ML availability while allowing guarded ML-assisted enforcement when corroborating evidence meets policy thresholds.</p>
                     <div class="fortress-defense-board-tags"><span>Fail-safe</span><span>Guarded enforcement</span></div>
                 </div>
@@ -743,7 +743,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <div>
             <span class="eyebrow">COORDINATED DEFENSE</span>
             <h2>AI Defense Coordination</h2>
-            <p>Animated view of the rule engine, XGBoost, and Autoencoder working together to evaluate current activity and reinforce FortressAuth without taking over authentication decisions.</p>
+            <p>Animated view of the rule engine, XGBoost, and Autoencoder working together to evaluate current activity and reinforce Aegis AI without taking over authentication decisions.</p>
         </div>
         <span class="panel-status"><i class="fa-solid fa-shield-halved"></i> DEFENSE FLOW</span>
     </div>
@@ -778,7 +778,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             </div>
             <div class="ai-flow-node ai-flow-node-shield">
                 <span class="ai-node-kicker">Defense posture</span>
-                <strong>FortressAuth Shield</strong>
+                <strong>Aegis AI Shield</strong>
                 <small><?= $mlAssistedEnabled ? 'Guarded AI assistance · corroboration required' : 'Advisory AI · enforcement disabled' ?></small>
             </div>
         </div>
@@ -795,7 +795,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
                 </div>
                 <div class="ai-feed-item" style="--feed-delay:.7s">
                     <span class="ai-feed-dot"></span>
-                    <div><strong>Rule Engine</strong><small>Existing FortressAuth protections contributed <?= number_format($mlRuleScore, 1) ?>/100 deterministic signal.</small></div>
+                    <div><strong>Rule Engine</strong><small>Existing Aegis AI protections contributed <?= number_format($mlRuleScore, 1) ?>/100 deterministic signal.</small></div>
                 </div>
                 <div class="ai-feed-item" style="--feed-delay:1.4s">
                     <span class="ai-feed-dot"></span>
@@ -819,7 +819,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
         <div>
             <span class="eyebrow">AGENT AI COLLABORATION</span>
             <h2>Autonomous Defense Agents</h2>
-            <p>Visual simulation of specialized AI agents continuously exchanging signals, validating one another, and supporting FortressAuth defense decisions in real time.</p>
+            <p>Visual simulation of specialized AI agents continuously exchanging signals, validating one another, and supporting Aegis AI defense decisions in real time.</p>
         </div>
         <span class="panel-status"><i class="fa-solid fa-robot"></i> AGENT MESH</span>
     </div>
@@ -849,7 +849,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             <div class="ai-agent-orbit ai-agent-orbit-two"></div>
             <div class="ai-agent-node ai-agent-node-core">
                 <span class="ai-agent-icon ai-agent-icon-core"><img class="ai-agent-robot-image" src="/images/core2.png" alt="" aria-hidden="true"></span>
-                <strong>FortressAuth Core</strong>
+                <strong>Aegis AI Core</strong>
                 <small>Defense state: <?= e($mlSeverity) ?></small>
             </div>
 
@@ -922,7 +922,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
             </div>
             <div class="ai-agent-status-card">
                 <div class="ai-agent-status-head"><span class="ai-agent-mini-icon"><img class="ai-agent-robot-image" src="/images/ai7.png" alt="" aria-hidden="true"></span><strong>Rule Agent</strong></div>
-                <p>Validates known FortressAuth evidence patterns and contributes <strong><?= number_format($mlRuleScore, 1) ?>/100</strong> deterministic signal.</p>
+                <p>Validates known Aegis AI evidence patterns and contributes <strong><?= number_format($mlRuleScore, 1) ?>/100</strong> deterministic signal.</p>
                 <span class="ai-agent-badge">Deterministic enforcement</span>
             </div>
         </div>
@@ -931,7 +931,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 <section class="ai-model-grid">
     <article class="panel ai-model-card">
-        <div class="panel-heading compact"><div><span class="eyebrow">KNOWN BEHAVIOR CLASSIFIER</span><h2>XGBoost</h2><p>Classifies behavioral telemetry into learned attack categories generated for the controlled FortressAuth project environment.</p></div><i class="fa-solid fa-diagram-project panel-symbol"></i></div>
+        <div class="panel-heading compact"><div><span class="eyebrow">KNOWN BEHAVIOR CLASSIFIER</span><h2>XGBoost</h2><p>Classifies behavioral telemetry into learned attack categories generated for the controlled Aegis AI project environment.</p></div><i class="fa-solid fa-diagram-project panel-symbol"></i></div>
         <div class="ai-model-stat"><span>Detected behavior</span><strong><?= e($mlClassDisplay) ?></strong></div>
         <div class="ai-model-stat"><span>Model confidence</span><strong><?= number_format($mlConfidence, 1) ?>%</strong></div>
         <div class="ai-model-stat"><span>XGBoost risk contribution</span><strong><?= number_format($mlXgbRisk, 1) ?>/100</strong></div>
@@ -981,7 +981,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
 
 <article class="panel data-panel ai-history-panel">
     <div class="panel-heading filter-heading">
-        <div><span class="eyebrow">MODEL HISTORY</span><h2>Recent AI Analyses</h2><p>Latest hybrid assessments and guarded enforcement decisions recorded by FortressAuth.</p></div>
+        <div><span class="eyebrow">MODEL HISTORY</span><h2>Recent AI Analyses</h2><p>Latest hybrid assessments and guarded enforcement decisions recorded by Aegis AI.</p></div>
     </div>
     <div class="responsive-table-wrap">
         <table class="security-table">
@@ -1006,7 +1006,7 @@ audit_log('ai_threat_intelligence_viewed uid=' . $userId);
     </div>
 </article>
 
-<footer class="command-footer"><span><i class="fa-solid fa-brain"></i> FortressAuth hybrid machine-learning defense</span><span><?= $mlAssistedEnabled ? 'AI-assisted enforcement · deterministic corroboration required' : 'Advisory intelligence · deterministic defenses remain enforced' ?></span></footer>
+<footer class="command-footer"><span><i class="fa-solid fa-brain"></i> Aegis AI hybrid machine-learning defense</span><span><?= $mlAssistedEnabled ? 'AI-assisted enforcement · deterministic corroboration required' : 'Advisory intelligence · deterministic defenses remain enforced' ?></span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main>

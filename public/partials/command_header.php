@@ -39,7 +39,7 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
     </button>
     <div class="fortress-mobile-title">
         <strong><?= e($pageTitle) ?></strong>
-        <span>FortressAuth · <?= $runtimeDefenseBoost ? 'Fortress Boost active' : 'Protection enforced' ?></span>
+        <span>Aegis AI · <?= $runtimeDefenseBoost ? 'Aegis Boost active' : 'Protection enforced' ?></span>
     </div>
     <div class="fortress-mobile-actions" aria-label="Quick actions">
         <button class="fortress-mobile-notifications fortress-notification-toggle" type="button" aria-label="Open notifications" aria-expanded="false" aria-controls="fortress-notification-panel" data-notification-toggle>
@@ -54,11 +54,11 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
 
 <aside class="command-chrome fortress-sidebar" data-fortress-sidebar>
     <div class="sidebar-brand-card">
-        <a class="brand-lockup" href="/dashboard.php" aria-label="FortressAuth command center">
+        <a class="brand-lockup" href="/dashboard.php" aria-label="Aegis AI command center">
             <span class="topbar-logo"><img src="/images/wolf1.png" alt=""></span>
             <span class="brand-copy">
-                <small>SECURE ACCESS</small>
-                <strong>FortressAuth</strong>
+                <small>THREAT INTELLIGENCE</small>
+                <strong>Aegis AI</strong>
                 <em>Command Center</em>
             </span>
         </a>
@@ -86,7 +86,7 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
         <span class="sidebar-operator-badge <?= $operatorRole === 'superadmin' ? 'superadmin' : '' ?>"><?= e($operatorRoleLabel) ?></span>
     </a>
 
-    <nav class="command-nav" aria-label="FortressAuth navigation">
+    <nav class="command-nav" aria-label="Aegis AI navigation">
         <p class="sidebar-section-label">Navigation</p>
         <div class="command-nav-links" id="command-nav-links">
             <?php foreach ($navItems as $key => $item): ?>
@@ -132,8 +132,8 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
         <span class="page-heading-icon"><i class="fa-solid <?= e($currentNav[1]) ?>"></i></span>
         <div>
             <div class="page-heading-chips">
-                <span>FORTRESSAUTH</span>
-                <span class="status-chip <?= $runtimeDefenseBoost ? 'boost-active' : '' ?>"><i class="<?= $runtimeDefenseBoost ? 'fa-solid fa-bolt' : 'live-dot' ?>"></i> <?= $runtimeDefenseBoost ? 'FORTRESS BOOST ACTIVE' : 'PROTECTION ENFORCED' ?></span>
+                <span>AEGIS AI</span>
+                <span class="status-chip <?= $runtimeDefenseBoost ? 'boost-active' : '' ?>"><i class="<?= $runtimeDefenseBoost ? 'fa-solid fa-bolt' : 'live-dot' ?>"></i> <?= $runtimeDefenseBoost ? 'AEGIS BOOST ACTIVE' : 'PROTECTION ENFORCED' ?></span>
             </div>
             <h1><?= e($pageTitle) ?></h1>
             <p><?= e($pageSubtitle) ?> · <?= $defenseActive ?>/<?= $defenseTotal ?> defense layers operational</p>
@@ -180,7 +180,7 @@ $runtimeDefenseBoost = $runtimeDefenseMode === 'fortress_boost';
         <div class="fortress-notification-empty fortress-notification-clear">
             <span class="fortress-notification-empty-icon"><i class="fa-solid fa-circle-check"></i></span>
             <strong>No notification events yet</strong>
-            <span>Saved notifications appear instantly here while FortressAuth syncs newer security events in the background.</span>
+            <span>Saved notifications appear instantly here while Aegis AI syncs newer security events in the background.</span>
         </div>
     </div>
 </section>

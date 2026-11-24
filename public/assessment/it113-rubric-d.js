@@ -32,9 +32,135 @@
   }
   function exportPlan(category){
     const p=plans[category]; if(!p)return;
-    const output={study:'FortressAuth IT113 Rubric D category response plan',generated_at:new Date().toISOString(),category,synthetic:true,confirmed_incident:false,confirmed_vulnerability:false,priority:p.priority,interpretation:p.basis,evidence_to_verify:p.evidence,mitigation_actions:p.actions,effectiveness_checks:p.verify,security_references:p.refs.map(k=>reference[k]),review_required:true,notes:'A model category does not prove an exploitable weakness or an actual incident. Validate controls on an authorized environment.'};
+    const output={study:'Aegis AI IT113 Rubric D category response plan',generated_at:new Date().toISOString(),category,synthetic:true,confirmed_incident:false,confirmed_vulnerability:false,priority:p.priority,interpretation:p.basis,evidence_to_verify:p.evidence,mitigation_actions:p.actions,effectiveness_checks:p.verify,security_references:p.refs.map(k=>reference[k]),review_required:true,notes:'A model category does not prove an exploitable weakness or an actual incident. Validate controls on an authorized environment.'};
     const url=URL.createObjectURL(new Blob([JSON.stringify(output,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='it113-response-plan-'+category.toLowerCase()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  // Finding-specific control mapping is deterministic. It adapts to the exact
+  // saved indicator names and observed counts; it never claims a missing control.
+  const findingControls = {
+    NORMAL:[
+      {title:'Monitor and preserve baseline',features:[],action:'Maintain proportionate logging and review for changes from this baseline.',verify:'Check that normal synthetic activity is not unnecessarily blocked.'}
+    ],
+    BRUTE_FORCE:[
+      {title:'Review authentication throttling',features:['failed_logins_15m','failed_logins_5m','requests_1m'],action:'Check whether per-account and per-source throttling, progressive delays, and recovery safeguards are configured; consider strengthening them where needed.',verify:'In an authorized test environment, confirm repeated failures trigger the expected throttling without enabling lockout abuse.'},
+      {title:'Investigate authentication denials',features:['auth_rejections_15m'],action:'Correlate rejected access with failed-logins using approved, minimized audit data; investigate unusual patterns.',verify:'Confirm alert events and log windows align with known test actions.'},
+      {title:'Assess MFA coverage',features:[],action:'Review the applicable MFA policy and challenge enforcement; recommend MFA where risk and policy warrant.',verify:'Inspect configuration and authorized sign-in tests to confirm applicable MFA controls operate.'}
+    ],
+    CREDENTIAL_STUFFING:[
+      {title:'Assess multi-account protection',features:['unique_usernames_15m','failed_logins_15m'],action:'Review failed logins across multiple accounts and evaluate per-account/source cooldowns and compromised-password screening.',verify:'Use synthetic multi-account attempts to verify appropriate throttling and recovery behavior.'},
+      {title:'Investigate request bursts',features:['requests_1m','auth_rejections_15m'],action:'Review abnormal request bursts and resource rejections; correlate them with anonymized login outcomes.',verify:'Compare detection alerts with authorized test inputs and investigate false positives.'},
+      {title:'Validate MFA and credential controls',features:[],action:'Confirm MFA coverage and password-handling policy independently before concluding a control is absent.',verify:'Review applicable policy, configuration and authorized sign-in enforcement.'}
+    ],
+    RECONNAISSANCE:[
+      {title:'Review endpoint probing',features:['unique_paths_5m','sensitive_path_probes_15m','scanner_events_15m'],action:'Check whether probed paths are expected and whether access restrictions protect administrative endpoints.',verify:'Test denial of unauthorized access to known synthetic routes while preserving legitimate access.'},
+      {title:'Review suspicious request rates',features:['requests_1m'],action:'Correlate request bursts with endpoint discovery signals before describing behavior as scanning.',verify:'Confirm log and alert timestamps against a controlled synthetic probe.'},
+      {title:'Maintain attack-surface inventory',features:[],action:'Review exposed services and patch status through authorized inventory processes.',verify:'Compare inventory findings against approved configurations.'}
+    ],
+    WEB_ATTACK:[
+      {title:'Inspect abnormal application inputs',features:['suspicious_requests_15m','method_anomalies_15m'],action:'Review sanitized abnormal requests and evaluate server-side validation and contextual output encoding.',verify:'Run non-destructive tests to check that inputs are handled safely.'},
+      {title:'Verify CSRF control behavior',features:['csrf_failures_15m'],action:'Review CSRF rejection patterns without assuming bypass; check server validation on state-changing routes.',verify:'Check safe CSRF rejection and authorized workflow success.'},
+      {title:'Review SQL query safety',features:[],action:'Check whether relevant database code uses parameterized queries; suspicious traffic alone does not prove injection.',verify:'Confirm secure query construction through code review and approved regression tests.'}
+    ],
+    MFA_ABUSE:[
+      {title:'Inspect second-factor failures',features:['qr_failures_15m','auth_rejections_15m'],action:'Review second-factor rejection trends and configured attempt limits.',verify:'Test controlled expired, repeated and invalid challenges for appropriate rejection.'},
+      {title:'Validate challenge lifecycle',features:[],action:'Review challenge binding, expiration, replay protection and recovery policy.',verify:'Confirm one-time use, expiry and authorized recovery behavior.'}
+    ],
+    SESSION_ABUSE:[
+      {title:'Review session transitions',features:['ua_changes_15m','auth_rejections_15m'],action:'Correlate session and authentication changes with authorized activity before alleging hijacking.',verify:'Check session regeneration, expiry and authorized access across test transitions.'},
+      {title:'Review CSRF rejections',features:['csrf_failures_15m'],action:'Inspect synthetic CSRF failures and confirm server-side validation on state-changing requests.',verify:'Test rejection of invalid tokens without breaking legitimate operations.'},
+      {title:'Validate cookie hardening',features:[],action:'Review the Secure, HttpOnly and SameSite settings and session lifetime rules.',verify:'Inspect effective response headers and cookie behavior in a controlled environment.'}
+    ]
+  };
+  let linkedItems=[],linkedScope='public',linkedSelected='',linkedConnected=false;
+  const clampNumber=(v,min,max)=>Number.isFinite(Number(v))?Math.min(max,Math.max(min,Number(v))):0;
+  function cleanFinding(x){
+    if(!x || !plans[x.classification] || !/^[a-f0-9]{32}$/.test(String(x.trace_id||'')))return null;
+    return {
+      trace_id:x.trace_id,classification:x.classification,
+      expected_label:plans[x.expected_label]?x.expected_label:null,
+      risk_score:clampNumber(x.risk_score,0,100),confidence:clampNumber(x.confidence,0,1),
+      status:['OPEN','INVESTIGATING','MITIGATED','RESOLVED'].includes(x.status)?x.status:'OPEN',
+      severity:String(x.severity||'').slice(0,20),sample_id:String(x.sample_id||'').slice(0,60),at:String(x.at||'').slice(0,50),
+      indicator_evidence:(Array.isArray(x.indicator_evidence)?x.indicator_evidence:[]).slice(0,6)
+        .filter(i=>i&&/^[a-z][a-z0-9_]{0,59}$/.test(String(i.feature||'')) && Number.isFinite(Number(i.observed)))
+        .map(i=>({feature:i.feature,observed:clampNumber(i.observed,0,1000000),description:String(i.description||'').slice(0,160)}))
+    };
+  }
+  function selectedFinding(){return linkedItems.find(x=>x.trace_id===linkedSelected)||null;}
+  function caseControls(finding){
+    const detected=new Map(finding.indicator_evidence.map(i=>[i.feature,i]));
+    return (findingControls[finding.classification]||[]).map((item,i)=>{
+      const hits=item.features.map(k=>detected.get(k)).filter(Boolean);
+      return {...item,order:i,hits,linked:hits.length>0};
+    }).sort((a,b)=>Number(b.linked)-Number(a.linked)||a.order-b.order);
+  }
+  function findingPlanData(finding){
+    const p=plans[finding.classification];
+    const concerns=[];
+    if(finding.expected_label&&finding.expected_label!==finding.classification)concerns.push('Held-out label differs from the model prediction; validate the category before prioritizing category-specific controls.');
+    if(finding.confidence<0.5)concerns.push('Low classification score: alternative behaviors should be investigated before choosing a response.');
+    const controls=caseControls(finding);
+    return {study:'Aegis AI IT113 / finding-linked mitigation review',generated_at:new Date().toISOString(),scope:linkedScope,
+      synthetic:true,confirmed_incident:false,confirmed_vulnerability:false,enforcement_performed:false,
+      finding:{trace_id:finding.trace_id,sample_id:finding.sample_id,classification:finding.classification,
+        expected_label:finding.expected_label,confidence:finding.confidence,risk_score:finding.risk_score,
+        recorded_review_status:finding.status,observed_indicators:finding.indicator_evidence},
+      research_cautions:concerns,verification_required:true,
+      prioritized_controls:controls.map(c=>({name:c.title,evidence_linked:c.linked,
+        supporting_indicators:c.hits,proposed_action:c.action,effectiveness_check:c.verify})),
+      framework_guidance:p.refs.map(k=>reference[k]),
+      note:'These are preventive and verification recommendations, not confirmation of a missing control. Status is recorded analyst review, not a measurement of remediation effectiveness.'};
+  }
+  function renderLinkedPlan(){
+    const host=$('rubric-d-case-plan'),sel=$('rubric-d-case-select');if(!host||!sel)return;
+    const flagged=linkedItems.filter(x=>x.classification!=='NORMAL');
+    const prior=linkedSelected;
+    if(!flagged.some(x=>x.trace_id===prior))linkedSelected=flagged[0]?.trace_id||'';
+    sel.innerHTML=flagged.length?flagged.map(f=>`<option value="${esc(f.trace_id)}" ${linkedSelected===f.trace_id?'selected':''}>${esc(pretty(f.classification))} · Risk ${f.risk_score.toFixed(1)} · ${esc(pretty(f.status))} · ${esc(f.sample_id||'Synthetic test')}</option>`).join(''):
+      '<option value="">No flagged synthetic findings in this view</option>';
+    const f=selectedFinding(),exportButton=$('rubric-d-export-case'),open=$('rubric-d-open-finding');
+    if(exportButton)exportButton.disabled=!f;
+    if(open)open.disabled=!f;
+    const scope=$('rubric-d-scope');if(scope)scope.textContent=linkedScope==='public'?
+      `${flagged.length} public curated flagged finding(s) · synchronized with the existing public research feed${linkedConnected?'':' · public storage may be unavailable'}.`:
+      `${flagged.length} flagged finding(s) from My tests · private to this browser session; never published by this workspace.`;
+    if(!f){host.innerHTML='<div class="rubric-d-case-empty"><strong>No flagged findings yet</strong><p>Run a curated synthetic example in AI Defense, or select My tests in Threat Findings to inspect your own private numeric analyses. Category reference plans remain available below.</p><button type="button" class="subtle-btn" data-go-to="defense">Open AI Defense ↗</button></div>';return;}
+    const p=plans[f.classification];const controls=caseControls(f);
+    const low=f.confidence<0.5, mismatch=f.expected_label&&f.expected_label!==f.classification;
+    const warnings=[...(mismatch?[`The saved held-out label is ${pretty(f.expected_label)}, but the model predicted ${pretty(f.classification)}. Treat this as a classification mismatch.`]:[]),...(low?['Low model classification score; alternative interpretations may be plausible.']:[])];
+    host.innerHTML=`<div class="rubric-d-case-hero"><div><span class="section-micro">${linkedScope==='public'?'PUBLIC CURATED':'MY SESSION'} / SELECTED MODEL INFERENCE</span><h3>${esc(pretty(f.classification))}</h3><p>${esc(p.basis)}</p></div><div class="rubric-d-case-metrics"><div><span>HYBRID RISK</span><b>${f.risk_score.toFixed(1)}<small> / 100</small></b></div><div><span>CLASS SCORE</span><b>${(100*f.confidence).toFixed(2)}%</b></div><div><span>REVIEW STATUS</span><b>${esc(pretty(f.status))}</b></div></div></div>
+      ${warnings.length?`<div class="rubric-d-warning"><strong>Review before action</strong><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:''}
+      <div class="rubric-d-case-columns"><section><h4>Evidence recorded with this finding</h4>${f.indicator_evidence.length?`<div class="rubric-d-indicators">${f.indicator_evidence.map(i=>`<div><code>${esc(i.feature)}</code><b>${esc(i.observed)}</b><span>${esc(i.description)}</span></div>`).join('')}</div>`:'<p class="hint">No threshold indicators were recorded for this finding; do not infer absent or ineffective controls.</p>'}<p class="hint">These supporting indicators are not XGBoost feature attributions. Aggregate numeric measurements alone cannot confirm a vulnerability.</p></section>
+      <section><h4>Priority response plan</h4><div class="rubric-d-control-list">${controls.map((c,i)=>`<article class="rubric-d-control"><div class="rubric-d-control-title"><b>${i+1}. ${esc(c.title)}</b><span class="${c.linked?'linked':'general'}">${c.linked?'Indicator-linked':'Best-practice review'}</span></div>${c.linked?`<p class="rubric-d-why"><strong>Observed:</strong> ${c.hits.map(h=>`<code>${esc(h.feature)}</code> ${esc(h.observed)}`).join(' · ')}</p>`:''}<p><strong>Consider:</strong> ${esc(c.action)}</p><p><strong>Verify:</strong> ${esc(c.verify)}</p></article>`).join('')}</div></section></div>
+      <div class="rubric-d-case-footer"><p><strong>Case follow-up:</strong> Recorded status is <b>${esc(pretty(f.status))}</b>. To change it, open this finding in Threat Findings. Only the submitting session may update public cases; status does not certify control effectiveness.</p><p><strong>Relevant guidance:</strong> ${p.refs.map(link).join(' ')}</p><p class="hint">This response plan is determined from the saved synthetic model finding and approved category guidance; no LLM request or enforcement action is made.</p></div>`;
+  }
+  function setupLinkedWorkspace(){
+    const sel=$('rubric-d-case-select');if(!sel)return;
+    sel.addEventListener('change',()=>{
+      if(!linkedItems.some(x=>x.trace_id===sel.value))return;
+      linkedSelected=sel.value;renderLinkedPlan();
+      window.dispatchEvent(new CustomEvent('fortress:select-mitigation-finding',{detail:{trace_id:linkedSelected}}));
+    });
+    $('rubric-d-export-case')?.addEventListener('click',()=>{
+      const finding=selectedFinding();if(!finding)return;
+      const data=findingPlanData(finding);
+      const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+      const a=document.createElement('a');a.href=url;a.download='it113-finding-mitigation-'+finding.trace_id.slice(0,10)+'.json';
+      document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+    });
+    window.addEventListener('fortress:mitigation-context',event=>{
+      const d=event.detail;if(!d||!Array.isArray(d.items)||!['public','session'].includes(d.scope))return;
+      const oldScope=linkedScope;
+      linkedScope=d.scope;linkedConnected=d.public_connected===true;
+      linkedItems=d.items.slice(0,80).map(cleanFinding).filter(Boolean);
+      if(oldScope!==linkedScope)linkedSelected='';
+      if(linkedItems.some(f=>f.trace_id===d.selected_trace&&f.classification!=='NORMAL'))linkedSelected=d.selected_trace;
+      renderLinkedPlan();
+    });
+    renderLinkedPlan();
+    window.dispatchEvent(new Event('fortress:request-mitigation-context'));
+  }
+
   function setup(){
     const sel=$('rubric-d-category');if(!sel||!$('rubric-d-detail'))return;
     const categories=Object.keys(plans);
@@ -53,7 +179,7 @@
       if(!button||!(button.dataset.filter==='ALL'||plans[button.dataset.filter]))return;
       sel.value=button.dataset.filter;update();
     });
-    $('rubric-d-export')?.addEventListener('click',()=>exportPlan(current()));update();
+    $('rubric-d-export')?.addEventListener('click',()=>exportPlan(current()));update();setupLinkedWorkspace();
     const finding=$('finding-detail'),context=$('rubric-d-finding-guidance');if(!finding||!context)return;
     let last='';const updateFinding=()=>{
       const label=(finding.querySelector('.finding-topline h3')?.textContent||'').trim().toUpperCase().replace(/\s+/g,'_');

@@ -1,4 +1,4 @@
-/* FortressAuth IT113 / Public curated research with optional personal numeric testing.
+/* Aegis AI IT113 / Public curated research with optional personal numeric testing.
    No account or invitation. Live curated model runs are globally visible.
    Numeric CSV inputs, private notes and protected services stay session-scoped. */
 'use strict';
@@ -37,6 +37,25 @@
       typeof entry.expected_label==='string' && categories.includes(entry.expected_label) &&
       /^[a-f0-9]{32}$/.test(String(entry.trace_id||'')) &&
       /^[a-f0-9]{16}$/.test(String(entry.model_version||''));
+  }
+  // Reuse the existing public feed for the sidebar. Never expose session/CSV
+  // records to this event and never add a separate network poll.
+  function publishThreatPulse(){
+    let recent=publicEntries[0]||null;
+    if(!recent){
+      try{const cached=JSON.parse(localStorage.getItem(publicResultCacheKey)||'null');
+        if(validPublicResult(cached))recent=cached;
+      }catch{/* Local storage may be unavailable. */}
+    }
+    const safe=validPublicResult(recent)?{
+      trace_id:recent.trace_id,classification:recent.classification,
+      risk_score:Number(recent.risk_score),severity:String(recent.severity||''),
+      at:String(recent.at||''),status:String(recent.status||'OPEN')
+    }:null;
+    window.dispatchEvent(new CustomEvent('aegis:public-threat-pulse',{
+      detail:{source:'public_curated',connected:publicEnabled&&!publicError,
+        latest:safe}
+    }));
   }
   function sharedResultNote(text,offline=false){
     const note=$('live-sync-note');if(!note)return;
@@ -128,7 +147,7 @@
       sharedResultNote('Public sync unavailable · displaying last known result, if any',true);
     }finally{
       publicSyncInFlight=false;
-      updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();renderPublicOverview();
+      updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();renderPublicOverview();publishThreatPulse();
     }
   }
   function renderPublicOverview(){
@@ -248,7 +267,7 @@
   function sampleCsv(){
     const seed=samples[0];if(!seed||!featureNames.length)return;
     const header=featureNames.join(',');const row=featureNames.map(x=>Number(seed.features[x]));
-    download('fortressauth-it113-numeric-template.csv',[header,row.join(',')].join('\r\n')+'\r\n','text/csv');
+    download('aegis-ai-it113-numeric-template.csv',[header,row.join(',')].join('\r\n')+'\r\n','text/csv');
   }
   function readCsv(text){
     const lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -291,12 +310,32 @@
       if(ok){setDisplayMode('session');await syncHistory();}
     }finally{processingCsv=false;$('csv-run').disabled=false;$('live-run-button').disabled=false;}
   }
+  // A read-only same-page bridge to the Rubric D response workspace. No
+  // features, private notes, account IDs, or network requests are added here.
+  // Public and personal records remain isolated in their existing views.
+  function publishMitigationContext(){
+    const list=viewEntries().filter(e=>e?.synthetic===true && categories.includes(e.classification) &&
+      /^[a-f0-9]{32}$/.test(String(e.trace_id||''))).slice(0,80).map(e=>({
+      trace_id:e.trace_id, classification:e.classification,
+      expected_label:categories.includes(e.expected_label)?e.expected_label:null,
+      risk_score:Number(e.risk_score),confidence:Number(e.confidence),
+      severity:String(e.severity||'').slice(0,24),status:states.includes(e.status)?e.status:'OPEN',
+      sample_id:String(e.sample_id||'').slice(0,60),at:String(e.at||'').slice(0,50),
+      indicator_evidence:(Array.isArray(e.indicator_evidence)?e.indicator_evidence:[]).slice(0,6).map(i=>({
+        feature:String(i.feature||'').slice(0,60),
+        description:String(i.description||'').slice(0,160),observed:Number(i.observed)
+      }))
+    }));
+    window.dispatchEvent(new CustomEvent('fortress:mitigation-context',{
+      detail:{scope:displayMode,selected_trace:selectedTrace,items:list,public_connected:publicEnabled}
+    }));
+  }
   function renderFindings(){
     const visible=viewEntries();
     const flagged=visible.filter(x=>x.classification!=='NORMAL').length;
     $('findings-overview').innerHTML=metric('ANALYZED RECORDS',num(visible.length),isPublicView()?'Public curated model inferences':pair.active?'Shared two-person database':persistence?'Private browser-scoped database':'Local browser history')+metric('FLAGGED PREDICTIONS',num(flagged),'Not confirmed incidents')+metric('NORMAL PREDICTIONS',num(visible.length-flagged),'Synthetic baseline')+metric('OPEN REVIEWS',num(visible.filter(e=>e.classification!=='NORMAL'&&e.status!=='RESOLVED').length),'Academic mitigation cases');
     const list=$('findings-timeline');
-    if(!visible.length){list.innerHTML=isPublicView()?'<div class="empty-state"><span>◇</span><h3>No curated assessments saved yet</h3><p>The public model evaluation is available now. Run a held-out synthetic sample in AI Defense to create the first live assessment shared with every visitor.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>':'<div class="empty-state"><span>◇</span><h3>No assessments recorded</h3><p>Analyze a curated sample or import numeric features in AI Defense to populate this timeline.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>';$('finding-detail').innerHTML='<p class="hint">Select an assessment to inspect evidence and recommendations.</p>';return;}
+    if(!visible.length){list.innerHTML=isPublicView()?'<div class="empty-state"><span>◇</span><h3>No curated assessments saved yet</h3><p>The public model evaluation is available now. Run a held-out synthetic sample in AI Defense to create the first live assessment shared with every visitor.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>':'<div class="empty-state"><span>◇</span><h3>No assessments recorded</h3><p>Analyze a curated sample or import numeric features in AI Defense to populate this timeline.</p><button class="subtle-btn" type="button" data-go-to="defense">Open AI Defense ↗</button></div>';$('finding-detail').innerHTML='<p class="hint">Select an assessment to inspect evidence and recommendations.</p>';publishMitigationContext();return;}
     if(!visible.some(e=>e.trace_id===selectedTrace))selectedTrace=visible[0].trace_id;
     list.innerHTML=visible.map(e=>`<button type="button" class="finding-row ${selectedTrace===e.trace_id?'active':''}" data-trace="${esc(e.trace_id)}"><div class="finding-row-icon ${e.classification==='NORMAL'?'icon-safe':'icon-risk'}">${e.classification==='NORMAL'?'✓':'!'}</div><div class="finding-row-main"><strong>${esc(pretty(e.classification))}</strong><small>${esc(e.sample_id||'NUMERIC_CSV')} · ${esc(new Date(e.at).toLocaleString())}</small></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span><b>${Number(e.risk_score).toFixed(1)}<small>/100</small></b><span class="finding-arrow">↗</span></button>`).join('');
     showFinding(selectedTrace);
@@ -308,6 +347,7 @@
     const showStatus=e.classification!=='NORMAL';
     const mayEditPublic = isPublicView() && persistence && ownedTraces.has(trace);
     $('finding-detail').innerHTML=`<div class="finding-topline"><div><span class="section-micro">SYNTHETIC INFERENCE / ${isPublicView()?'PUBLIC CURATED RESEARCH':e.database_written?'PRIVATE HISTORY':'BROWSER HISTORY'}</span><h3>${esc(pretty(e.classification))}</h3></div><span class="severity-pill severity-${esc(String(e.severity).toLowerCase())}">${esc(e.severity)}</span></div><div class="finding-data-grid"><div><small>MODEL CONFIDENCE</small><b>${pct(e.confidence)}</b></div><div><small>HYBRID RISK</small><b>${Number(e.risk_score).toFixed(1)} / 100</b></div><div><small>TRUE TEST LABEL</small><b>${e.expected_label?esc(pretty(e.expected_label)):'Unlabeled'}</b></div><div><small>ANOMALY</small><b>${pct(e.anomaly_score)}</b></div></div><div class="finding-advice"><span class="section-micro">RECOMMENDATION / REVIEW ONLY</span><h4>${esc(a[0])}</h4><p>${esc(a[1])}</p></div><h4 class="finding-subhead">Supporting indicators</h4>${(e.indicator_evidence||[]).length?(e.indicator_evidence||[]).map(f=>`<div class="result-evidence-row"><span>${esc(f.description)}</span><b>${num(f.observed)}</b></div>`).join(''):'<p class="hint">No static threshold exceeded.</p>'}<div class="result-trace"><span>TRACE <code>${esc(e.trace_id)}</code></span><span>MODEL <code>${esc(e.model_version)}</code></span></div>${showStatus&&isPublicView()&&!mayEditPublic?`<div class="case-workflow"><div class="section-micro">PUBLIC CASE STATUS / READ-ONLY</div><h4>Mitigation status: ${esc(pretty(e.status||'OPEN'))}</h4><p class="hint">This case is publicly visible. Only the browser session that submitted it can edit its status. Private analyst notes are never published.</p></div>`:showStatus?`<div class="case-workflow"><div class="section-micro">MITIGATION TRACKING / ${e.database_written&&persistence?'PERSISTENT':'LOCAL ONLY'}</div><h4>Review status</h4><div class="case-form"><select id="case-status" class="premium-select" aria-label="Mitigation status">${states.map(st=>`<option ${st===(e.status||'OPEN')?'selected':''} ${transitions[e.status||'OPEN']?.includes(st)?'':'disabled'} value="${st}">${pretty(st)}</option>`).join('')}</select><input type="text" id="case-note" maxlength="240" placeholder="Optional analyst note (240 characters)" aria-label="Analyst note" /><button class="subtle-btn" type="button" id="case-save">Save status</button></div><p class="hint" id="case-feedback">These are academic follow-up actions, not automated enforcement.</p><div id="case-events" class="case-events"></div></div>`:''}<p class="hint">These are synthetic numeric behavior indicators, not verified network incidents or confirmed vulnerabilities.</p>`;
+    publishMitigationContext();
     $('case-save')?.addEventListener('click',()=>updateCase(trace));
     if(!isPublicView()&&showStatus&&e.database_written&&persistence)loadEvents(trace);
   }
@@ -348,7 +388,7 @@
     const labeled=visible.filter(e=>e.expected_label);const correct=labeled.filter(e=>e.expected_label===e.classification).length;
     target.innerHTML=`<div class="dynamic-report-lead"><div class="section-micro">GENERATED ${esc(new Date().toLocaleString())}</div><h3>${isPublicView()?'Public curated research':pair.active?'Shared research pair':'Personal academic'} assessment summary</h3><p>${num(visible.length)} actual model inference(s) on synthetic numeric behavior; ${flagged} flagged predictions. Results are advisory, and no real incidents were evaluated.</p><p>${labeled.length?`${correct}/${labeled.length} labeled curated examples matched. This is not the model's held-out test accuracy.`:'No ground-truth labels were provided for the current records.'}</p></div><div class="table-scroll"><table class="dynamic-table"><thead><tr><th>Classification</th><th>Risk</th><th>Confidence</th><th>Case status</th><th>Source</th></tr></thead><tbody>${visible.length?visible.slice(0,30).map(e=>`<tr><td>${esc(pretty(e.classification))}</td><td>${Number(e.risk_score).toFixed(1)}</td><td>${pct(e.confidence)}</td><td>${esc(pretty(e.status))}</td><td>${esc(e.source_type==='numeric_csv'?'Numeric CSV':'Curated sample')}</td></tr>`).join(''):'<tr><td colspan="5">Analyze a synthetic sample to populate this live report.</td></tr>'}</tbody></table></div><p class="hint">Model version: ${esc(visible[0]?.model_version||'No run yet')}. Held-out evaluation and dynamically analyzed records are separate sources. Maximum 30 findings displayed in this print preview; JSON/CSV exports include the bounded current history.</p>`;
   }
-  function exportJson(){download('fortressauth-it113-dynamic-findings.json',JSON.stringify({source:'IT113 synthetic numeric academic assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:isPublicView()?'public_project_read_only':pair.active?'shared_pair':persistence?'private_session':'browser_only',entries:viewEntries()},null,2),'application/json');}
+  function exportJson(){download('aegis-ai-it113-dynamic-findings.json',JSON.stringify({source:'IT113 synthetic numeric academic assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:isPublicView()?'public_project_read_only':pair.active?'shared_pair':persistence?'private_session':'browser_only',entries:viewEntries()},null,2),'application/json');}
   function exportCsv(){const cols=['at','source_type','sample_id','expected_label','classification','confidence','risk_score','anomaly_score','severity','status','model_version','trace_id'];const csv=[cols.join(','),...viewEntries().map(e=>cols.map(k=>`"${String(e[k]??'').replace(/"/g,'""')}"`).join(','))].join('\r\n');download('fortressauth-it113-dynamic-findings.csv',csv,'text/csv');}
   async function clearHistory(){
     if(isPublicView()){window.alert('Public project records cannot be cleared by visitors. Switch to My tests to clear only your own history.');return;}
@@ -363,6 +403,12 @@
   $('csv-input')?.addEventListener('change',ev=>importCsv(ev.target.files?.[0]));
   $('csv-run')?.addEventListener('click',analyzeCsv);
   $('findings-timeline')?.addEventListener('click',e=>{const b=e.target.closest('[data-trace]');if(b)showFinding(b.dataset.trace);});
+  window.addEventListener('aegis:request-threat-pulse',publishThreatPulse);
+  window.addEventListener('fortress:request-mitigation-context',publishMitigationContext);
+  window.addEventListener('fortress:select-mitigation-finding',event=>{
+    const trace=event.detail?.trace_id;
+    if(typeof trace==='string' && viewEntries().some(item=>item.trace_id===trace))showFinding(trace);
+  });
   $('findings-refresh')?.addEventListener('click',()=>isPublicView()?syncPublic():syncHistory());
   document.addEventListener('click',e=>{const b=e.target.closest('[data-project-mode]');if(b)setDisplayMode(b.dataset.projectMode);});
   $('findings-clear')?.addEventListener('click',clearHistory);

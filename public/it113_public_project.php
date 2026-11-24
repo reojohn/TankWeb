@@ -47,5 +47,5 @@ if ($records===null) {
     project_reply(503,['ok'=>false,'status'=>'unavailable','error'=>'Published research is temporarily unavailable.']);
 }
 project_reply(200,['ok'=>true,'enabled'=>true,'read_only'=>true,
-    'status'=>'public','project_name'=>'FortressAuth IT113 Research Project',
+    'status'=>'public','project_name'=>'Aegis AI IT113 Research Project',
     'entries'=>$records]);

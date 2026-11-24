@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// FortressAuth v3 React entry gate.
+// Aegis AI v3 React entry gate.
 // The SPA shell itself must never be served before the same server-side
 // administrator authentication used by the protected PHP pages succeeds.
 require __DIR__ . '/../../src/middleware.php';
@@ -13,7 +13,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-// A completely logged-out visitor receives the branded FortressAuth 403
+// A completely logged-out visitor receives the branded Aegis AI 403
 // response before any React markup is sent. Keep it visible briefly so the
 // denial is clear, then return the browser to the secure login gateway.
 if ((int)($_SESSION['uid'] ?? 0) <= 0) {

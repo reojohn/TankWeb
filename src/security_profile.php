@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Runtime FortressAuth defense profiles.
+ * Runtime Aegis AI defense profiles.
  *
  * The selected mode is persisted in PostgreSQL so every authorized operator
  * sees the same state. A tiny local cache avoids adding a Supabase round-trip
@@ -47,15 +47,15 @@ function fortress_security_profile_definitions(): array
         'balanced' => [
             'label' => 'BALANCED',
             'title' => 'Balanced',
-            'description' => 'Current FortressAuth policy with strong protection and measured automated enforcement.',
+            'description' => 'Current Aegis AI policy with strong protection and measured automated enforcement.',
             // Empty overrides intentionally preserve deployment environment values.
             'policy' => [],
             'ml' => [],
             'queue_replay_limit' => null,
         ],
         'fortress_boost' => [
-            'label' => 'FORTRESS BOOST',
-            'title' => 'Fortress Boost',
+            'label' => 'AEGIS BOOST',
+            'title' => 'Aegis Boost',
             'description' => 'High-alert defense profile with faster corroborated blocking and accelerated ML replay.',
             'policy' => [
                 'password_ip_failure_limit' => 3,
@@ -225,7 +225,7 @@ function fortress_security_profile_update(PDO $pdo, string $mode, int $userId, s
 {
     $requestedMode = strtolower(trim($mode));
     if (!array_key_exists($requestedMode, fortress_security_profile_definitions())) {
-        throw new InvalidArgumentException('Invalid FortressAuth defense profile.');
+        throw new InvalidArgumentException('Invalid Aegis AI defense profile.');
     }
     $mode = $requestedMode;
 

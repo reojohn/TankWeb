@@ -316,7 +316,7 @@
         return;
       }
       showNavigationError('The page could not be updated without reloading. Please try again.');
-      console.error('FortressAuth PJAX navigation failed:', error);
+      console.error('Aegis AI PJAX navigation failed:', error);
     }
   };
 
@@ -406,7 +406,7 @@
       // Never auto-resubmit a POST after a network ambiguity. Doing so could
       // duplicate a create/delete action if the first request reached PHP.
       showNavigationError('The action may not have completed. Check the page before trying it again.');
-      console.error('FortressAuth PJAX form submission failed:', error);
+      console.error('Aegis AI PJAX form submission failed:', error);
     }).finally(() => {
       if (activeController === controller) activeController = null;
       setBusy(false);

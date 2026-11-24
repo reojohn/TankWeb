@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // IMPORTANT: scan the full video frame. The previous UI revision passed
             // a qrbox to html5-qrcode and then hid its shaded region so only our
-            // custom FortressAuth target was visible. That made the visible guide
+            // custom Aegis AI target was visible. That made the visible guide
             // different from the library's real decode region on some viewport/camera
             // combinations, causing valid Personal IDs to sit outside the actual scan
             // area. The custom overlay is now guidance only; decoding uses the whole

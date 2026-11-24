@@ -70,7 +70,7 @@ if (fortress_request_is_https()) {
     <meta name="theme-color" content="#0b0610">
     <meta name="robots" content="noindex,nofollow">
     <meta http-equiv="refresh" content="1;url=/login.php">
-    <title>FortressAuth — Securing Session</title>
+    <title>Aegis AI — Securing Session</title>
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
     <link rel="stylesheet" href="/css/all.min.css">
     <link rel="stylesheet" href="/css/logout_transition.css">
@@ -88,7 +88,7 @@ if (fortress_request_is_https()) {
                 <span class="logout-brand-mark"><img src="/images/wolf1.png" alt=""></span>
                 <span>
                     <small>SECURE ACCESS</small>
-                    <strong>FortressAuth</strong>
+                    <strong>Aegis AI</strong>
                 </span>
             </div>
 
@@ -103,7 +103,7 @@ if (fortress_request_is_https()) {
 
             <div class="logout-kicker">SESSION TERMINATION PROTOCOL</div>
             <h1>Securing your workspace</h1>
-            <p>FortressAuth is closing the authenticated command session and returning this browser to the secure gateway.</p>
+            <p>Aegis AI is closing the authenticated command session and returning this browser to the secure gateway.</p>
 
             <div class="logout-steps" aria-hidden="true">
                 <span class="done"><i class="fa-solid fa-check"></i><em>Session revoked</em></span>

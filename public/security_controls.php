@@ -82,7 +82,7 @@ audit_log('security_controls_viewed uid=' . $userId);
 ?>
 <!doctype html><html lang="en"><head>
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
-    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>FortressAuth — Security Controls</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845"><link rel="stylesheet" href="/css/pjax.css">
+    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>Aegis AI — Security Controls</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845"><link rel="stylesheet" href="/css/pjax.css">
 <script src="/js/fortress_pjax.js" defer></script>
 </head><body class="command-page"><div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div><main class="command-shell">
 <?php require __DIR__ . '/partials/command_header.php'; ?>
@@ -120,7 +120,7 @@ audit_log('security_controls_viewed uid=' . $userId);
 <div><i class="fa-solid fa-shield-virus"></i><span>Immediate AI block threshold</span><strong><?= number_format($aiImmediateRisk, 0) ?>/100 + corroborating evidence</strong></div>
 <div><i class="fa-solid fa-hourglass-half"></i><span>AI-assisted ban duration</span><strong><?= e(fortress_policy_minutes($aiBanSeconds)) ?></strong></div>
 <div><i class="fa-solid fa-cookie-bite"></i><span>Session cookie mode</span><strong>HttpOnly + SameSite Strict</strong></div></div></article>
-<footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth defense integrity</span><span><?= e($protectionLabel) ?></span></footer>
+<footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> Aegis AI defense integrity</span><span><?= e($protectionLabel) ?></span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main><script src="/js/dashboard.js?v=20260824-0845"></script><script src="/js/auto_logout.js"></script></body></html>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 export function PageState({ loading, error, children }) {
-  if (loading) return <section className="v3-route-skeleton" aria-label="Syncing FortressAuth data" aria-busy="true"><span className="sr-only">Syncing security data</span><div className="v3-skeleton-metrics">{[0,1,2,3].map((item) => <span key={item} />)}</div><div className="v3-skeleton-panels"><span /><span /></div></section>;
+  if (loading) return <section className="v3-route-skeleton" aria-label="Syncing Aegis AI data" aria-busy="true"><span className="sr-only">Syncing security data</span><div className="v3-skeleton-metrics">{[0,1,2,3].map((item) => <span key={item} />)}</div><div className="v3-skeleton-panels"><span /><span /></div></section>;
   if (error) return <section className="panel v3-error-panel"><i className="fa-solid fa-triangle-exclamation" /><div><strong>Unable to load this workspace</strong><span>{error}</span></div></section>;
   return children;
 }

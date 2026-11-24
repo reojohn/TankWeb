@@ -1,0 +1,60 @@
+/* Aegis AI / public synthetic Threat Pulse. Read-only and CSS-only motion.
+   Pinned in the empty sidebar space, without adding a scroll area. */
+.sidebar .aegis-threat-pulse{
+  --pulse-fill:0%;
+  display:flex;flex-direction:column;gap:10px;
+  width:100%;flex:0 0 auto;margin-top:auto;margin-bottom:4px;
+  padding:13px 11px 11px;position:relative;overflow:hidden;
+  border:1px solid rgba(190,144,245,.22);border-radius:16px;
+  text-align:left;cursor:pointer;color:#f4e7ff;
+  background:linear-gradient(150deg,rgba(53,31,84,.91),rgba(23,16,38,.97) 67%),#1a112b;
+  box-shadow:inset 0 1px rgba(255,255,255,.045),0 12px 30px rgba(8,5,20,.27);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.sidebar .aegis-threat-pulse::before{
+  content:"";position:absolute;inset:-50% -40% auto auto;width:160px;height:160px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(151,88,231,.2),transparent 67%);
+}
+.sidebar .aegis-threat-pulse:hover{transform:translateY(-2px);border-color:rgba(212,168,252,.53);box-shadow:inset 0 1px rgba(255,255,255,.05),0 13px 34px rgba(87,46,150,.16)}
+.sidebar .aegis-threat-pulse:active{transform:translateY(0)}
+.sidebar .aegis-threat-pulse:focus-visible{outline:2px solid #d5acff;outline-offset:3px}
+.aegis-pulse-heading,.aegis-pulse-core,.aegis-pulse-footer{position:relative;display:flex;align-items:center;min-width:0;width:100%}
+.aegis-pulse-heading{gap:7px;min-height:24px}
+.aegis-pulse-icon{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:8px;background:rgba(163,108,223,.17);color:#d3a8ff}
+.aegis-pulse-icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.aegis-pulse-title{font-size:11.5px;font-weight:830;letter-spacing:-.18px;white-space:nowrap}
+.aegis-pulse-status{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:8px;color:#a9a0c2;white-space:nowrap}
+.aegis-pulse-status i{width:5px;height:5px;border-radius:50%;background:#a590bb}
+.aegis-threat-pulse[data-state="synced"] .aegis-pulse-status{color:#97e4c4}
+.aegis-threat-pulse[data-state="synced"] .aegis-pulse-status i{background:#6ce2b4;box-shadow:0 0 8px rgba(103,238,180,.45)}
+.aegis-threat-pulse[data-state="stale"] .aegis-pulse-status{color:#e1bd89}
+.aegis-threat-pulse[data-state="stale"] .aegis-pulse-status i{background:#e8bc7b}
+.aegis-pulse-core{justify-content:space-between;gap:8px;min-height:65px;padding:9px 9px 8px;border-radius:11px;background:rgba(10,7,23,.37);border:1px solid rgba(179,134,231,.10)}
+.aegis-pulse-info{display:grid;gap:5px;min-width:0;flex:1}
+.aegis-pulse-kicker{font-size:7.8px;letter-spacing:1px;font-weight:780;color:#9f8aad;white-space:nowrap}
+.aegis-pulse-class{font-size:13px;font-weight:800;line-height:1.2;overflow-wrap:anywhere;color:#fff5ff}
+.aegis-pulse-severity{color:#baabc9;font-size:9px;line-height:1.25}
+.aegis-pulse-ring{display:grid;place-content:center;text-align:center;align-content:center;flex:0 0 56px;width:56px;height:56px;position:relative;border-radius:50%;background:conic-gradient(from 0deg,#bd91f7 var(--pulse-fill),rgba(141,96,188,.19) 0);isolation:isolate;line-height:1.06}
+.aegis-pulse-ring::before{content:"";position:absolute;inset:5px;background:#1a102b;border-radius:50%;z-index:-1}
+.aegis-pulse-ring span{font-variant-numeric:tabular-nums;font-size:17px;font-weight:890;color:#f6e9ff}
+.aegis-pulse-ring small{font-size:7px;color:#a79ab9;margin-top:3px}
+.aegis-pulse-footer{justify-content:space-between;gap:6px;padding:0 2px;font-size:10px;font-weight:780;color:#d8b7fb}
+.aegis-pulse-footer svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+.aegis-threat-pulse:hover .aegis-pulse-footer svg{transform:translateX(3px)}
+.aegis-threat-pulse[data-state="empty"] .aegis-pulse-ring{background:rgba(141,96,188,.20)}
+.aegis-threat-pulse[data-state="loading"] .aegis-pulse-status i{animation:aegis-pulse-wait 1.4s ease-in-out infinite}
+@keyframes aegis-pulse-wait{50%{opacity:.35}}
+/* Announce updates to assistive tech without adding extra visible height. */
+.aegis-threat-pulse .sr-only{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;border:0!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;white-space:nowrap!important;
+}
+/* Do not sacrifice menu accessibility for an ornamental widget. */
+@media(max-height:860px){.sidebar .aegis-threat-pulse{display:none}}
+@media(max-width:900px) and (max-height:940px){.sidebar .aegis-threat-pulse{display:none}}
+@media(max-height:495px){.sidebar .aegis-threat-pulse{display:none}}
+@media(prefers-reduced-motion:reduce){.sidebar .aegis-threat-pulse,.aegis-pulse-footer svg{transition:none!important}.aegis-threat-pulse[data-state="loading"] .aegis-pulse-status i{animation:none}}
+@media print{.sidebar .aegis-threat-pulse{display:none!important}}

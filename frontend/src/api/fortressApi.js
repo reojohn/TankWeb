@@ -21,7 +21,7 @@ export async function fetchView(view, { force = false } = {}) {
       throw new Error('Authentication expired');
     }
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Unable to load FortressAuth data.');
+    if (!response.ok || payload.ok === false) throw new Error(payload.message || 'Unable to load Aegis AI data.');
     const data = payload.data ?? payload;
     cache.set(key, { at: Date.now(), data });
     return data;
@@ -56,7 +56,7 @@ export async function postView(view, body) {
     body: JSON.stringify(body),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok === false) throw new Error(payload.message || 'The FortressAuth action failed.');
+  if (!response.ok || payload.ok === false) throw new Error(payload.message || 'The Aegis AI action failed.');
   clearView(view);
   return payload;
 }

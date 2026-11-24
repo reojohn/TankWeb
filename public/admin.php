@@ -13,7 +13,7 @@ require __DIR__ . '/../src/honeypot.php'; // Handles decoy logging + temporary b
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
     <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813">
   <meta charset="utf-8">
-  <title>FortressAuth — Admin Login</title>
+  <title>Aegis AI — Admin Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10071f">
   <link rel="stylesheet" href="/css/login.css">
@@ -21,7 +21,7 @@ require __DIR__ . '/../src/honeypot.php'; // Handles decoy logging + temporary b
 
 <body class="auth-page auth-login honeypot-login-page">
   <main class="auth-shell" role="main">
-    <section class="brand-panel" aria-label="FortressAuth security overview">
+    <section class="brand-panel" aria-label="Aegis AI security overview">
       <div class="brand-glow" aria-hidden="true"></div>
       <div class="login-scan-grid" aria-hidden="true"></div>
 
@@ -66,7 +66,7 @@ require __DIR__ . '/../src/honeypot.php'; // Handles decoy logging + temporary b
           </div>
 
           <h2 id="honeypot-stage-title">Preparing secure sign in...</h2>
-          <p id="honeypot-stage-message">Initializing the FortressAuth access workflow.</p>
+          <p id="honeypot-stage-message">Initializing the Aegis AI access workflow.</p>
 
           <div class="login-stage-progress" aria-hidden="true">
             <span id="honeypot-stage-progress-bar"></span>
@@ -81,19 +81,19 @@ require __DIR__ . '/../src/honeypot.php'; // Handles decoy logging + temporary b
 
           <div class="login-stage-role">
             <span>Protected administrator access</span>
-            <strong>FortressAuth verification</strong>
+            <strong>Aegis AI verification</strong>
           </div>
         </div>
       </div>
 
       <div class="brand-header">
         <div class="brand-mark">
-          <img src="/images/wolf.png" alt="FortressAuth">
+          <img src="/images/wolf.png" alt="Aegis AI">
         </div>
 
         <div class="brand-copy">
           <span class="eyebrow">SECURE ACCESS GATEWAY</span>
-          <h1>FortressAuth</h1>
+          <h1>Aegis AI</h1>
           <p>Protected administrator access with layered authentication and continuous security monitoring.</p>
         </div>
       </div>
@@ -150,8 +150,8 @@ require __DIR__ . '/../src/honeypot.php'; // Handles decoy logging + temporary b
     <section class="auth-panel">
       <div class="auth-panel-inner">
         <div class="mobile-brand">
-          <img src="/images/wolf.png" alt="FortressAuth">
-          <span>FORTRESS AUTH</span>
+          <img src="/images/wolf.png" alt="Aegis AI">
+          <span>AEGIS AI</span>
         </div>
 
         <div class="auth-heading">

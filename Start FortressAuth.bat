@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title FortressAuth v3 - Start System
+title Aegis AI - Start System
 
 echo =====================================================
-echo   FortressAuth v3 - One-Click Launcher
+echo   Aegis AI v3 - One-Click Launcher
 echo =====================================================
 rem Local launcher: prefer the private root .env over stale inherited Windows
 rem variables. Children of this BAT inherit the cleaned process environment.
@@ -38,7 +38,7 @@ if errorlevel 1 (
   echo IMPORTANT: Stop the older PHP server first if you updated .env or the project files.
 ) else (
   echo Starting PHP on 127.0.0.1:8082 ...
-  start "FortressAuth PHP" /D "%~dp0" cmd /k ""%PHP_EXE%" -S 127.0.0.1:8082 -t public"
+  start "Aegis AI PHP" /D "%~dp0" cmd /k ""%PHP_EXE%" -S 127.0.0.1:8082 -t public"
 )
 
 set "PY_EXE="
@@ -69,16 +69,16 @@ if errorlevel 1 (
 ) else (
   echo Starting optional ML service on 127.0.0.1:8001 ...
   rem start_local.py loads the same private root .env as PHP, and requires a strong token.
-  start "FortressAuth ML" /D "%~dp0ml-service" cmd /k "%PY_EXE% start_local.py"
+  start "Aegis AI ML" /D "%~dp0ml-service" cmd /k "%PY_EXE% start_local.py"
 )
 
 :OPEN_SITE
 echo.
-echo Opening FortressAuth: http://127.0.0.1:8082/assessment/
+echo Opening Aegis AI: http://127.0.0.1:8082/
 echo Keep the server windows open while using the system.
 echo Close them or press Ctrl+C in each to stop the system.
 echo Note: Existing .env settings and database availability still matter.
-start "" "http://127.0.0.1:8082/assessment/"
+start "" "http://127.0.0.1:8082/"
 echo.
 pause
 endlocal

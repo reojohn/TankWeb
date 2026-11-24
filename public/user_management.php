@@ -119,7 +119,7 @@ try {
         }
     }
 } catch (Throwable $e) {
-    error_log('FortressAuth Personal ID status metrics query failed: ' . $e->getMessage());
+    error_log('Aegis AI Personal ID status metrics query failed: ' . $e->getMessage());
 
     // Keep the page warning-free if the database is temporarily unavailable.
     // The already-loaded recent Personal-ID history gives us a safe fallback for
@@ -650,7 +650,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $e->getCode() === '23505'
             ? 'That username is already registered.'
             : 'The account change could not be saved.';
-        error_log('FortressAuth user-management database error: ' . $e->getMessage());
+        error_log('Aegis AI user-management database error: ' . $e->getMessage());
         fortress_user_flash('error', $message);
         fortress_management_redirect();
     } catch (Throwable $e) {
@@ -742,7 +742,7 @@ audit_log('user_management_access uid=' . $userId);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#10071f">
-    <title>FortressAuth — Current Operator</title>
+    <title>Aegis AI — Current Operator</title>
     <link rel="stylesheet" href="/css/all.min.css">
     <link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845">
     <link rel="stylesheet" href="/css/user_management_profile.css?v=20260824-0845">
@@ -811,7 +811,7 @@ audit_log('user_management_access uid=' . $userId);
                     <button type="button" id="generated-qr-print"><i class="fa-solid fa-print"></i> Print QR</button>
                     <button type="button" class="primary" id="generated-qr-dismiss"><i class="fa-solid fa-circle-check"></i> I saved the QR</button>
                 </div>
-                <p class="generated-qr-warning"><i class="fa-solid fa-triangle-exclamation"></i> FortressAuth stores only the credential hash. After you dismiss or reload this page, this exact QR cannot be displayed again.</p>
+                <p class="generated-qr-warning"><i class="fa-solid fa-triangle-exclamation"></i> Aegis AI stores only the credential hash. After you dismiss or reload this page, this exact QR cannot be displayed again.</p>
             </div>
         </section>
     <?php endif; ?>
@@ -841,9 +841,9 @@ audit_log('user_management_access uid=' . $userId);
                 <small><?= $deleteBlockedAsLastActive ? 'ACCOUNT SAFEGUARD' : 'DESTRUCTIVE ACTION' ?></small>
                 <h2>Delete <?= e((string)$deleteUser['username']) ?>?</h2>
                 <?php if ($deleteBlockedAsLastActive): ?>
-                    <p>This is currently the last active administrator. Create and activate another administrator first so FortressAuth is not left with no usable administrator account.</p>
+                    <p>This is currently the last active administrator. Create and activate another administrator first so Aegis AI is not left with no usable administrator account.</p>
                 <?php elseif ($deleteUserIsCurrent): ?>
-                    <p>This is the account you are currently using. Deleting it permanently removes the account and its registered QR credential, then FortressAuth will immediately end this session and return you to the login page.</p>
+                    <p>This is the account you are currently using. Deleting it permanently removes the account and its registered QR credential, then Aegis AI will immediately end this session and return you to the login page.</p>
                 <?php else: ?>
                     <p>This permanently removes the administrator account and its registered QR credential. Audit evidence already written to the security log is retained.</p>
                 <?php endif; ?>
@@ -868,7 +868,7 @@ audit_log('user_management_access uid=' . $userId);
         <?php if ($isSuperAdmin): ?>
         <article class="panel user-editor-panel" id="account-editor">
             <div class="panel-heading">
-                <div><span class="eyebrow"><?= $editUser ? 'EDIT ACCOUNT' : 'CREATE ACCOUNT' ?></span><h2><?= $editUser ? 'Update administrator details' : 'New administrator' ?></h2><p><?= $editUser ? 'Modify account identity and access status.' : 'Issue a new privileged FortressAuth account.' ?></p></div>
+                <div><span class="eyebrow"><?= $editUser ? 'EDIT ACCOUNT' : 'CREATE ACCOUNT' ?></span><h2><?= $editUser ? 'Update administrator details' : 'New administrator' ?></h2><p><?= $editUser ? 'Modify account identity and access status.' : 'Issue a new privileged Aegis AI account.' ?></p></div>
                 <span class="panel-symbol"><i class="fa-solid <?= $editUser ? 'fa-user-pen' : 'fa-user-plus' ?>"></i></span>
             </div>
             <form method="post" class="user-editor-form">
@@ -983,7 +983,7 @@ audit_log('user_management_access uid=' . $userId);
                             <input type="radio" name="second_factor_type" value="generated_qr" <?= $editFactorType === 'generated_qr' ? 'checked' : '' ?> <?= !$generatedQrReady ? 'disabled' : '' ?>>
                             <span class="factor-method-icon generated"><i class="fa-solid fa-qrcode"></i></span>
                             <span class="factor-method-copy">
-                                <strong>FortressAuth-issued QR</strong>
+                                <strong>Aegis AI-issued QR</strong>
                                 <small><?= $generatedQrReady ? 'Generate a dedicated QR credential for this administrator after the account is saved.' : 'Run sql/generated_qr_2fa.sql in Supabase once to enable this option.' ?></small>
                             </span>
                             <span class="factor-method-select"><i class="fa-solid fa-check"></i></span>
@@ -1014,7 +1014,7 @@ audit_log('user_management_access uid=' . $userId);
                         <div>
                             <span class="generated-qr-kicker">ISSUED CREDENTIAL</span>
                             <strong>Administrator-issued QR</strong>
-                            <p id="generated-qr-config-copy">FortressAuth will create a unique QR when this account is saved. Save or print the one-time handoff before leaving the page.</p>
+                            <p id="generated-qr-config-copy">Aegis AI will create a unique QR when this account is saved. Save or print the one-time handoff before leaving the page.</p>
                             <?php if ($editUser && $editHasPersonalId && $editFactorType === 'generated_qr'): ?>
                                 <?php if ($editingCurrentAccount): ?>
                                     <small class="generated-qr-self-note"><i class="fa-solid fa-circle-info"></i> Another active administrator must regenerate the QR for the account currently signed in.</small>
@@ -1070,7 +1070,7 @@ audit_log('user_management_access uid=' . $userId);
         <?php else: ?>
         <article class="panel user-editor-panel role-readonly-panel" id="account-editor">
             <div class="panel-heading">
-                <div><span class="eyebrow">ROLE-BASED ACCESS</span><h2>User administration is read-only</h2><p>Admins can navigate every FortressAuth page and review the operator directory, but only a Super Admin can create, edit, reset, disable, or delete accounts.</p></div>
+                <div><span class="eyebrow">ROLE-BASED ACCESS</span><h2>User administration is read-only</h2><p>Admins can navigate every Aegis AI page and review the operator directory, but only a Super Admin can create, edit, reset, disable, or delete accounts.</p></div>
                 <span class="panel-symbol"><i class="fa-solid fa-user-shield"></i></span>
             </div>
             <div class="role-readonly-body"><i class="fa-solid fa-lock"></i><div><strong>Super Admin authorization required</strong><span>Ask a Super Admin when an account needs to be created or changed.</span></div></div>
@@ -1182,7 +1182,7 @@ audit_log('user_management_access uid=' . $userId);
             $profileQrUpdated = fortress_format_date_value($profileUser['school_id_qr_updated_at'] ? (string)$profileUser['school_id_qr_updated_at'] : null, 'Not registered');
             $profile2faLabel = !$profileRequires2fa
                 ? 'Password only'
-                : ($profileFactorType === 'generated_qr' ? 'FortressAuth-issued QR' : 'Personal ID QR');
+                : ($profileFactorType === 'generated_qr' ? 'Aegis AI-issued QR' : 'Personal ID QR');
             $profileQrState = !$profileRequires2fa ? 'Not required' : ($profileHasQr ? 'Credential active' : 'Credential required');
         ?>
         <section class="operator-profile-overlay" id="operator-profile" role="dialog" aria-modal="true" aria-labelledby="operator-profile-title" data-operator-profile>
@@ -1242,7 +1242,7 @@ audit_log('user_management_access uid=' . $userId);
                                 <span class="password-mask" aria-label="Password protected">••••••••••••••••</span>
                                 <span class="password-hash-chip"><i class="fa-solid fa-lock"></i> ONE-WAY HASH</span>
                             </div>
-                            <p>The current password cannot be revealed because FortressAuth never stores the plaintext password. A Super Admin can issue a new temporary password and reveal it before the reset is submitted.</p>
+                            <p>The current password cannot be revealed because Aegis AI never stores the plaintext password. A Super Admin can issue a new temporary password and reveal it before the reset is submitted.</p>
                             <a class="operator-profile-password-action" href="/user_management.php?reset=<?= (int)$profileUser['id'] ?>#password-reset"><i class="fa-solid fa-key"></i> Reset & reveal new temporary password</a>
                         </div>
                     </section>
@@ -1262,7 +1262,7 @@ audit_log('user_management_access uid=' . $userId);
     <?php if ($isSuperAdmin && $resetUser): ?>
         <section class="panel password-reset-panel" id="password-reset">
             <div class="panel-heading"><div><span class="eyebrow">CREDENTIAL CONTROL</span><h2>Reset password for <?= e((string)$resetUser['username']) ?></h2><p>Issue a new temporary password. The existing QR-based second factor remains registered.</p></div><a class="text-link" href="/user_management.php">Close</a></div>
-            <form method="post" class="password-reset-form"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input type="hidden" name="action" value="reset_password"><input type="hidden" name="user_id" value="<?= (int)$resetUser['id'] ?>"><label><span>New temporary password</span><div class="password-reset-field"><input id="superadmin-reset-password" type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Minimum 12 characters"><button type="button" class="password-helper-button" data-generate-password><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button><button type="button" class="password-helper-button" data-toggle-password><i class="fa-solid fa-eye"></i> Show</button></div><small>Existing passwords cannot be displayed because FortressAuth stores only one-way password hashes. A Super Admin can reset the account and reveal the new temporary password before submitting.</small></label><button type="submit"><i class="fa-solid fa-key"></i> Reset password</button></form>
+            <form method="post" class="password-reset-form"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input type="hidden" name="action" value="reset_password"><input type="hidden" name="user_id" value="<?= (int)$resetUser['id'] ?>"><label><span>New temporary password</span><div class="password-reset-field"><input id="superadmin-reset-password" type="password" name="password" minlength="12" maxlength="128" required autocomplete="new-password" placeholder="Minimum 12 characters"><button type="button" class="password-helper-button" data-generate-password><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button><button type="button" class="password-helper-button" data-toggle-password><i class="fa-solid fa-eye"></i> Show</button></div><small>Existing passwords cannot be displayed because Aegis AI stores only one-way password hashes. A Super Admin can reset the account and reveal the new temporary password before submitting.</small></label><button type="submit"><i class="fa-solid fa-key"></i> Reset password</button></form>
         </section>
     <?php endif; ?>
 
@@ -1287,11 +1287,11 @@ audit_log('user_management_access uid=' . $userId);
                     <span class="status-pill <?= $personalIdEnabled ? 'status-passed' : 'status-rejected' ?>"><?= !$personalIdRequired ? '2FA DISABLED' : ($personalIdEnabled ? 'REGISTERED & ACTIVE' : 'ENROLLMENT REQUIRED') ?></span>
                 </div>
                 <div class="school-id-visual">
-                    <div class="school-id-chip"><img src="/images/wolf.png" alt=""><span>FORTRESSAUTH</span></div>
+                    <div class="school-id-chip"><img src="/images/wolf.png" alt=""><span>AEGIS AI</span></div>
                     <div class="school-id-qr-placeholder"><i class="fa-solid fa-qrcode"></i></div>
-                    <div><small>POSSESSION FACTOR</small><strong><?= $personalIdUsesGeneratedQr ? 'FortressAuth-issued QR' : 'Physical Personal ID QR' ?></strong><span>Credential value hidden</span></div>
+                    <div><small>POSSESSION FACTOR</small><strong><?= $personalIdUsesGeneratedQr ? 'Aegis AI-issued QR' : 'Physical Personal ID QR' ?></strong><span>Credential value hidden</span></div>
                 </div>
-                <div class="panel-note"><i class="fa-solid fa-lock"></i> FortressAuth does not display the raw QR payload. Only the protected matching credential is retained server-side.</div>
+                <div class="panel-note"><i class="fa-solid fa-lock"></i> Aegis AI does not display the raw QR payload. Only the protected matching credential is retained server-side.</div>
             </article>
 
             <article class="panel">
@@ -1396,7 +1396,7 @@ audit_log('user_management_access uid=' . $userId);
             <div>
                 <span class="eyebrow">DOCUMENTATION CENTER</span>
                 <h2>Generate administrator reports</h2>
-                <p>Create a presentation-ready FortressAuth documentation package from live system findings, AI/ML model analysis, authentication records, Personal ID evidence, threat findings, defense posture, administrator changes, and recent audit logs.</p>
+                <p>Create a presentation-ready Aegis AI documentation package from live system findings, AI/ML model analysis, authentication records, Personal ID evidence, threat findings, defense posture, administrator changes, and recent audit logs.</p>
             </div>
             <a class="operator-section-back" href="#user-management"><i class="fa-solid fa-arrow-up"></i> User Management</a>
         </div>
@@ -1475,7 +1475,7 @@ audit_log('user_management_access uid=' . $userId);
         </div>
     </section>
 
-    <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth current operator controls</span><span>Users + QR Factor + Reports · Protected operator workspace</span></footer>
+    <footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> Aegis AI current operator controls</span><span>Users + QR Factor + Reports · Protected operator workspace</span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main>

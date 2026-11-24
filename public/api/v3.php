@@ -321,7 +321,7 @@ try {
         $history=fortress_ml_prediction_history(20);$assist=fortress_ml_assisted_enforcement_enabled();
         $risk=$result?(float)($result['risk_score']??0):0;$class=$result?(string)($result['classification']??'UNKNOWN'):'NOT_ANALYZED';$confidence=$result?((float)($result['confidence']??0)*100):0;$anomaly=$result?((float)($result['anomaly_score']??0)*100):0;$rule=$result?(float)($result['rule_score']??0):0;$xgb=$result?(float)($result['xgboost_risk']??0):0;
         $messages=[];
-        if(!$enabled){$messages[]='The hybrid machine-learning service is disabled. Core FortressAuth defenses remain operational.';}elseif(!$result){$messages[]='The ML service is enabled and waiting for a protected request to produce the next behavioral analysis.';}else{$messages[]='Latest behavior classification: '.ucwords(strtolower(str_replace('_',' ',$class))).'.';$messages[]=sprintf('Hybrid risk is %.1f/100 with %.1f%% classifier confidence and %.1f%% anomaly deviation.',$risk,$confidence,$anomaly);$messages[]=sprintf('Deterministic rule evidence contributes %.1f/100. AI-assisted enforcement is %s.',$rule,$assist?'active':'advisory only');}
+        if(!$enabled){$messages[]='The hybrid machine-learning service is disabled. Core Aegis AI defenses remain operational.';}elseif(!$result){$messages[]='The ML service is enabled and waiting for a protected request to produce the next behavioral analysis.';}else{$messages[]='Latest behavior classification: '.ucwords(strtolower(str_replace('_',' ',$class))).'.';$messages[]=sprintf('Hybrid risk is %.1f/100 with %.1f%% classifier confidence and %.1f%% anomaly deviation.',$risk,$confidence,$anomaly);$messages[]=sprintf('Deterministic rule evidence contributes %.1f/100. AI-assisted enforcement is %s.',$rule,$assist?'active':'advisory only');}
         fortress_v3_json(['ok'=>true,'data'=>[
             'header'=>fortress_v3_header_context($pdo,$userId),
             'service'=>['enabled'=>$enabled,'connected'=>$connected,'state'=>is_array($status)?strtoupper((string)($status['state']??'UNKNOWN')):($enabled?'ENABLED':'DISABLED'),'httpCode'=>is_array($status)?(int)($status['http_code']??0):0,'latencyMs'=>is_array($status)?(int)($status['latency_ms']??0):0,'pending'=>(int)($queue['pending']??0),'completed24h'=>(int)($queue['completed_24h']??0)],
@@ -356,8 +356,8 @@ try {
         fortress_v3_json(['ok'=>true,'data'=>['breachId'=>(string)$_SESSION['fortress_vault_breach_id'],'operator'=>$username,'sourceIp'=>getRealIP(),'captured'=>(new DateTimeImmutable('now'))->format('Y-m-d H:i:s T'),'flag'=>$flag,'personalIdRequired'=>(bool)$ctx['schoolIdRequired'],'personalIdVerified'=>!empty($_SESSION['school_id_verified'])]]);
     }
 
-    fortress_v3_json(['ok'=>false,'message'=>'Unknown FortressAuth v3 API view.'],404);
+    fortress_v3_json(['ok'=>false,'message'=>'Unknown Aegis AI v3 API view.'],404);
 } catch (Throwable $e) {
-    error_log('FortressAuth v3 API error ['.$view.']: '.$e->getMessage());
-    fortress_v3_json(['ok'=>false,'message'=>'FortressAuth could not load this workspace right now.'],500);
+    error_log('Aegis AI v3 API error ['.$view.']: '.$e->getMessage());
+    fortress_v3_json(['ok'=>false,'message'=>'Aegis AI could not load this workspace right now.'],500);
 }

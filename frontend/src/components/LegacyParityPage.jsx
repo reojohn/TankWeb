@@ -97,7 +97,7 @@ async function requestFragment(page, legacyUrl = '', { force = false } = {}) {
       throw new Error('Authentication expired');
     }
     const html = await response.text();
-    if (!response.ok) throw new Error(html || 'Unable to load FortressAuth page content.');
+    if (!response.ok) throw new Error(html || 'Unable to load Aegis AI page content.');
     if (parityRequestSequence.get(key) === requestId) {
       parityFragmentCache.set(key, { at: Date.now(), html });
     }
@@ -164,9 +164,9 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
       return;
     }
     const text = await response.text();
-    if (!response.ok) throw new Error('FortressAuth could not complete that action.');
+    if (!response.ok) throw new Error('Aegis AI could not complete that action.');
     const extracted = extractLegacyContent(text);
-    if (!extracted) throw new Error('FortressAuth could not read the updated page content.');
+    if (!extracted) throw new Error('Aegis AI could not read the updated page content.');
     const finalUrl = response.url ? new URL(response.url) : new URL(requestedUrl, window.location.origin);
     const normalized = finalUrl.pathname + finalUrl.search;
     currentLegacyUrl.current = normalized;
@@ -341,11 +341,11 @@ export default function LegacyParityPage({ page, legacyUrl, ai = false }) {
       {loading && !html ? (
         <section
           className="v3-route-skeleton"
-          aria-label="Loading FortressAuth page"
+          aria-label="Loading Aegis AI page"
           aria-busy="true"
           role="status"
         >
-          <span className="sr-only">Loading FortressAuth page</span>
+          <span className="sr-only">Loading Aegis AI page</span>
           <div className="v3-skeleton-metrics">
             {[0, 1, 2, 3].map((item) => <span key={item} />)}
           </div>

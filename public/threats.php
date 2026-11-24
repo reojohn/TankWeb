@@ -63,7 +63,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['it113_case_acti
             http_response_code(422);
             $it113CaseMessage = $e->getMessage();
         } catch (Throwable $e) {
-            error_log('FortressAuth mitigation update failed: ' . get_class($e));
+            error_log('Aegis AI mitigation update failed: ' . get_class($e));
             http_response_code(503);
             $it113CaseMessage = 'Case update could not be saved. Existing case data was not intentionally changed. Please retry later.';
         }
@@ -89,7 +89,7 @@ try {
     $it113Cases = fortress_it113_workflow_get_many($pdo, $caseIds, $it113MitigationBackend);
     $it113TrackedCases = fortress_it113_workflow_recent($pdo, 20, $it113MitigationBackend);
 } catch (Throwable $e) {
-    error_log('FortressAuth mitigation case lookup failed: ' . get_class($e));
+    error_log('Aegis AI mitigation case lookup failed: ' . get_class($e));
     $it113CaseReadWarning = 'Saved case statuses are temporarily unavailable; no records were modified.';
 }
 $it113ThreatPredictions = array_values(array_filter(
@@ -136,7 +136,7 @@ audit_log('threat_center_viewed uid=' . $userId);
 ?>
 <!doctype html><html lang="en"><head>
     <link rel="icon" type="image/png" href="/images/wolf1.png?v=20260813">
-    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>FortressAuth — Threat Center</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845"><link rel="stylesheet" href="/css/pjax.css"><link rel="stylesheet" href="/css/it113_phase3_completion.css?v=20261120"><link rel="stylesheet" href="/css/it113_mitigation_workflow.css?v=20261120">
+    <link rel="shortcut icon" type="image/png" href="/images/wolf1.png?v=20260813"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10071f"><title>Aegis AI — Threat Center</title><link rel="stylesheet" href="/css/all.min.css"><link rel="stylesheet" href="/css/dashboard.css?v=20260824-0845"><link rel="stylesheet" href="/css/pjax.css"><link rel="stylesheet" href="/css/it113_phase3_completion.css?v=20261120"><link rel="stylesheet" href="/css/it113_mitigation_workflow.css?v=20261120">
 <script src="/js/fortress_pjax.js" defer></script>
 </head>
 <body class="command-page"><div class="ambient ambient-one" aria-hidden="true"></div><div class="ambient ambient-two" aria-hidden="true"></div><main class="command-shell">
@@ -145,7 +145,7 @@ audit_log('threat_center_viewed uid=' . $userId);
 
 
 <section class="it113-findings-banner" aria-label="Evidence status">
-    <div class="it113-findings-banner-main"><span class="it113-eyebrow"><i class="fa-solid fa-microscope"></i> IT113 / EVIDENCE-BASED ANALYSIS</span><h2>Threat Findings <span>&amp; Response Intelligence</span></h2><p>This protected workspace shows operational evidence recorded by FortressAuth, not the public synthetic test dataset. Predictions and deterministic audit events are presented separately to support honest validation.</p>
+    <div class="it113-findings-banner-main"><span class="it113-eyebrow"><i class="fa-solid fa-microscope"></i> IT113 / EVIDENCE-BASED ANALYSIS</span><h2>Threat Findings <span>&amp; Response Intelligence</span></h2><p>This protected workspace shows operational evidence recorded by Aegis AI, not the public synthetic test dataset. Predictions and deterministic audit events are presented separately to support honest validation.</p>
         <div class="it113-findings-actions"><a href="/ai_threat_intelligence.php"><i class="fa-solid fa-brain"></i> Operational AI Defense</a><a href="/assessment/#evaluation"><i class="fa-solid fa-chart-line"></i> Research model evaluation</a><a href="/assessment/#mitigations"><i class="fa-solid fa-shield-halved"></i> Mitigation reference</a></div>
     </div>
     <div class="it113-findings-insights">
@@ -246,7 +246,7 @@ audit_log('threat_center_viewed uid=' . $userId);
 <article class="panel request-defense-panel"><div class="panel-heading"><div><span class="eyebrow">THREAT CATEGORIES</span><h2>Detected Security Pressure</h2><p>All-time category totals are read from persistent Supabase security evidence, while the live threat pressure and source intelligence above remain rolling 24-hour metrics.</p></div></div><div class="attack-grid threat-category-grid"><?php foreach($threatCategories as $item): ?><div class="attack-card"><span class="attack-icon"><i class="fa-solid <?= e($item[0]) ?>"></i></span><div><strong class="metric-number" data-count="<?= (int)$item[2] ?>"><?= (int)$item[2] ?></strong><span><?= e($item[1]) ?></span><small><?= e($item[3]) ?></small></div></div><?php endforeach; ?></div></article>
 
 <article class="panel data-panel"><div class="panel-heading filter-heading"><div><span class="eyebrow">DETERMINISTIC AUDIT SIGNALS</span><h2>Recorded Security Events</h2><p>These are logged controls and observations, <strong>not</strong> independently ML-classified attacks. Review priority is suggested triage guidance, not a CVSS score.</p></div><div class="table-tools"><label class="search-control"><i class="fa-solid fa-magnifying-glass"></i><input type="search" data-table-search="threatHistory" placeholder="Search threats..."></label><select data-table-category="threatHistory"><option value="all">All categories</option><option value="authentication">Authentication</option><option value="identity">Identity</option><option value="network">Network</option><option value="threat">Threat</option></select></div></div><div class="responsive-table-wrap mobile-bounded-table threat-history-table-wrap"><table class="security-table" data-table="threatHistory"><thead><tr><th>Timestamp</th><th>Source IP</th><th>Category</th><th>Detection</th><th>Review priority</th><th>Outcome</th><th>Evidence &amp; response</th></tr></thead><tbody><?php if(!$threatHistory): ?><tr><td colspan="7" class="table-empty">No threat events have been recorded.</td></tr><?php else: foreach($threatHistory as $line): $category=fortress_event_category($line); $outcome=fortress_event_outcome($line); $it113Event=fortress_it113_event_guidance(fortress_event_key($line)); ?><tr data-search="<?= e(strtolower(fortress_event_title($line).' '.fortress_log_ip($line).' '.$category)) ?>" data-category="<?= e(strtolower($category)) ?>"><td><?= e(fortress_event_time($line,'Y-m-d H:i:s')) ?></td><td><?= e(fortress_log_ip($line)) ?></td><td><?= e($category) ?></td><td><?= e(fortress_event_title($line)) ?></td><td><span class="it113-priority <?= $it113Event['priority'] === 'High' ? 'is-high' : 'is-review' ?>"><?= e($it113Event['priority']) ?></span></td><td><span class="status-pill status-<?= strtolower($outcome) ?>"><?= e($outcome) ?></span></td><td><?= e(fortress_event_description($line)) ?><div class="it113-event-guidance"><strong>Suggested review:</strong> <?= e($it113Event['recommendation']) ?></div></td></tr><?php endforeach; endif; ?></tbody></table></div></article>
-<footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> FortressAuth intrusion monitoring</span><span>Last threat: <?= e($lastThreatRelative) ?></span></footer>
+<footer class="command-footer"><span><i class="fa-solid fa-shield-halved"></i> Aegis AI intrusion monitoring</span><span>Last threat: <?= e($lastThreatRelative) ?></span></footer>
 
 </div><!-- /.fortress-main-column -->
 </main><script src="/js/dashboard.js?v=20260824-0845"></script><script src="/js/auto_logout.js"></script></body></html>

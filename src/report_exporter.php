@@ -79,14 +79,14 @@ function fortress_report_ai_findings(?array $latestPrediction, bool $mlEnabled):
         return [
             'The hybrid machine-learning service is currently disabled, so no live behavioral classification is available for this report.',
             'Password authentication, Personal ID verification, rate limits, deterministic request defenses, session controls, IP bans, and audit logging continue to operate without the ML service.',
-            'When the ML service is enabled, FortressAuth combines XGBoost known-behavior classification, Autoencoder anomaly detection, and deterministic rule evidence into a hybrid risk assessment that can contribute guarded enforcement strikes.',
+            'When the ML service is enabled, Aegis AI combines XGBoost known-behavior classification, Autoencoder anomaly detection, and deterministic rule evidence into a hybrid risk assessment that can contribute guarded enforcement strikes.',
         ];
     }
 
     if (!$latestPrediction || !is_array($latestPrediction['result'] ?? null)) {
         return [
             'The ML service is enabled, but no completed behavioral analysis has been saved yet.',
-            'FortressAuth needs a completed telemetry window before XGBoost classification, Autoencoder deviation, and hybrid risk can be documented.',
+            'Aegis AI needs a completed telemetry window before XGBoost classification, Autoencoder deviation, and hybrid risk can be documented.',
             'Core deterministic defenses remain active while the AI layer waits for enough behavioral telemetry.',
         ];
     }
@@ -115,7 +115,7 @@ function fortress_report_ai_findings(?array $latestPrediction, bool $mlEnabled):
         sprintf('The latest hybrid assessment for source %s is %s with a risk score of %.1f/100 and a %s severity label.', $source, $classification, $risk, strtolower($severity)),
         sprintf('XGBoost classified the activity as %s with %.1f%% model confidence and contributed %.1f/100 to the known-behavior risk signal.', $classification, $confidence, $xgbRisk),
         sprintf('The Autoencoder anomaly score is %.1f%%, which places the observed activity %s. This anomaly percentage measures behavioral deviation and is not an attacker probability.', $anomaly, $anomalyMeaning),
-        sprintf('The deterministic FortressAuth rule engine contributed %.1f/100. The hybrid model uses this rule evidence together with XGBoost and Autoencoder output rather than allowing ML to replace authentication or enforcement.', $rule),
+        sprintf('The deterministic Aegis AI rule engine contributed %.1f/100. The hybrid model uses this rule evidence together with XGBoost and Autoencoder output rather than allowing ML to replace authentication or enforcement.', $rule),
     ];
 
     if ($topProbabilityParts) {
@@ -300,7 +300,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $threatDefinitions = [
         ['Brute-force detections', ['bruteforce_detected'], 'Repeated password failures that crossed the brute-force detection threshold.'],
         ['Request / web attack detections', ['request_threat_detected', 'malicious_input_detected', 'shell_attack_detected'], 'Suspicious request or input signatures detected by deterministic request defenses.'],
-        ['Reconnaissance / scanner activity', ['sensitive_path_probe', 'reconnaissance_probe', 'scanner_user_agent_detected'], 'Scanning or sensitive-path discovery activity recorded by FortressAuth.'],
+        ['Reconnaissance / scanner activity', ['sensitive_path_probe', 'reconnaissance_probe', 'scanner_user_agent_detected'], 'Scanning or sensitive-path discovery activity recorded by Aegis AI.'],
         ['CSRF / CSP / method violations', ['csrf_validation_failed', 'csp_violation_reported', 'http_method_blocked', 'http_method_anomaly', 'endpoint_method_rejected'], 'Browser or request-policy violations blocked or recorded by platform controls.'],
         ['Network bans / blocked banned sources', ['ip_banned', 'banned_ip_attempt', 'banned_ip_middleware_block'], 'Sources temporarily banned or blocked before protected logic executed.'],
         ['Protected-resource rejections', ['auth_rejected', 'login_disabled_account'], 'Requests rejected because authentication, account state, or session requirements were not satisfied.'],
@@ -330,7 +330,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
 
     $aiLatest = [
         ['Metric', 'ML service state', 'Value', $mlEnabled ? 'ENABLED' : 'DISABLED'],
-        ['Metric', 'Model', 'Value', (string)($latestResult['model'] ?? ($trainingReport['project'] ?? 'FortressAuth Hybrid ML'))],
+        ['Metric', 'Model', 'Value', (string)($latestResult['model'] ?? ($trainingReport['project'] ?? 'Aegis AI Hybrid ML'))],
         ['Metric', 'Model version', 'Value', (string)($latestResult['model_version'] ?? 'No completed prediction')],
         ['Metric', 'Prediction trace', 'Value', (string)($latestResult['trace_id'] ?? 'No completed prediction')],
         ['Metric', 'Evidence request source', 'Value', (string)($latestPrediction['evidence']['request_source'] ?? 'Not recorded')],
@@ -380,7 +380,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     $bands = is_array($fusion['bands'] ?? null) ? $fusion['bands'] : [];
 
     $modelValidation = [
-        ['Field' => 'Project / model family', 'Details' => (string)($trainingReport['project'] ?? 'FortressAuth Hybrid Intelligent Threat Detection')],
+        ['Field' => 'Project / model family', 'Details' => (string)($trainingReport['project'] ?? 'Aegis AI Hybrid Intelligent Threat Detection')],
         ['Field' => 'Training data type', 'Details' => (string)($dataset['type'] ?? 'Not recorded')],
         ['Field' => 'Training rows', 'Details' => (string)($dataset['training_rows'] ?? 'Not recorded')],
         ['Field' => 'Validation rows', 'Details' => (string)($dataset['validation_rows'] ?? 'Not recorded')],
@@ -432,7 +432,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
 
     $provenance = [
         ['Source' => 'Administrator database', 'Purpose' => 'Account status, authentication policy, Personal ID enrollment state, last-login and update timestamps.', 'Privacy Boundary' => 'No password hashes or QR credential hashes are exported.'],
-        ['Source' => 'FortressAuth audit log', 'Purpose' => 'Authentication, Personal ID, account-management, network-defense, request-defense, session, and documentation events.', 'Privacy Boundary' => 'Sensitive request values, CSRF tokens, cookies, authorization headers, and session identifiers are excluded.'],
+        ['Source' => 'Aegis AI audit log', 'Purpose' => 'Authentication, Personal ID, account-management, network-defense, request-defense, session, and documentation events.', 'Privacy Boundary' => 'Sensitive request values, CSRF tokens, cookies, authorization headers, and session identifiers are excluded.'],
         ['Source' => 'ML latest analysis / history', 'Purpose' => 'XGBoost classification, Autoencoder anomaly score, hybrid risk, safe behavioral feature window, and AI analysis history.', 'Privacy Boundary' => 'Only non-sensitive numerical behavior and source IP evidence are used in the model report.'],
         ['Source' => 'ML training metadata', 'Purpose' => 'Model validation metrics, class performance, feature importance, Autoencoder validation, and fusion weights.', 'Privacy Boundary' => 'Training metadata describes the course-project model and does not contain user credentials.'],
     ];
@@ -458,7 +458,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
     ];
 
     $conclusion = [
-        sprintf('FortressAuth reports a protection score of %d/100 with a current protection status of %s and threat level of %s.', (int)($ctx['protectionScore'] ?? 0), (string)($ctx['protectionLabel'] ?? 'Unknown'), (string)($ctx['threatLevel'] ?? 'Unknown')),
+        sprintf('Aegis AI reports a protection score of %d/100 with a current protection status of %s and threat level of %s.', (int)($ctx['protectionScore'] ?? 0), (string)($ctx['protectionLabel'] ?? 'Unknown'), (string)($ctx['threatLevel'] ?? 'Unknown')),
         $latestResult
             ? sprintf('The latest AI analysis is %s with %s hybrid risk and %s severity; use this together with the threat findings and audit evidence in this report.', fortress_report_label((string)($latestResult['classification'] ?? 'Unknown')), fortress_report_score($latestResult['risk_score'] ?? null), fortress_report_label((string)($latestResult['severity'] ?? 'Unknown')))
             : 'No completed AI analysis is available in the current snapshot, so the report relies on deterministic defenses, authentication records, and audit evidence.',
@@ -467,7 +467,7 @@ function fortress_build_documentation_report(PDO $pdo, int $userId, string $scop
 
     return [
         'meta' => [
-            'title' => 'FortressAuth Security Findings & Documentation Report',
+            'title' => 'Aegis AI Security Findings & Documentation Report',
             'subtitle' => 'System Findings, AI Model Analysis, Authentication Records & Audit Evidence',
             'report_id' => 'FAR-' . $generatedAt->format('Ymd-His') . '-U' . max(0, $userId),
             'scope' => $scope,
@@ -525,7 +525,7 @@ function fortress_report_xml(string $value): string
 function fortress_report_filename(array $report, string $extension): string
 {
     $scope = preg_replace('/[^a-z0-9_-]+/i', '-', (string)($report['meta']['scope'] ?? 'full')) ?: 'full';
-    return 'FortressAuth-' . $scope . '-report-' . date('Ymd-His') . '.' . $extension;
+    return 'AegisAI-' . $scope . '-report-' . date('Ymd-His') . '.' . $extension;
 }
 
 /** @return array<int,string> */
@@ -615,12 +615,12 @@ function fortress_report_pdf(array $report): string
         $y = $mode === 'cover' ? 0.0 : 694.0;
     };
 
-    $title = (string)($meta['title'] ?? 'FortressAuth Security Findings & Documentation Report');
+    $title = (string)($meta['title'] ?? 'Aegis AI Security Findings & Documentation Report');
     $subtitle = (string)($meta['subtitle'] ?? 'System findings, AI model analysis, authentication records and audit evidence');
     $scopeLabel = (string)($meta['scope_label'] ?? 'Full Security Documentation');
     $reportId = (string)($meta['report_id'] ?? 'Not assigned');
     $generatedAt = (string)($meta['generated_at'] ?? date('Y-m-d H:i:s'));
-    $generatedBy = (string)($meta['generated_by'] ?? 'FortressAuth');
+    $generatedBy = (string)($meta['generated_by'] ?? 'Aegis AI');
     $notice = (string)($meta['notice'] ?? 'Safe export boundary: passwords, hashes, QR credential values, session identifiers, cookies, CSRF tokens and authorization secrets are excluded.');
     $evidenceWindow = (string)($meta['evidence_window'] ?? 'Administrative report snapshot');
 
@@ -631,7 +631,7 @@ function fortress_report_pdf(array $report): string
     $addRect(432, 595, 130, 130, '241030');
     $addRect(452, 615, 90, 90, '7C3AED');
 
-    $addText('FORTRESSAUTH SECURITY DOCUMENTATION', 46, 752, 10.5, true, 'CFA9FF');
+    $addText('AEGIS AI SECURITY DOCUMENTATION', 46, 752, 10.5, true, 'CFA9FF');
     $addWrappedAbs($title, 46, 716, 34, 21.0, true, 'FFFFFF', 23.0);
     $addWrappedAbs($subtitle, 46, 659, 58, 10.6, false, 'EADAF8', 12.5);
     $addRect(46, 614, 170, 24, '8B5CF6');
@@ -688,7 +688,7 @@ function fortress_report_pdf(array $report): string
         $highlightY = $addWrappedAbs(($index + 1) . '. ' . (string)$line, 326, $highlightY, 34, 8.2, false, '403748', 10.2);
     }
 
-    $addText('FortressAuth • Premium security documentation export', 46, 34, 8.4, false, '7B6D88');
+    $addText('Aegis AI • Premium security documentation export', 46, 34, 8.4, false, '7B6D88');
 
     $newPage('body');
 
@@ -930,7 +930,7 @@ function fortress_report_pdf(array $report): string
             $stream .= "q\n" . $hexToRgb('FFFFFF') . " rg\n0 0 612 792 re f\nQ\n";
             $stream .= "q\n" . $hexToRgb('16091F') . " rg\n0 752 612 40 re f\nQ\n";
             $stream .= "q\n" . $hexToRgb('7C3AED') . " rg\n0 744 612 8 re f\nQ\n";
-            $stream .= "BT /F2 8 Tf " . $hexToRgb('D8B4FE') . " rg 42 768 Td (FORTRESSAUTH PREMIUM DOCUMENTATION REPORT) Tj ET\n";
+            $stream .= "BT /F2 8 Tf " . $hexToRgb('D8B4FE') . " rg 42 768 Td (AEGIS AI PREMIUM DOCUMENTATION REPORT) Tj ET\n";
             $stream .= "BT /F1 8 Tf " . $hexToRgb('6C6477') . " rg 42 22 Td (Page " . ($pageIndex + 1) . " of " . $pageCount . "  •  " . fortress_pdf_escape($scopeLabel) . "  •  Report ID " . fortress_pdf_escape($reportId) . ") Tj ET\n";
             $stream .= "q\n" . $hexToRgb('EFE8F8') . " rg\n36 34 540 1 re f\nQ\n";
         }
@@ -1117,7 +1117,7 @@ function fortress_report_xlsx(array $report): string
 
     $summaryRows = [
         ['style' => 2, 'height' => 34, 'cells' => [$meta['title'], '']],
-        ['style' => 3, 'height' => 25, 'cells' => ['FORTRESSAUTH PREMIUM SECURITY DOCUMENTATION', $scopeLabel]],
+        ['style' => 3, 'height' => 25, 'cells' => ['AEGIS AI SECURITY DOCUMENTATION', $scopeLabel]],
         ['style' => 5, 'cells' => ['Report ID', $reportId]],
         ['style' => 5, 'cells' => ['Generated at', (string)$meta['generated_at']]],
         ['style' => 5, 'cells' => ['Generated by', (string)$meta['generated_by']]],
@@ -1138,7 +1138,7 @@ function fortress_report_xlsx(array $report): string
 
     $metadataRows = [
         ['style' => 2, 'height' => 32, 'cells' => ['OFFICIAL REPORT METADATA', '']],
-        ['style' => 3, 'height' => 24, 'cells' => ['FortressAuth export profile', $scopeLabel]],
+        ['style' => 3, 'height' => 24, 'cells' => ['Aegis AI export profile', $scopeLabel]],
         ['style' => 1, 'cells' => ['Official Report Detail', 'Value']],
         ['style' => 7, 'cells' => ['Report ID', $reportId]],
         ['style' => 0, 'cells' => ['Title', (string)$meta['title']]],
@@ -1158,7 +1158,7 @@ function fortress_report_xlsx(array $report): string
         'options' => ['freeze_row' => 3, 'merge_ranges' => ['A1:B1'], 'auto_filter_row' => 3, 'tab_color' => '8B5CF6'],
     ];
 
-    $addAssocSheet = static function (array &$sheets, string $name, array $data, array $headers, array $widths, string $kicker = 'FORTRESSAUTH DOCUMENTATION', string $tabColor = '7C3AED'): void {
+    $addAssocSheet = static function (array &$sheets, string $name, array $data, array $headers, array $widths, string $kicker = 'AEGIS AI DOCUMENTATION', string $tabColor = '7C3AED'): void {
         $cols = max(1, count($headers));
         $lastCol = fortress_xlsx_column_name($cols);
         $rows = [
@@ -1202,7 +1202,7 @@ function fortress_report_xlsx(array $report): string
         $sheets[] = ['name' => 'AI Latest Finding', 'rows' => $aiLatestRows, 'widths' => [40, 78], 'options' => ['freeze_row' => 3, 'merge_ranges' => ['A1:B1', 'A2:B2'], 'auto_filter_row' => 3, 'tab_color' => '6D28D9']];
 
         $analystRows = [
-            ['style' => 2, 'height' => 31, 'cells' => ['FORTRESSAUTH AI ANALYST', '']],
+            ['style' => 2, 'height' => 31, 'cells' => ['AEGIS AI AI ANALYST', '']],
             ['style' => 4, 'height' => 22, 'cells' => ['INTERPRETATION OF CURRENT FINDINGS', '']],
             ['style' => 1, 'height' => 24, 'cells' => ['No.', 'AI Analyst Interpretation']],
         ];
@@ -1278,8 +1278,8 @@ function fortress_report_xlsx(array $report): string
     $zip->add('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="7"><font><sz val="10"/><color rgb="FF30283A"/><name val="Aptos"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="10"/><name val="Aptos"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="18"/><name val="Aptos Display"/></font><font><b/><color rgb="FF2B123A"/><sz val="11"/><name val="Aptos"/></font><font><b/><color rgb="FF6D28D9"/><sz val="10"/><name val="Aptos"/></font><font><color rgb="FF655A70"/><sz val="9"/><name val="Aptos"/></font><font><b/><color rgb="FF7A244A"/><sz val="10"/><name val="Aptos"/></font></fonts><fills count="9"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF16091F"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF7C3AED"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF3E8FF"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFBF8FD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF7E8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2F6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="3"><border/><border><left style="thin"><color rgb="FFE6D8F3"/></left><right style="thin"><color rgb="FFE6D8F3"/></right><top style="thin"><color rgb="FFE6D8F3"/></top><bottom style="thin"><color rgb="FFE6D8F3"/></bottom></border><border><bottom style="medium"><color rgb="FF7C3AED"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11"><xf numFmtId="0" fontId="0" fillId="8" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="8" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="6" fillId="7" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="3" fillId="8" borderId="2" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
 
     $created = gmdate('Y-m-d\TH:i:s\Z');
-    $zip->add('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' . fortress_report_xml($meta['title']) . '</dc:title><dc:creator>FortressAuth</dc:creator><cp:lastModifiedBy>FortressAuth</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:modified></cp:coreProperties>');
-    $zip->add('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>FortressAuth</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><Company>FortressAuth</Company><AppVersion>1.0</AppVersion></Properties>');
+    $zip->add('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' . fortress_report_xml($meta['title']) . '</dc:title><dc:creator>Aegis AI</dc:creator><cp:lastModifiedBy>Aegis AI</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:modified></cp:coreProperties>');
+    $zip->add('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Aegis AI</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><Company>Aegis AI</Company><AppVersion>1.0</AppVersion></Properties>');
     return $zip->build();
 }
 
@@ -1314,11 +1314,11 @@ function fortress_ppt_cover_slide_xml(array $report, int $pageNo, int $totalPage
     $shapes .= fortress_ppt_shape($id++, 'Background', 0, 0, 12192000, 6858000, '', 1000, 'FFFFFF', false, '120718');
     $shapes .= fortress_ppt_shape($id++, 'Right panel', 8570000, 0, 3622000, 6858000, '', 1000, 'FFFFFF', false, 'F5EDFB');
     $shapes .= fortress_ppt_shape($id++, 'Accent bar', 0, 0, 12192000, 220000, '', 1000, 'FFFFFF', false, '7C3AED');
-    $shapes .= fortress_ppt_shape($id++, 'Kicker', 640000, 420000, 3400000, 360000, 'FORTRESSAUTH PREMIUM REPORT', 1200, 'D6BCFA', true);
-    $shapes .= fortress_ppt_shape($id++, 'Title', 640000, 980000, 7200000, 980000, (string)($meta['title'] ?? 'FortressAuth Security Findings & Documentation Report'), 2800, 'FFFFFF', true, null, null, 'Aptos Display');
+    $shapes .= fortress_ppt_shape($id++, 'Kicker', 640000, 420000, 3400000, 360000, 'AEGIS AI PREMIUM REPORT', 1200, 'D6BCFA', true);
+    $shapes .= fortress_ppt_shape($id++, 'Title', 640000, 980000, 7200000, 980000, (string)($meta['title'] ?? 'Aegis AI Security Findings & Documentation Report'), 2800, 'FFFFFF', true, null, null, 'Aptos Display');
     $shapes .= fortress_ppt_shape($id++, 'Subtitle', 640000, 1980000, 6800000, 720000, (string)($meta['subtitle'] ?? ''), 1480, 'EEE6F8', false);
     $shapes .= fortress_ppt_shape($id++, 'Scope card', 640000, 2780000, 2500000, 460000, (string)($meta['scope_label'] ?? 'Documentation'), 1600, '5B21B6', true, 'F5EEFF', 'E7DAF6');
-    $shapes .= fortress_ppt_shape($id++, 'Meta', 640000, 3340000, 5200000, 820000, 'Report ID: ' . $reportId . "\nGenerated: " . $generatedAt . "\nPrepared by: " . (string)($meta['generated_by'] ?? 'FortressAuth'), 1100, 'D8D0E2', false);
+    $shapes .= fortress_ppt_shape($id++, 'Meta', 640000, 3340000, 5200000, 820000, 'Report ID: ' . $reportId . "\nGenerated: " . $generatedAt . "\nPrepared by: " . (string)($meta['generated_by'] ?? 'Aegis AI'), 1100, 'D8D0E2', false);
     $shapes .= fortress_ppt_shape($id++, 'Notice card', 640000, 4320000, 5800000, 900000, (string)($meta['notice'] ?? ''), 1020, '41384A', false, 'F8F3FC', 'E7DAF6');
     $shapes .= fortress_ppt_shape($id++, 'Package title', 8880000, 660000, 2600000, 360000, 'PACKAGE SNAPSHOT', 1200, '5B21B6', true);
 
@@ -1332,13 +1332,13 @@ function fortress_ppt_cover_slide_xml(array $report, int $pageNo, int $totalPage
 
     $packageText = "Included in this documentation package:\n• Executive security summary\n• AI findings and model validation\n• Authentication and Personal ID evidence\n• Security logs, defenses and conclusions";
     $shapes .= fortress_ppt_shape($id++, 'Package body', 8850000, 3460000, 2500000, 1600000, $packageText, 1020, '43384A', false, 'FFFFFF', 'E7DAF6');
-    $shapes .= fortress_ppt_shape($id++, 'Footer left', 640000, 6310000, 4500000, 240000, 'FortressAuth • Administrative security documentation', 900, 'A696B9', false);
+    $shapes .= fortress_ppt_shape($id++, 'Footer left', 640000, 6310000, 4500000, 240000, 'Aegis AI • Administrative security documentation', 900, 'A696B9', false);
     $shapes .= fortress_ppt_shape($id++, 'Footer right', 9530000, 6310000, 1600000, 240000, 'Slide ' . $pageNo . ' of ' . $totalPages, 900, '7E6C95', false);
 
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:bg><p:bgPr><a:solidFill><a:srgbClr val="120718"/></a:solidFill><a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>' . $shapes . '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
 }
 
-function fortress_ppt_slide_xml(string $title, array $lines, string $kicker = 'FORTRESSAUTH SECURITY DOCUMENTATION', array $meta = []): string
+function fortress_ppt_slide_xml(string $title, array $lines, string $kicker = 'AEGIS AI SECURITY DOCUMENTATION', array $meta = []): string
 {
     $pageNo = (int)($meta['page_no'] ?? 1);
     $totalPages = (int)($meta['total_pages'] ?? 1);
@@ -1350,13 +1350,13 @@ function fortress_ppt_slide_xml(string $title, array $lines, string $kicker = 'F
     $shapes .= fortress_ppt_shape($id++, 'Background', 0, 0, 12192000, 6858000, '', 1000, 'FFFFFF', false, 'FBF8FD');
     $shapes .= fortress_ppt_shape($id++, 'Sidebar', 0, 0, 1850000, 6858000, '', 1000, 'FFFFFF', false, '16091F');
     $shapes .= fortress_ppt_shape($id++, 'Top accent', 0, 0, 12192000, 200000, '', 1000, 'FFFFFF', false, '7C3AED');
-    $shapes .= fortress_ppt_shape($id++, 'Sidebar brand', 380000, 430000, 1050000, 420000, 'FORTRESSAUTH', 1350, 'D6BCFA', true);
+    $shapes .= fortress_ppt_shape($id++, 'Sidebar brand', 380000, 430000, 1050000, 420000, 'AEGIS AI', 1350, 'D6BCFA', true);
     $shapes .= fortress_ppt_shape($id++, 'Sidebar label', 380000, 1020000, 1050000, 780000, 'PREMIUM\nSECURITY\nREPORT', 1450, 'FFFFFF', true, null, null, 'Aptos Display');
     $shapes .= fortress_ppt_shape($id++, 'Sidebar info', 300000, 5600000, 1250000, 620000, $scopeLabel . "\nReport ID " . $reportId, 950, 'B8ABC9', false);
     $shapes .= fortress_ppt_shape($id++, 'Main card', 2140000, 1180000, 9650000, 4700000, '', 1000, 'FFFFFF', false, 'FFFFFF', 'E7DAF6');
     $shapes .= fortress_ppt_shape($id++, 'Kicker card', 2400000, 410000, 3500000, 340000, $kicker, 1100, '5B21B6', true, 'F5EEFF', 'E7DAF6');
     $shapes .= fortress_ppt_shape($id++, 'Title', 2400000, 820000, 9000000, 520000, $title, 2450, '261534', true, null, null, 'Aptos Display');
-    $shapes .= fortress_ppt_shape($id++, 'Footer left', 2380000, 6260000, 4400000, 220000, 'Generated by FortressAuth • Administrative documentation', 860, '7C708C', false);
+    $shapes .= fortress_ppt_shape($id++, 'Footer left', 2380000, 6260000, 4400000, 220000, 'Generated by Aegis AI • Administrative documentation', 860, '7C708C', false);
     $shapes .= fortress_ppt_shape($id++, 'Footer right', 9980000, 6260000, 1300000, 220000, 'Slide ' . $pageNo . ' of ' . $totalPages, 860, '7C708C', false);
 
     $y = 1520000;
@@ -1410,7 +1410,7 @@ function fortress_report_pptx(array $report): string
                     $lines[] = ['text' => ($i + 1 + ($index * 5)) . '. ' . (string)$finding, 'size' => 1120, 'height' => 570000, 'fill' => $i === 0 ? 'F5EEFF' : 'FFFFFF'];
                 }
             }
-            $slideSpecs[] = ['type' => 'content', 'title' => 'FortressAuth AI Analyst' . (count($analystChunks) > 1 ? ' (' . ($index + 1) . '/' . count($analystChunks) . ')' : ''), 'kicker' => 'INTERPRETATION OF CURRENT FINDINGS', 'lines' => $lines];
+            $slideSpecs[] = ['type' => 'content', 'title' => 'Aegis AI AI Analyst' . (count($analystChunks) > 1 ? ' (' . ($index + 1) . '/' . count($analystChunks) . ')' : ''), 'kicker' => 'INTERPRETATION OF CURRENT FINDINGS', 'lines' => $lines];
         }
 
         $probabilityLines = [];
@@ -1464,7 +1464,7 @@ function fortress_report_pptx(array $report): string
             foreach ($report['top_sources'] as $row) {
                 $sourceLines[] = ['text' => $row['Source IP'] . '  |  ' . $row['Security Events / 24h'] . ' reportable event(s)', 'size' => 1260, 'bold' => true, 'height' => 320000, 'fill' => 'FFF7E8'];
             }
-            $sourceLines[] = ['text' => 'Source IP evidence identifies the network source recorded by FortressAuth and does not by itself establish a person\'s identity or intent.', 'size' => 1040, 'height' => 560000, 'fill' => 'FFFFFF'];
+            $sourceLines[] = ['text' => 'Source IP evidence identifies the network source recorded by Aegis AI and does not by itself establish a person\'s identity or intent.', 'size' => 1040, 'height' => 560000, 'fill' => 'FFFFFF'];
             $slideSpecs[] = ['type' => 'content', 'title' => 'Top Security-Event Sources', 'kicker' => 'NETWORK EVIDENCE', 'lines' => $sourceLines];
         }
 
@@ -1582,7 +1582,7 @@ function fortress_report_pptx(array $report): string
         $slides[] = fortress_ppt_slide_xml(
             (string)$spec['title'],
             is_array($spec['lines'] ?? null) ? $spec['lines'] : [],
-            (string)($spec['kicker'] ?? 'FORTRESSAUTH SECURITY DOCUMENTATION'),
+            (string)($spec['kicker'] ?? 'AEGIS AI SECURITY DOCUMENTATION'),
             [
                 'page_no' => $index + 1,
                 'total_pages' => $totalPages,
@@ -1611,15 +1611,15 @@ function fortress_report_pptx(array $report): string
     $zip->add('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>');
     $zip->add('ppt/presentation.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>' . $slideIds . '</p:sldIdLst><p:sldSz cx="12192000" cy="6858000" type="screen16x9"/><p:notesSz cx="6858000" cy="9144000"/><p:defaultTextStyle><a:defPPr><a:defRPr lang="en-US"/></a:defPPr></p:defaultTextStyle></p:presentation>');
     $zip->add('ppt/_rels/presentation.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $presentationRels . '</Relationships>');
-    $zip->add('ppt/slideMasters/slideMaster1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld name="FortressAuth Master"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" bg1="lt1" bg2="lt2" folHlink="folHlink" hlink="hlink" tx1="dk1" tx2="dk2"/><p:sldLayoutIdLst><p:sldLayoutId id="1" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="3200" b="1"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:defPPr><a:defRPr sz="1600"/></a:defPPr></p:otherStyle></p:txStyles></p:sldMaster>');
+    $zip->add('ppt/slideMasters/slideMaster1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld name="Aegis AI Master"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" bg1="lt1" bg2="lt2" folHlink="folHlink" hlink="hlink" tx1="dk1" tx2="dk2"/><p:sldLayoutIdLst><p:sldLayoutId id="1" r:id="rId1"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle><a:lvl1pPr><a:defRPr sz="3200" b="1"/></a:lvl1pPr></p:titleStyle><p:bodyStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:bodyStyle><p:otherStyle><a:defPPr><a:defRPr sz="1600"/></a:defPPr></p:otherStyle></p:txStyles></p:sldMaster>');
     $zip->add('ppt/slideMasters/_rels/slideMaster1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/></Relationships>');
     $zip->add('ppt/slideLayouts/slideLayout1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>');
     $zip->add('ppt/slideLayouts/_rels/slideLayout1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>');
-    $zip->add('ppt/theme/theme1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="FortressAuth"><a:themeElements><a:clrScheme name="FortressAuth"><a:dk1><a:srgbClr val="16091F"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="2B123A"/></a:dk2><a:lt2><a:srgbClr val="F5ECFA"/></a:lt2><a:accent1><a:srgbClr val="7F3FBF"/></a:accent1><a:accent2><a:srgbClr val="D497FF"/></a:accent2><a:accent3><a:srgbClr val="52E6A5"/></a:accent3><a:accent4><a:srgbClr val="5CC8FF"/></a:accent4><a:accent5><a:srgbClr val="FFB84D"/></a:accent5><a:accent6><a:srgbClr val="FF6B8A"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="FortressAuth"><a:majorFont><a:latin typeface="Aptos Display"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="FortressAuth"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="50000"/><a:satMod val="300000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="100000"/><a:satMod val="200000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="16200000" scaled="1"/></a:gradFill><a:noFill/></a:fillStyleLst><a:lnStyleLst><a:ln w="9525" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="25400" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="38100" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>');
+    $zip->add('ppt/theme/theme1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Aegis AI"><a:themeElements><a:clrScheme name="Aegis AI"><a:dk1><a:srgbClr val="16091F"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="2B123A"/></a:dk2><a:lt2><a:srgbClr val="F5ECFA"/></a:lt2><a:accent1><a:srgbClr val="7F3FBF"/></a:accent1><a:accent2><a:srgbClr val="D497FF"/></a:accent2><a:accent3><a:srgbClr val="52E6A5"/></a:accent3><a:accent4><a:srgbClr val="5CC8FF"/></a:accent4><a:accent5><a:srgbClr val="FFB84D"/></a:accent5><a:accent6><a:srgbClr val="FF6B8A"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Aegis AI"><a:majorFont><a:latin typeface="Aptos Display"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Aegis AI"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="50000"/><a:satMod val="300000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="100000"/><a:satMod val="200000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="16200000" scaled="1"/></a:gradFill><a:noFill/></a:fillStyleLst><a:lnStyleLst><a:ln w="9525" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="25400" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="38100" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>');
 
     $created = gmdate('Y-m-d\TH:i:s\Z');
-    $zip->add('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' . fortress_report_xml((string)($meta['title'] ?? 'FortressAuth')) . '</dc:title><dc:creator>FortressAuth</dc:creator><cp:lastModifiedBy>FortressAuth</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:modified></cp:coreProperties>');
-    $zip->add('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>FortressAuth</Application><PresentationFormat>Widescreen</PresentationFormat><Slides>' . count($slides) . '</Slides><Company>FortressAuth</Company><AppVersion>1.0</AppVersion></Properties>');
+    $zip->add('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' . fortress_report_xml((string)($meta['title'] ?? 'Aegis AI')) . '</dc:title><dc:creator>Aegis AI</dc:creator><cp:lastModifiedBy>Aegis AI</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' . $created . '</dcterms:modified></cp:coreProperties>');
+    $zip->add('docProps/app.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Aegis AI</Application><PresentationFormat>Widescreen</PresentationFormat><Slides>' . count($slides) . '</Slides><Company>Aegis AI</Company><AppVersion>1.0</AppVersion></Properties>');
     return $zip->build();
 }
 

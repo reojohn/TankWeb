@@ -168,7 +168,7 @@
       window.FortressDashboard?.destroy?.();
       window.FortressDashboard?.init?.();
     } catch (error) {
-      console.error('FortressAuth dashboard live re-init failed:', error);
+      console.error('Aegis AI dashboard live re-init failed:', error);
     }
 
     if (window.location.pathname === '/ai_threat_intelligence.php') {
@@ -176,7 +176,7 @@
         window.FortressAI?.destroy?.();
         window.FortressAI?.init?.();
       } catch (error) {
-        console.error('FortressAuth AI live re-init failed:', error);
+        console.error('Aegis AI AI live re-init failed:', error);
       }
     }
 
@@ -185,7 +185,7 @@
         window.FortressUserManagement?.destroy?.();
         window.FortressUserManagement?.init?.();
       } catch (error) {
-        console.error('FortressAuth user-management live re-init failed:', error);
+        console.error('Aegis AI user-management live re-init failed:', error);
       }
     }
   };
@@ -236,7 +236,7 @@
       }));
     } catch (error) {
       // Live synchronization is enhancement-only. Never interrupt the app.
-      console.error('FortressAuth live security synchronization failed:', error);
+      console.error('Aegis AI live security synchronization failed:', error);
     } finally {
       refreshing = false;
 
@@ -299,7 +299,7 @@
 
       await refreshCurrentPage(revision, runGeneration);
     } catch (_) {
-      // A temporary polling failure should never affect FortressAuth.
+      // A temporary polling failure should never affect Aegis AI.
     } finally {
       polling = false;
     }
