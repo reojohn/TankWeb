@@ -1,0 +1,56 @@
+FORTRESSAUTH / IT113 RUBRIC D + E - INSTRUCTOR-FACING QA CHECKLIST
+==============================================================
+Status: UNSIGNED until manually checked on latest deployed site.
+Use synthetic/approved numeric data ONLY. Keep .env, credentials and real logs private.
+
+A. Deployment and regression (manual, latest Rubric A baseline)
+[ ] Back up existing project before merging changed files.
+[ ] Redeploy updated FRONTEND/static assessment only; backend unchanged.
+[ ] Open Overview, Dataset Assessment, Model Evaluation, AI Defense, Threat
+    Findings, Validation Examples, Threat Mitigations, Analytics, Reports.
+[ ] Verify Dataset Assessment Rubric A case-study selection + JSON export.
+[ ] Verify AI Defense Run Model Analysis button alignment on desktop/mobile.
+[ ] Verify a curated synthetic analysis is saved and restored after refresh.
+[ ] Verify another visitor sees the shared result through 20-second polling.
+[ ] Confirm private numeric CSV rows are not visible in public findings.
+[ ] Confirm existing finding status changes still persist with proper access.
+
+B. Rubric D - Mitigations (manual)
+[ ] Navigate to Threat Mitigations: choose each of the 7 categories.
+[ ] Each category shows evidence checks, response actions and effectiveness tests.
+[ ] Open OWASP/NIST reference links, verify references are reachable.
+[ ] Export one category response plan JSON; inspect fields and no secrets.
+[ ] Open Threat Findings: select Web Attack, then Session Abuse;
+    confirm the follow-up panel changes with the selected finding class.
+[ ] Verify no mitigation is automatically enforced by the public page.
+[ ] Verify normal traffic is not falsely described as an incident.
+
+C. Rubric E - Documentation (manual)
+[ ] Navigate to Research Reports and confirm live methodology uses correct
+    saved synthetic dataset counts, classifier accuracy and limitations.
+[ ] Download final report DRAFT PDF, open all pages and review text/layout.
+[ ] Download presentation DRAFT PPTX; open in PowerPoint and check slides.
+[ ] Download QA checklist via the Research Reports link.
+[ ] Verify PDF presentation source links and ethical statements.
+[ ] Replace document placeholders with actual group and author names.
+[ ] Add actual screenshots from this deployed update and clear captions.
+[ ] Verify source metrics against actual saved model and latest code.
+[ ] Have all group members proofread and sign off on report/presentation.
+[ ] Rename final PDF following instructor naming convention.
+
+D. Failure and privacy (manual)
+[ ] Temporarily unavailable ML endpoint shows safe error, no fabricated result.
+[ ] Broken/missing model_summary.json visibly signals evidence unavailable.
+[ ] Confirm no credential, Supabase connection string, token, browser identity,
+    or protected administrative record enters exported public documents.
+[ ] Confirm all hosted links work on Vercel and React/PHP deployment.
+
+Automated development evidence (not a substitute for hosted browser QA)
+- Source files do not change PHP, DB migrations, ML models or inference JS.
+- JS syntax passes; isolated DOM behavior test runs in headless Chromium.
+- Bundled report and presentation successfully rendered/inspected.
+- The browser environment blocked localhost page navigation; hosted E2E
+  still needs real-device manual confirmation.
+
+Submission deadline per instructor PDF: 2026-12-15 at 12:00 noon.
+Presentation: 2026-12-16 at 8:00 AM via Zoom/Google Meet.

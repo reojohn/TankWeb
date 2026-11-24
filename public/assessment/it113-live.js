@@ -24,6 +24,47 @@
   const metric=(label,value,note)=>`<div class="metric"><span class="metric-label">${esc(label)}</span><span class="metric-value">${esc(value)}</span><small>${esc(note)}</small></div>`;
   let model=null, samples=[], featureNames=[], entries=readLocal(), selectedTrace='', busy=false, queuedCsv=[], persistence=false, processingCsv=false, storeState='not_checked';
   const pair={active:false, role:null, members:0, max_members:2}; // Legacy pair API is not used by the public dashboard.
+  // Public curated results are shared across browsers. Private CSV assessments
+  // never enter the public feed, browser-shared cache, or live result broadcast.
+  const publicResultCacheKey='fortress-it113-shared-latest-v1';
+  const publicSyncIntervalMs=20000; // Near-real-time refresh; no open socket or push claims.
+  let publicSyncInFlight=false, nextPublicSyncAt=0;
+  let renderedPublicSignature='', currentLiveScope='public', lastSharedSampleId='';
+  function validPublicResult(entry){
+    return !!entry && entry.synthetic===true && entry.public_read_only===true &&
+      entry.source_type==='curated' && categories.includes(entry.classification) &&
+      typeof entry.sample_id==='string' && /^[a-z0-9_]{3,60}$/.test(entry.sample_id) &&
+      typeof entry.expected_label==='string' && categories.includes(entry.expected_label) &&
+      /^[a-f0-9]{32}$/.test(String(entry.trace_id||'')) &&
+      /^[a-f0-9]{16}$/.test(String(entry.model_version||''));
+  }
+  function sharedResultNote(text,offline=false){
+    const note=$('live-sync-note');if(!note)return;
+    if(note.textContent!==text)note.textContent=text;
+    note.dataset.state=offline?'offline':'connected';
+  }
+  function cacheSharedResult(entry){
+    try{
+      if(!entry){localStorage.removeItem(publicResultCacheKey);return;}
+      // A public API record is already allowlisted server-side; persist only
+      // the presentation fields, never private session data, notes or features.
+      const keys=['trace_id','at','source_type','sample_id','expected_label',
+        'classification','confidence','anomaly_score','rule_score','risk_score',
+        'severity','model_version','indicator_evidence','status','revision',
+        'synthetic','database_written','public_read_only'];
+      const safe=Object.fromEntries(keys.map(key=>[key,entry[key]]));
+      localStorage.setItem(publicResultCacheKey,JSON.stringify(safe));
+    }catch{/* browser storage is optional */}
+  }
+  function restoreSharedResult(){
+    try{
+      const cached=JSON.parse(localStorage.getItem(publicResultCacheKey)||'null');
+      if(!validPublicResult(cached))return;
+      renderedPublicSignature=`${cached.trace_id}:${cached.revision}:${cached.status}`;
+      renderLive(cached);currentLiveScope='public';lastSharedSampleId=cached.sample_id;
+      sharedResultNote('Last synced public analysis · checking for newer results…');
+    }catch{/* shared backend remains the source of truth */}
+  }
   // Public, curated-only findings never merge into a visitor's private CSV history.
   // This is the default view for instructors, partners and all visitors.
   let publicEntries=[], publicEnabled=false, publicError='', displayMode='public';
@@ -46,15 +87,49 @@
     const refresh=$('findings-refresh');if(refresh)refresh.textContent=isPublicView()?'Refresh public research':'Refresh my tests';
   }
   async function syncPublic(){
+    if(publicSyncInFlight || Date.now()<nextPublicSyncAt)return;
+    publicSyncInFlight=true;
     try {
       const response=await fetch('/it113_public_project.php',{cache:'no-store',credentials:'omit'});
       const data=await response.json().catch(()=>({}));
-      if(!response.ok||data.ok!==true||data.read_only!==true)throw Error(data.error||`HTTP ${response.status}`);
+      if(!response.ok||data.ok!==true||data.read_only!==true){
+        if(response.status===429||response.status===503)nextPublicSyncAt=Date.now()+60000;
+        throw Error(data.error||`HTTP ${response.status}`);
+      }
+      const previousLatest=publicEntries[0]?.trace_id||'';
       publicEnabled=data.enabled===true;
-      publicEntries=publicEnabled&&Array.isArray(data.entries)?data.entries.filter(e=>e?.synthetic===true&&e.public_read_only===true&&categories.includes(e.classification)).map(normalized).slice(0,80):[];
-      publicError='';
-    }catch(e){publicEntries=[];publicEnabled=false;publicError='Public synthetic research is temporarily unavailable. Please retry.';}
-    updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();renderPublicOverview();
+      publicEntries=publicEnabled&&Array.isArray(data.entries)?data.entries.filter(validPublicResult).map(normalized).slice(0,80):[];
+      publicError='';nextPublicSyncAt=0;
+      const latest=publicEntries[0];
+      if(latest){
+        cacheSharedResult(latest);lastSharedSampleId=latest.sample_id;
+        if(isPublicView() && (!selectedTrace || selectedTrace===previousLatest))selectedTrace=latest.trace_id;
+        const signature=`${latest.trace_id}:${latest.revision}:${latest.status}`;
+        if(!busy&&!processingCsv && signature!==renderedPublicSignature){
+          renderLive(latest);renderedPublicSignature=signature;currentLiveScope='public';
+          const selector=$('live-sample-select');
+          if(selector&&samples.some(s=>s.id===latest.sample_id)){
+            selector.value=latest.sample_id;selector.dispatchEvent(new Event('change'));
+          }
+        }
+        sharedResultNote('Shared public analysis · automatically checks for changes every 20 seconds');
+      } else if(!busy&&!processingCsv){
+        cacheSharedResult(null);
+        if(currentLiveScope==='public'){
+          $('live-result').innerHTML='<div class="live-empty"><span class="live-empty-graphic">◈</span><div><strong>No shared analysis yet</strong><p>Run a curated synthetic sample to publish the first model result to everyone.</p></div></div>';
+          renderedPublicSignature='';
+        }
+        sharedResultNote(publicEnabled?'Public feed connected · awaiting the first shared assessment':'Public database persistence is disabled',!publicEnabled);
+      }
+    }catch(e){
+      // Do not erase a successfully displayed result during a transient outage.
+      publicError='Public synthetic research is temporarily unavailable. Please retry.';
+      publicEnabled=false;
+      sharedResultNote('Public sync unavailable · displaying last known result, if any',true);
+    }finally{
+      publicSyncInFlight=false;
+      updateModeControls();storageBadge();renderFindings();renderAnalytics();renderReport();renderPublicOverview();
+    }
   }
   function renderPublicOverview(){
     const el=$('public-project-overview');if(!el)return;
@@ -139,23 +214,35 @@
     if(e.database_written){persistence=true;storeState='ready';}
     else if(e.persistence_status)storeState=e.persistence_status;
     storageBadge();
-    entries=entries.slice(0,80);selectedTrace=e.trace_id;saveLocal();renderLive(e);renderFindings();renderAnalytics();renderReport();
+    entries=entries.slice(0,80);selectedTrace=e.trace_id;saveLocal();renderLive(e);
+    currentLiveScope=e.source_type==='curated'?'public':'private';
+    renderedPublicSignature='';
+    if(e.source_type==='curated')sharedResultNote(e.database_written?
+      'Saved to the public database · synchronizing with other visitors…':
+      'Not shared: public database did not save this assessment',!e.database_written);
+    else sharedResultNote('Private numeric CSV assessment · visible only in your browser');
+    renderFindings();renderAnalytics();renderReport();
     setEngine('MODEL INFERENCE VERIFIED','success');
   }
   function renderLive(r){
     const labeled=!!r.expected_label,matched=labeled&&r.classification===r.expected_label;
     const risk=Math.max(0,Math.min(100,Number(r.risk_score)));
     const flags=(r.indicator_evidence||[]).slice(0,6);
-    $('live-result').innerHTML=`<div class="analysis-summary"><div class="analysis-primary"><div class="section-micro">FRESH MODEL INFERENCE / ${esc(r.source_type==='numeric_csv'?'NUMERIC DATASET':'HELD-OUT SYNTHETIC SAMPLE')}</div><strong>${esc(pretty(r.classification))}</strong><div class="result-chips"><span class="result-chip ${!labeled?'':matched?'chip-good':'chip-warn'}">${labeled?matched?'Matches held-out label':'Differs from held-out label':'Unlabeled numeric assessment'}</span><span class="result-chip">${esc(r.severity)} risk</span><span class="result-chip">Advisory only</span></div></div><div class="risk-dial" style="--risk:${risk}"><div><b>${risk.toFixed(1)}</b><small>HYBRID RISK / 100</small></div></div></div><div class="analysis-grid"><div><small>CLASS CONFIDENCE</small><b>${pct(r.confidence)}</b></div><div><small>ANOMALY SCORE</small><b>${pct(r.anomaly_score)}</b></div><div><small>RULE SCORE</small><b>${Number(r.rule_score).toFixed(1)} / 100</b></div><div><small>EXPECTED LABEL</small><b>${labeled?esc(pretty(r.expected_label)):'Not supplied'}</b></div></div><div class="result-evidence"><div><h3>Supporting indicators</h3><p>Threshold signals describe features, not causal proof of an attack.</p></div>${flags.length?flags.map(f=>`<div class="result-evidence-row"><span>${esc(f.description)}</span><b>${num(f.observed)}</b></div>`).join(''):'<p class="hint">No rule thresholds crossed.</p>'}</div><div class="result-trace"><span>MODEL <code>${esc(r.model_version)}</code></span><span>TRACE <code>${esc(r.trace_id)}</code></span><span>STORAGE <b>${r.database_written?(r.source_type==='curated'?'PUBLIC CURATED DATABASE':'PRIVATE NUMERIC DATABASE'):'BROWSER ONLY'}</b></span></div>${!r.database_written&&r.persistence_status?`<p class="store-hint">Database storage: ${esc(({'disabled':'disabled by configuration','missing_database_config':'missing server database settings','pgsql_driver_missing':'PHP PostgreSQL driver missing','database_connection_failed':'private database connection failed','database_write_failed':'database write failed','session_limit_reached':'session record limit reached'})[r.persistence_status]||'unavailable')}. Prediction was still completed successfully.</p>`:''}<button class="subtle-btn" data-go-to="findings" type="button">Review finding & mitigation ↗</button>`;
+    const heading=r.public_read_only?'LATEST SHARED MODEL INFERENCE':'FRESH MODEL INFERENCE';
+    $('live-result').innerHTML=`<div class="analysis-summary"><div class="analysis-primary"><div class="section-micro">${heading} / ${esc(r.source_type==='numeric_csv'?'NUMERIC DATASET':'HELD-OUT SYNTHETIC SAMPLE')}</div><strong>${esc(pretty(r.classification))}</strong><div class="result-chips"><span class="result-chip ${!labeled?'':matched?'chip-good':'chip-warn'}">${labeled?matched?'Matches held-out label':'Differs from held-out label':'Unlabeled numeric assessment'}</span><span class="result-chip">${esc(r.severity)} risk</span><span class="result-chip">Advisory only</span></div></div><div class="risk-dial" style="--risk:${risk}"><div><b>${risk.toFixed(1)}</b><small>HYBRID RISK / 100</small></div></div></div><div class="analysis-grid"><div><small>CLASS CONFIDENCE</small><b>${pct(r.confidence)}</b></div><div><small>ANOMALY SCORE</small><b>${pct(r.anomaly_score)}</b></div><div><small>RULE SCORE</small><b>${Number(r.rule_score).toFixed(1)} / 100</b></div><div><small>EXPECTED LABEL</small><b>${labeled?esc(pretty(r.expected_label)):'Not supplied'}</b></div></div><div class="result-evidence"><div><h3>Supporting indicators</h3><p>Threshold signals describe features, not causal proof of an attack.</p></div>${flags.length?flags.map(f=>`<div class="result-evidence-row"><span>${esc(f.description)}</span><b>${num(f.observed)}</b></div>`).join(''):'<p class="hint">No rule thresholds crossed.</p>'}</div><div class="result-trace"><span>MODEL <code>${esc(r.model_version)}</code></span><span>TRACE <code>${esc(r.trace_id)}</code></span><span>STORAGE <b>${r.database_written?(r.source_type==='curated'?'PUBLIC CURATED DATABASE':'PRIVATE NUMERIC DATABASE'):'BROWSER ONLY'}</b></span></div>${!r.database_written&&r.persistence_status?`<p class="store-hint">Database storage: ${esc(({'disabled':'disabled by configuration','missing_database_config':'missing server database settings','pgsql_driver_missing':'PHP PostgreSQL driver missing','database_connection_failed':'private database connection failed','database_write_failed':'database write failed','session_limit_reached':'session record limit reached'})[r.persistence_status]||'unavailable')}. Prediction was still completed successfully.</p>`:''}<button class="subtle-btn" data-go-to="findings" type="button">Review finding & mitigation ↗</button>`;
   }
   async function analyze(){
     if(busy)return;const sampleId=$('live-sample-select')?.value;if(!samples.some(s=>s.id===sampleId))return;
     busy=true;$('live-run-button').disabled=true;$('live-run-button').textContent='Analyzing…';
+    const previousResult=$('live-result').innerHTML;
     $('live-result').innerHTML='<div class="live-wait"><span class="wait-orb"></span><div><strong>Running XGBoost and autoencoder…</strong><p>Computing a fresh model prediction from a held-out numeric sample.</p></div></div>';setEngine('INFERENCE IN PROGRESS','busy');
     try{
       const data=await postInference({sample_id:sampleId});addResult(data);
       if(data.database_written){await syncHistory();await syncPublic();}
-    }catch(e){setEngine(e.code==='ML_STARTING'?'MODEL WAKING UP':e.code==='DEMO_LIMIT_REACHED'?'DEMO LIMIT REACHED':'ENGINE UNAVAILABLE','error');$('live-result').innerHTML=`<div class="live-error"><strong>Inference was not completed.</strong><p>${esc(e.name==='AbortError'?'Request timed out while the hosted ML service was waking up. Please retry shortly.':e.message)}</p><p>Saved model evaluation remains available; no fabricated result was added.</p></div>`;}
+    }catch(e){setEngine(e.code==='ML_STARTING'?'MODEL WAKING UP':e.code==='DEMO_LIMIT_REACHED'?'DEMO LIMIT REACHED':'ENGINE UNAVAILABLE','error');
+      $('live-result').innerHTML=previousResult;
+      sharedResultNote('Inference failed: '+(e.name==='AbortError'?'Request timed out. Try again.':e.message)+' · Previous result preserved',true);
+    }
     finally{busy=false;$('live-run-button').disabled=false;$('live-run-button').textContent='Run model analysis ↗';}
   }
   function sampleCsv(){
@@ -284,6 +371,12 @@
   $('report-export-csv')?.addEventListener('click',exportCsv);
   $('report-print')?.addEventListener('click',()=>window.print());
   storageBadge();renderFindings();renderAnalytics();renderReport();
+  restoreSharedResult();
+  // Poll only while the page is visible; instantly catch up on tab return.
+  // Every response is read-only and curated, never a private CSV record.
+  setInterval(()=>{if(!document.hidden)syncPublic();},publicSyncIntervalMs);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPublic();});
+  window.addEventListener('focus',()=>syncPublic());
   Promise.all([
     fetch('/assessment/evidence.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Sample catalog unavailable');return r.json();}),
     fetch('/assessment/model_summary.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Evaluation metadata unavailable');return r.json();})
@@ -291,6 +384,7 @@
     if(e.not_live_inference!==true||e.contains_real_personal_data!==false)throw Error('Unverified data source');
     samples=e.examples.filter(x=>x.id&&x.features&&categories.includes(x.true_label));model=m;featureNames=m.dataset.features;
     const sel=$('live-sample-select');sel.innerHTML=samples.map(s=>`<option value="${esc(s.id)}">${esc(pretty(s.true_label))} · ${s.correct?'correct':'misclassified'} held-out example</option>`).join('');
+    if(samples.some(s=>s.id===lastSharedSampleId))sel.value=lastSharedSampleId;
     sel.addEventListener('change',()=>{const s=samples.find(x=>x.id===sel.value);$('live-sample-note').textContent=s?`Expected label: ${pretty(s.true_label)} · ${s.correct?'Correct':'Misclassified'} during saved evaluation · 20 features`:'';});sel.dispatchEvent(new Event('change'));
     renderAnalytics();setEngine('READY FOR REAL INFERENCE','ready');
   }).catch(e=>{setEngine('EVIDENCE UNAVAILABLE','error');$('live-result').textContent=`Unable to load synthetic catalog: ${e.message}`;});

@@ -28,7 +28,11 @@ function it113_shared_limit(string $action): string {
     $limits = [
         'infer' => [10, 60, 20, 180],
         'read' => [30, 300, 120, 1200],
+        // Lightweight public curated feed, refreshed every 20 seconds per visible tab.
+        'public_read' => [12, 6000, 120, 40000],
         'write' => [12, 80, 30, 240],
+        // Explicit opt-in Groq calls; enforce global and per-peer API budgets.
+        'llm' => [4, 30, 12, 120],
     ];
     if (!isset($limits[$action]) || !it113_limit_is_configured()) return 'unavailable';
     $pdo = it113_store_db();
@@ -84,7 +88,7 @@ function it113_shared_limit(string $action): string {
 /** Retain the original local-only, file-locked rate limiter for school labs. */
 function it113_local_limit(string $action): string {
     if (!it113_limit_is_loopback()) return 'unavailable';
-    $limits = ['infer'=>[10,100], 'read'=>[60,1000], 'write'=>[20,200]];
+    $limits = ['infer'=>[10,100], 'read'=>[60,1000], 'public_read'=>[240,12000], 'write'=>[20,200], 'llm'=>[4,30]];
     if (!isset($limits[$action])) return 'unavailable';
     $path = __DIR__ . '/../data/it113_demo_rates';
     if (!is_dir($path) && !@mkdir($path, 0700, true) && !is_dir($path)) return 'unavailable';

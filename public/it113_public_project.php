@@ -33,7 +33,7 @@ if (!it113_public_project_configured()) {
         'status'=>'storage_disabled','entries'=>[]]);
 }
 require_once __DIR__.'/../src/it113_shared_limiter.php';
-$limit=it113_demo_limit('read');
+$limit=it113_demo_limit('public_read');
 if($limit==='unavailable') {
     header('Retry-After: 60');
     project_reply(503,['ok'=>false,'code'=>'SAFETY_GATE_UNAVAILABLE','error'=>'Public research safeguards unavailable.']);

@@ -1,0 +1,29 @@
+/* IT113 Rubric A: isolated case-study styles, no changes to existing dashboard controls. */
+.rubric-a-lab { margin-top: 18px; }
+.rubric-a-lab .input-label { display:block; margin: 18px 0 7px; }
+.rubric-a-lab h3 { margin: 0 0 10px; font-size: 15px; }
+.rubric-a-lab h4 { margin: 14px 0 5px; font-size: 13px; }
+.rubric-a-lab p { line-height: 1.6; }
+.rubric-a-proof { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:16px 0; }
+.rubric-a-proof-cell { border:1px solid rgba(183,150,236,.2); padding:14px; border-radius:12px; display:flex; flex-direction:column; gap:5px; min-width:0; background:rgba(149,101,210,.055); }
+.rubric-a-proof-cell small,.rubric-a-summary small { color:#b9aacb; font-size:10px; font-weight:700; letter-spacing:.055em; }
+.rubric-a-proof-cell strong {font-size:17px; color:#f1e9fa;}
+.rubric-a-proof-cell span {font-size:11px; color:#bfb3ce;}
+.rubric-a-inspection {margin-top:18px;}
+.rubric-a-status {display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:12px 14px; border-radius:10px; border:1px solid rgba(164,153,204,.2); margin-bottom:12px;}
+.rubric-a-correct {background:rgba(38,145,109,.12);}
+.rubric-a-mismatch {background:rgba(215,148,69,.12);}
+.rubric-a-status span {font-size:12px; color:#c6bad3;}
+.rubric-a-summary {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0;}
+.rubric-a-summary>div {background:rgba(160,117,201,.07);border:1px solid rgba(175,145,204,.18);border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:7px;min-width:0;}
+.rubric-a-summary b {overflow-wrap:anywhere;font-size:14px;}
+.rubric-a-case-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rubric-a-case-grid section,.rubric-a-crosscheck {border:1px solid rgba(175,145,204,.18);border-radius:12px;padding:16px;background:rgba(160,117,201,.04);min-width:0;}
+.rubric-a-case-grid p,.rubric-a-crosscheck p {margin:7px 0 10px;font-size:13px;}
+.rubric-a-feature-list > div {display:flex;gap:9px;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(175,145,204,.14);padding:9px 0;}
+.rubric-a-feature-list code {font-size:11px;overflow-wrap:anywhere;}
+.rubric-a-crosscheck {margin-top:12px;}
+.rubric-a-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;}
+.rubric-a-actions .hint {margin:0;flex:1;min-width:200px;}
+@media (max-width:780px) {.rubric-a-proof,.rubric-a-summary {grid-template-columns:repeat(2,minmax(0,1fr));}.rubric-a-case-grid {grid-template-columns:1fr;}}
+@media (max-width:480px) {.rubric-a-proof,.rubric-a-summary {grid-template-columns:1fr;}}

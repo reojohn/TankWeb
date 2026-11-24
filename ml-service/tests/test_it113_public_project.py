@@ -48,7 +48,7 @@ class PublicProjectContracts(unittest.TestCase):
         self.assertIn('is_finite($value)',self.store)
 
     def test_public_rate_limit_and_no_caching(self):
-        for mark in ["it113_demo_limit('read')",'SAFETY_GATE_UNAVAILABLE',
+        for mark in ["it113_demo_limit('public_read')",'SAFETY_GATE_UNAVAILABLE',
                      'DEMO_LIMIT_REACHED','Cache-Control: no-store','public_read_only']:
             self.assertIn(mark,self.api+self.store)
 
@@ -81,8 +81,8 @@ class PublicProjectContracts(unittest.TestCase):
     def test_curated_inferences_refresh_public_feed(self):
         self.assertIn('if(data.database_written){await syncHistory();await syncPublic();}',self.js)
         self.assertIn("if(ok){setDisplayMode('session');await syncHistory();}",self.js)
-        self.assertIn('it113-live.js?v=9',self.html)
-        self.assertIn('it113-premium.css?v=9',self.html)
+        self.assertIn('it113-live.js?v=10',self.html)
+        self.assertIn('it113-premium.css?v=10',self.html)
 
     @unittest.skipUnless(shutil.which('php'), 'PHP CLI unavailable')
     def test_no_config_public_endpoint_safe_and_post_denied(self):

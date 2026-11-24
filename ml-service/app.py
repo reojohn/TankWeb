@@ -178,3 +178,8 @@ def predict(payload: PredictionRequest, authorization: str | None = Header(defau
         "explanation_type": "threshold_indicator_not_causal_attribution",
         "automatic_block": False,
     }
+
+
+# Optional, advisory-only Groq layer. This never modifies /predict behavior.
+from security_assistant import create_router
+app.include_router(create_router(require_service_token, predict, PredictionRequest))
