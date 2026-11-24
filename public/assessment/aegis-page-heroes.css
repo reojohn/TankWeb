@@ -298,3 +298,31 @@
       rgba(0,0,0,.42) 62%, rgba(0,0,0,.78) 72%, #000 84%);
   }
 }
+
+/* 2026-11-24 — Overview-style heading layout for the seven content heroes.
+   Their explicit <br> is now the intended two-line break on desktop,
+   instead of the old 12ch cap forcing 3–4 lines and a large center gap.
+   Applies only to the seven .aegis-page-hero cards. Overview (the wolf)
+   and AI Defense use separate hero classes and remain unchanged.
+   Do not change <=760px styling, as that full-bleed layout is approved. */
+@media (min-width: 761px) {
+  .aegis-page-hero .aegis-page-hero-content {
+    width: min(70%, 900px);
+  }
+  .aegis-page-hero h1 {
+    max-width: none;
+    line-height: 1.075;
+    letter-spacing: -0.038em;
+  }
+  .aegis-page-hero p {
+    max-width: 630px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .aegis-page-hero .aegis-page-hero-content {
+    width: min(73%, 760px);
+  }
+  .aegis-page-hero h1 {
+    font-size: clamp(31px, 3.8vw, 43px);
+  }
+}
