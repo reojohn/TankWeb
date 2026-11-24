@@ -1,0 +1,58 @@
+/* Aegis AI research sections — view-scoped visual layer. No model/data styles changed. */
+.aegis-page-hero{
+  --hero-ambient:rgba(145,86,215,.27);
+  --hero-border:rgba(190,136,250,.33);
+  position:relative;isolation:isolate;overflow:hidden;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,40%);
+  align-items:center;min-height:324px;margin:0 0 21px;
+  border:1px solid var(--hero-border);border-radius:23px;
+  padding:clamp(27px,3.5vw,47px) clamp(25px,3.3vw,48px);
+  background:radial-gradient(ellipse at 85% 40%,var(--hero-ambient),transparent 60%),
+    linear-gradient(118deg,#24152f 0%,#1b112e 50%,#130d23 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 18px 56px rgba(16,7,31,.13);
+}
+.aegis-page-hero:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.24;background-image:linear-gradient(rgba(191,157,236,.065) 1px,transparent 1px),linear-gradient(90deg,rgba(191,157,236,.065) 1px,transparent 1px);background-size:40px 40px;mask-image:linear-gradient(90deg,transparent 28%,black 100%)}
+.aegis-page-hero:after{content:"";position:absolute;left:28px;right:28px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(194,153,252,.32),transparent);pointer-events:none}
+.aegis-page-hero--evaluation{--hero-ambient:rgba(99,70,202,.3)}
+.aegis-page-hero--findings{--hero-ambient:rgba(127,60,199,.31)}
+.aegis-page-hero--examples{--hero-ambient:rgba(102,79,190,.28)}
+.aegis-page-hero--mitigations{--hero-ambient:rgba(127,78,223,.3)}
+.aegis-page-hero--analytics{--hero-ambient:rgba(133,63,195,.29)}
+.aegis-page-hero--reports{--hero-ambient:rgba(128,69,164,.25)}
+.aegis-page-hero-glow{position:absolute;right:0;top:0;width:63%;height:100%;pointer-events:none;background:radial-gradient(ellipse at 55% 55%,rgba(162,106,235,.14),transparent 65%)}
+.aegis-page-hero-body{position:relative;z-index:2;min-width:0;max-width:700px}
+.aegis-page-hero-eyebrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:clamp(9px,.66vw,11px);line-height:1.5;letter-spacing:1.25px;font-weight:800;color:#d2b5ec}
+.aegis-page-hero-dot,.aegis-page-hero-mini-dot{flex:none;width:7px;height:7px;border-radius:50%;background:#79e4bc;box-shadow:0 0 13px rgba(104,238,193,.55)}
+.aegis-page-hero-separator{color:#8b669e}
+.aegis-page-hero-codetag{font:800 10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1.9px;color:#ae89d2;margin:19px 0 11px}
+.aegis-page-hero h1{margin:0;font-size:clamp(34px,3.25vw,57px);font-weight:880;line-height:1.055;letter-spacing:-.045em;color:#f7f2ff;text-wrap:balance;max-width:16ch}
+.aegis-page-hero h1::first-letter{color:#eacaff}
+.aegis-page-hero p{margin:17px 0 0;max-width:57ch;color:#c9bbd6;font-size:clamp(12px,.9vw,14px);line-height:1.8}
+.aegis-page-hero-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:24px}
+.aegis-page-hero-btn{display:inline-flex;align-items:center;justify-content:center;gap:18px;min-height:42px;padding:11px 16px;border-radius:11px;border:1px solid rgba(235,202,255,.55);background:linear-gradient(115deg,#e3b8ff,#ad79f2);color:#20112f;font-size:12px;font-weight:800;box-shadow:0 7px 24px rgba(143,78,213,.17);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.aegis-page-hero-btn:hover{transform:translateY(-2px);box-shadow:0 11px 28px rgba(163,98,226,.32);background:linear-gradient(115deg,#f0d1ff,#bd8bff)}
+.aegis-page-hero-btn:active{transform:translateY(0)}
+.aegis-page-hero-btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.aegis-page-hero-outline{min-height:42px;display:inline-flex;align-items:center;gap:9px;padding:9px 12px;border:1px solid rgba(188,147,231,.23);border-radius:10px;background:rgba(42,25,64,.52);font-size:11px;color:#d3bde6}
+.aegis-page-hero-mini-dot{width:5px;height:5px}
+.aegis-page-hero-micro{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;color:#a892bf;font:700 9px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px}
+.aegis-page-hero-art{position:relative;height:270px;min-width:0;z-index:1;pointer-events:none;align-self:center;display:grid;place-items:center}
+.aegis-page-hero-art>svg{width:min(100%,480px);height:auto;max-height:300px;position:relative;z-index:2;overflow:visible;filter:drop-shadow(0 16px 32px rgba(124,58,188,.18))}
+.view.active .aegis-page-hero-art>svg{animation:aegisHeroFloat 8s ease-in-out infinite alternate}
+.aegis-page-hero-circles{position:absolute;inset:-10% -10%;border:1px solid rgba(185,122,244,.16);border-radius:50%;transform:scale(.88);box-shadow:0 0 0 30px rgba(155,104,222,.025),0 0 0 65px rgba(155,104,222,.018)}
+.aegis-page-hero-circles:before{content:"";position:absolute;inset:13%;border-radius:50%;border:1px dashed rgba(206,168,247,.18)}
+.aegis-hud-tag{z-index:3;position:absolute;display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:11px;background:rgba(39,24,61,.94);border:1px solid rgba(196,147,249,.38);box-shadow:0 12px 22px rgba(8,4,16,.35);font-size:13px;font-weight:900;color:#f0ddff;letter-spacing:.02em;white-space:nowrap}
+.aegis-hud-tag small{font:800 9px ui-monospace,monospace;letter-spacing:1px;color:#b89cce}
+.hud-tag-a{left:0;top:20%}.hud-tag-b{right:0;bottom:16%}
+.aegis-page-hero-art-caption{z-index:2;position:absolute;right:4px;bottom:-11px;color:#b996dc;font:800 9px ui-monospace,monospace;letter-spacing:1.45px;text-transform:uppercase;text-align:right}
+.aegis-page-hero + .panel,.aegis-page-hero + .project-view-switch,.aegis-page-hero + .notice,.aegis-page-hero + .metric-grid{margin-top:0}
+#view-dataset .aegis-page-hero,#view-evaluation .aegis-page-hero,#view-findings .aegis-page-hero,#view-examples .aegis-page-hero,#view-mitigations .aegis-page-hero,#view-analytics .aegis-page-hero,#view-reports .aegis-page-hero{scroll-margin-top:85px}
+@keyframes aegisHeroFloat{from{transform:translateY(3px)}to{transform:translateY(-7px)}}
+@media(max-width:1100px){.aegis-page-hero{grid-template-columns:minmax(0,1fr) minmax(235px,37%);padding:31px 30px;min-height:298px}.aegis-page-hero-art{height:245px}.aegis-page-hero h1{font-size:clamp(32px,3.8vw,45px)}.aegis-hud-tag{padding:8px;font-size:12px}}
+@media(max-width:720px){.aegis-page-hero{grid-template-columns:minmax(0,1fr) minmax(125px,34%);gap:0;min-height:270px;padding:26px 22px}.aegis-page-hero-body{max-width:none}.aegis-page-hero-art{height:230px;opacity:.72;align-self:stretch}.aegis-page-hero h1{font-size:clamp(30px,5.8vw,42px)}.aegis-page-hero p{font-size:12px;line-height:1.65;max-width:46ch}.aegis-page-hero-eyebrow{font-size:9px;letter-spacing:.65px}.aegis-hud-tag{display:none}.aegis-page-hero-art-caption{display:none}.aegis-page-hero-codetag{margin-top:15px}.aegis-page-hero-actions{margin-top:15px}.aegis-page-hero-micro{margin-top:16px}}
+@media(max-width:530px){.aegis-page-hero{display:block;min-height:304px;border-radius:18px;padding:23px 20px;background:radial-gradient(ellipse at 94% 43%,var(--hero-ambient),transparent 68%),linear-gradient(126deg,#241631,#170f29 76%,#130b22)}.aegis-page-hero:before{mask-image:linear-gradient(90deg,transparent,black)}.aegis-page-hero-body{position:relative;z-index:3}.aegis-page-hero-art{position:absolute;inset:0 -12% 0 38%;height:auto;opacity:.3;z-index:1}.aegis-page-hero-art>svg{width:110%;max-height:none}.aegis-page-hero-circles{inset:4%}.aegis-page-hero h1{font-size:clamp(32px,9vw,45px);max-width:12ch}.aegis-page-hero p{position:relative;max-width:35ch;font-size:12.5px;line-height:1.7;color:#e2d3ec;text-shadow:0 1px 8px rgba(10,5,20,.4)}.aegis-page-hero-btn{min-height:42px}.aegis-page-hero-outline{display:none}.aegis-page-hero-micro{font-size:8px;gap:6px}.aegis-page-hero-codetag{font-size:9px}.aegis-page-hero-eyebrow{font-size:8.5px}.aegis-page-hero:after{left:16px;right:16px}}
+@media(max-width:360px){.aegis-page-hero{padding:21px 16px;min-height:315px}.aegis-page-hero h1{font-size:31px}.aegis-page-hero p{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.aegis-page-hero-art>svg{animation:none}.aegis-page-hero-btn{transition:none}}
+
+/* Keep hero scroll targets below the sticky Command Center header. */
+#dataset-stats,#evaluation-metrics,#findings-overview,#example-list,#rubric-d-linked,#analytics-overview,#phase3-report-facts{scroll-margin-top:95px}

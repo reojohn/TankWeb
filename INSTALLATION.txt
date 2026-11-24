@@ -1,0 +1,28 @@
+Aegis AI — Overview Hero Compact Size / Wolf & Orb Focus Fix
+==============================================================
+
+This is a CSS-only patch built against the previously delivered
+Aegis_AI_Page_Hero_Backgrounds_Implemented_Changed_Files.zip.
+
+Install:
+1. Back up your current TankWeb-v3/public/assessment/aegis-page-heroes.css.
+2. Extract this zip. Copy the included public/assessment/aegis-page-heroes.css
+   into TankWeb-v3/public/assessment/aegis-page-heroes.css (overwrite).
+3. Hard-refresh your browser with Ctrl+Shift+R.
+4. Open Command Center > Overview and verify the compact layout, animated
+   wolf and orbiting rings on both desktop and mobile. Check other pages.
+
+What changed:
+- Restore position:absolute to overview glow orbs. The prior selector
+  accidentally made them position:relative and stretched the hero.
+- Reduce the large background shield intensity so the existing wolf dominates.
+- Enhance wolf glow and contrast of the original orbit rings.
+- Correct the mobile wolf caption spacing.
+
+No changes to HTML, JavaScript, model, backend, database, or other heroes.
+The original floating wolf, moving glow orbs, and rotating orbit rings remain.
+
+Local isolated visual checks: 1878px, 1440px, 390px, 320px. Before: 673px
+hero on desktop; after: 431px. Wolf/logo/ring animations confirmed in
+computed CSS; no horizontal overflow in isolated preview. Hosted integration
+still needs verification after installation.

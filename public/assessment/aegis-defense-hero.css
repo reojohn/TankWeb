@@ -72,29 +72,84 @@
   #view-defense .aegis-defense-hero h1{font-size:clamp(39px,4.3vw,54px)}
 }
 @media(max-width:900px){
+  /* The portrait is a true full-hero background on touch layouts, not a separate image block. */
   #view-defense .aegis-defense-hero{min-height:0}
-  #view-defense .aegis-defense-hero-content{width:100%;min-height:0;padding:35px 30px 310px}
-  #view-defense .aegis-defense-hero-content>p{max-width:520px}
-  #view-defense .aegis-defense-hero-art{width:100%;height:325px;inset:auto 0 0;background-position:center 34%;background-size:cover}
-  #view-defense .aegis-defense-hero-overlay{background:linear-gradient(180deg,#11091e 0%,#11091e 36%,rgba(17,9,30,.78) 50%,transparent 70%,rgba(13,8,22,.15) 100%)}
-  #view-defense .aegis-defense-hero h1{font-size:clamp(40px,6.8vw,60px)}
+  #view-defense .aegis-defense-hero-art{
+    inset:0 0 0 auto; width:72%; height:100%;
+    background-position:52% center; background-size:cover;
+  }
+  #view-defense .aegis-defense-hero-content{
+    width:min(58%,460px); min-height:455px; padding:36px 30px;
+  }
+  #view-defense .aegis-defense-hero-overlay{
+    background:linear-gradient(90deg,rgba(13,7,25,.99) 0%,rgba(13,7,25,.96) 23%,rgba(13,7,25,.85) 47%,rgba(13,7,25,.24) 77%,rgba(13,7,25,.06) 100%),
+               linear-gradient(0deg,rgba(13,7,25,.46),transparent 34%);
+  }
+  #view-defense .aegis-defense-hero h1{font-size:clamp(40px,6vw,58px)}
 }
 @media(max-width:560px){
   #view-defense .aegis-defense-hero{border-radius:19px;margin-bottom:15px}
-  #view-defense .aegis-defense-hero-content{padding:28px 21px 260px}
-  #view-defense .aegis-defense-hero-art{height:270px;background-position:center 32%}
-  #view-defense .aegis-defense-hero-overlay{background:linear-gradient(180deg,#11091e 0%,#11091e 41%,rgba(17,9,30,.6) 58%,transparent 79%,rgba(13,8,22,.20) 100%)}
-  #view-defense .aegis-defense-hero h1{font-size:clamp(37px,10vw,52px);letter-spacing:-1.7px}
+  #view-defense .aegis-defense-hero-art{
+    inset:0; height:100%; width:100%;
+    background-size:auto 84%; background-position:51% 49%;
+  }
+  #view-defense .aegis-defense-hero-content{
+    width:100%; min-height:570px; padding:28px 21px 27px;
+    justify-content:flex-start;
+  }
+  #view-defense .aegis-defense-hero-overlay{
+    background:linear-gradient(90deg,rgba(13,7,25,.91) 0%,rgba(13,7,25,.79) 26%,rgba(13,7,25,.58) 49%,rgba(13,7,25,.23) 84%,rgba(13,7,25,.13) 100%),
+               linear-gradient(180deg,rgba(13,7,25,.57) 0%,rgba(13,7,25,.10) 44%,rgba(13,7,25,.57) 100%);
+  }
+  #view-defense .aegis-defense-hero h1{
+    max-width:min(245px,80%);font-size:clamp(36px,9.5vw,48px);letter-spacing:-1.7px
+  }
   #view-defense .aegis-defense-hero-kicker{margin-top:15px}
-  #view-defense .aegis-defense-hero-content>p{font-size:12.5px;line-height:1.6}
-  #view-defense .aegis-defense-hero-actions{margin-top:19px}
+  #view-defense .aegis-defense-hero-content>p{max-width:min(260px,81%);font-size:12.5px;line-height:1.6}
+  #view-defense .aegis-defense-hero-actions{margin-top:19px;max-width:270px}
   #view-defense .aegis-defense-hero-action{min-height:42px;font-size:11px}
-  #view-defense .aegis-defense-hero-chips{margin-top:16px}
+  #view-defense .aegis-defense-hero-chips{margin-top:16px;max-width:290px}
   #view-defense .aegis-defense-hero-visual-caption{font-size:8px;right:14px;bottom:13px}
 }
 @media(max-width:370px){
-  #view-defense .aegis-defense-hero-content{padding-left:16px;padding-right:16px}
+  #view-defense .aegis-defense-hero-content{padding-left:16px;padding-right:16px;min-height:610px}
+  #view-defense .aegis-defense-hero-art{background-size:auto 79%;background-position:47% 48%}
   #view-defense .aegis-defense-hero-action{width:100%;justify-content:center}
 }
 @media(prefers-reduced-motion:reduce){#view-defense .aegis-defense-hero-action{transition:none}#view-defense .aegis-defense-hero-action:hover{transform:none}}
 @media print{#view-defense .aegis-defense-hero{box-shadow:none}#view-defense .aegis-defense-hero-action{display:none}}
+
+/* Preserve portrait behind text in mobile; keep heading and buttons legible. */
+@media(max-width:560px){#view-defense .aegis-defense-hero-content h1,#view-defense .aegis-defense-hero-content p{text-shadow:0 2px 15px rgba(6,2,14,.66)}}
+
+/* Mobile AI Defense: full-bleed Aegis portrait behind the copy.
+   The existing desktop composition, face asset and interactions are unchanged. */
+@media (max-width: 560px) {
+  #view-defense .aegis-defense-hero-art {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: 57% center;
+    opacity: .76;
+  }
+  #view-defense .aegis-defense-hero-overlay {
+    background:
+      linear-gradient(180deg,
+        rgba(10,5,21,.75) 0%,
+        rgba(10,5,21,.61) 26%,
+        rgba(10,5,21,.45) 53%,
+        rgba(10,5,21,.41) 75%,
+        rgba(10,5,21,.67) 100%),
+      linear-gradient(90deg,
+        rgba(10,5,21,.49) 0%,
+        rgba(10,5,21,.25) 62%,
+        rgba(10,5,21,.09) 100%);
+  }
+}
+@media (max-width: 370px) {
+  #view-defense .aegis-defense-hero-art {
+    background-size: cover;
+    background-position: 58% center;
+  }
+}

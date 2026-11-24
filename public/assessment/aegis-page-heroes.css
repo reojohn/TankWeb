@@ -1,0 +1,300 @@
+/* Premium hero system for Aegis AI section pages.
+   Presentation only: no API, model, or storage logic is changed. */
+
+.hero.hero--with-bg{overflow:hidden;position:relative;isolation:isolate}
+.hero.hero--with-bg::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:var(--overview-hero-bg);
+  background-size:cover;
+  background-position:82% center;
+  /* Restore the original sharp backdrop: no added CSS blur. */
+  opacity:.115;
+  filter:none;
+  transform:none;
+  z-index:0;
+  pointer-events:none;
+  mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.2) 16%,rgba(0,0,0,.9) 34%,#000 100%);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.2) 16%,rgba(0,0,0,.9) 34%,#000 100%);
+}
+/* On desktop, make the Overview hero itself substantially darker rather
+   than blurring its artwork. Preserve the original mobile hero design. */
+@media(min-width:761px){
+  .hero.hero--with-bg{
+    background:
+      radial-gradient(ellipse at 78% 44%,rgba(112,56,178,.11),transparent 44%),
+      linear-gradient(115deg,#1c1128 0%,#140d20 54%,#100a1a 100%);
+  }
+  .hero.hero--with-bg::before{opacity:.075}
+}
+/* Keep the glowing orbs OUT of the grid flow. The previous grouped selector
+   mistakenly made them position:relative and stretched the overview to ~600px. */
+.hero.hero--with-bg .hero-copy{position:relative;z-index:2}
+.hero.hero--with-bg .hero-art{position:relative;z-index:3}
+.hero.hero--with-bg .hero-background-orb{position:absolute;z-index:1}
+/* Give the original animated wolf and orbital rings the visual lead. */
+.hero.hero--with-bg .hero-art::before{
+  content:"";
+  position:absolute;
+  width:105%;
+  aspect-ratio:1;
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(circle,rgba(170,99,255,.25) 0%,rgba(139,62,218,.105) 42%,transparent 72%);
+  filter:blur(13px);
+  animation:glowDrift 9s ease-in-out infinite alternate;
+}
+.hero.hero--with-bg .hero-wolf{
+  filter:drop-shadow(0 19px 28px rgba(4,0,14,.66)) drop-shadow(0 0 36px rgba(167,83,255,.56));
+}
+.hero.hero--with-bg .ring-one{border-color:rgba(205,148,255,.29);box-shadow:inset 0 0 28px rgba(168,78,245,.12),0 0 22px rgba(164,75,240,.09)}
+.hero.hero--with-bg .ring-two{border-color:rgba(205,157,255,.39)}
+@media(min-width:1351px){.hero.hero--with-bg .hero-wolf{width:min(100%,335px)}}
+@media(max-width:700px){.hero.hero--with-bg .hero-art-caption{bottom:12px}}
+@media(prefers-reduced-motion:reduce){.hero.hero--with-bg .hero-art::before{animation:none}}
+
+.aegis-page-hero{
+  --hero-image:none;
+  position:relative;
+  overflow:hidden;
+  border-radius:24px;
+  min-height:325px;
+  margin:0 0 18px;
+  border:1px solid rgba(209,168,251,.27);
+  background:linear-gradient(135deg,#140b21 0%,#1a0f2a 48%,#120918 100%);
+  box-shadow:0 16px 42px rgba(5,2,13,.19), inset 0 1px rgba(255,255,255,.06);
+  isolation:isolate;
+}
+.aegis-page-hero-art,
+.aegis-page-hero-overlay,
+.aegis-page-hero-grid,
+.aegis-page-hero-content,
+.aegis-page-hero-caption{position:absolute;inset:0}
+.aegis-page-hero-art{
+  background-image:var(--hero-image);
+  /* Show almost the entire generated artwork at its own aspect ratio.
+     `cover` was sizing the landscape image to the full hero width, cropping
+     the top and bottom and making the objects appear zoomed in. */
+  background-size:auto 100%;
+  background-position:right center;
+  background-repeat:no-repeat;
+  transform:none;
+}
+.aegis-page-hero-overlay{
+  background:
+    linear-gradient(90deg,#10091d 0%,rgba(16,9,30,.98) 28%,rgba(16,9,30,.88) 47%,rgba(16,9,30,.44) 69%,rgba(16,9,30,.08) 100%),
+    linear-gradient(180deg,rgba(150,100,240,.08),transparent 45%,rgba(8,4,15,.25) 100%);
+}
+.aegis-page-hero-grid::before,
+.aegis-page-hero-grid::after{
+  content:"";
+  position:absolute;
+  border:1px solid rgba(171,120,241,.28);
+  border-radius:20px;
+  box-shadow:0 0 30px rgba(168,104,255,.08);
+}
+.aegis-page-hero-grid::before{width:112px;height:112px;left:-42px;top:28px;border-right-color:transparent;border-bottom-color:transparent}
+.aegis-page-hero-grid::after{width:158px;height:92px;right:22px;top:54px;border-radius:18px;background:linear-gradient(180deg,rgba(152,98,234,.08),rgba(35,19,55,.08));backdrop-filter:blur(3px)}
+.aegis-page-hero-content{
+  position:relative;
+  inset:auto;
+  z-index:2;
+  width:min(58%,720px);
+  padding:30px 34px 30px;
+  min-height:325px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.aegis-page-hero-eyebrow,
+.aegis-page-hero-kicker{display:flex;align-items:center;flex-wrap:wrap}
+.aegis-page-hero-eyebrow{
+  gap:9px;
+  color:#d8bcff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:1.6px;
+}
+.aegis-page-hero-pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7af2c0;box-shadow:0 0 11px rgba(122,242,192,.85)}
+.aegis-page-hero-divider{opacity:.6}
+.aegis-page-hero-kicker{
+  margin-top:15px;
+  color:#a99cc0;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+}
+.aegis-page-hero h1{
+  margin:14px 0 10px;
+  font-size:clamp(33px,3.4vw,48px);
+  line-height:1.02;
+  letter-spacing:-1.45px;
+  color:#fbf7ff;
+  max-width:12ch;
+}
+.aegis-page-hero h1 span{color:#c79af8}
+.aegis-page-hero p{
+  margin:0;
+  max-width:560px;
+  color:#cfc4dc;
+  font-size:14px;
+  line-height:1.75;
+}
+.aegis-page-hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.aegis-page-hero-action{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:44px;padding:0 18px;border-radius:14px;border:1px solid rgba(197,159,240,.26);
+  background:rgba(42,24,68,.6);color:#f2e8ff;font-weight:700;font-size:12.5px;letter-spacing:.05px;cursor:pointer;
+  box-shadow:0 11px 24px rgba(7,3,17,.18);
+  transition:transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+.aegis-page-hero-action svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.aegis-page-hero-action:hover{transform:translateY(-2px)}
+.aegis-page-hero-action-primary{background:linear-gradient(135deg,#c896ff,#a56ef0);color:#1d122b;border-color:rgba(242,226,255,.45)}
+.aegis-page-hero-action-primary:hover{box-shadow:0 11px 27px rgba(148,90,227,.34)}
+.aegis-page-hero-action-secondary:hover{background:rgba(97,60,133,.55);border-color:rgba(214,174,255,.47)}
+.aegis-page-hero-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:19px;color:#b8aec8}
+.aegis-page-hero-chips span{display:inline-flex;align-items:center;gap:6px;font-size:10px;white-space:nowrap}
+.aegis-page-hero-chips span+span::before{content:"·";color:#b687ef;margin-right:2px}
+.aegis-page-hero-caption{
+  inset:auto 24px 21px auto;
+  z-index:2;
+  display:flex;align-items:center;gap:9px;
+  color:#d7b7ff;font-size:9px;font-weight:800;letter-spacing:1.2px;
+  opacity:.88;
+  text-shadow:0 2px 15px rgba(8,3,20,.8);
+}
+.aegis-page-hero-caption span{height:6px;width:6px;border-radius:50%;background:#87f3c4;box-shadow:0 0 10px #87f3c4}
+.aegis-page-hero + .project-view-switch,
+.aegis-page-hero + .notice,
+.aegis-page-hero + .metric-grid,
+.aegis-page-hero + .panel,
+.aegis-page-hero + .two-cols,
+.aegis-page-hero + .example-layout{margin-top:0}
+.aegis-page-heading-hidden{display:none !important}
+
+@media (max-width: 1040px){
+  .aegis-page-hero-content{width:65%}
+  .aegis-page-hero h1{font-size:clamp(35px,4.7vw,46px)}
+}
+@media (max-width: 760px){
+  .aegis-page-hero{min-height:0;border-radius:19px}
+  /* Keep the image centered behind the actual copy, not parked below the buttons.
+     Width-based scaling shows more of each composition than mobile cover cropping. */
+  .aegis-page-hero-art{background-position:54% 41%;background-size:145% auto}
+  .aegis-page-hero-content{width:100%;min-height:545px;padding:20px 18px 50px;justify-content:flex-start}
+  .aegis-page-hero-overlay{background:linear-gradient(180deg,rgba(16,9,30,.77) 0%,rgba(16,9,30,.48) 38%,rgba(16,9,30,.35) 67%,rgba(16,9,30,.74) 100%),linear-gradient(90deg,rgba(16,9,30,.83) 0%,rgba(16,9,30,.62) 36%,rgba(16,9,30,.27) 78%,rgba(16,9,30,.08) 100%)}
+  .aegis-page-hero-grid::before{top:16px;left:-58px}
+  .aegis-page-hero-grid::after{right:10px;top:auto;bottom:138px;width:94px;height:56px}
+  .aegis-page-hero h1{font-size:clamp(37px,8vw,54px);max-width:11ch;margin-top:12px}
+  .aegis-page-hero p{max-width:min(275px,82%);font-size:12.5px;line-height:1.62}
+  .aegis-page-hero-actions{margin-top:18px;max-width:275px}
+  .aegis-page-hero-action{width:100%;justify-content:center;min-height:42px;font-size:11px}
+  .aegis-page-hero-chips{margin-top:15px;max-width:300px}
+  .aegis-page-hero-caption{font-size:8px;right:13px;bottom:12px}
+  .aegis-page-hero h1,.aegis-page-hero p,.aegis-page-hero-eyebrow,.aegis-page-hero-kicker{text-shadow:0 2px 16px rgba(6,2,15,.88)}
+  .aegis-page-hero-chips{position:relative;z-index:2;text-shadow:0 1px 7px #080310}
+}
+@media(max-width:380px){
+  .aegis-page-hero-art{background-size:160% auto;background-position:52% 42%}
+  .aegis-page-hero-content{min-height:575px;padding-bottom:48px}
+  .aegis-page-hero h1{font-size:clamp(34px,8.8vw,41px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .aegis-page-hero-action{transition:none}
+  .aegis-page-hero-action:hover{transform:none}
+}
+@media print{
+  .aegis-page-hero{box-shadow:none}
+  .aegis-page-hero-action{display:none}
+}
+
+/* 2026-11-24: Full-bleed image composition — all seven section heroes.
+ * Let artwork cover the ENTIRE hero, including behind headings and buttons.
+ * Dim the art itself and shade the copy rather than leaving empty bands.
+ * Overview and AI Defense are deliberately not selected here. */
+.aegis-page-hero .aegis-page-hero-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  opacity: .60;
+  transform: none;
+}
+.aegis-page-hero .aegis-page-hero-overlay {
+  background:
+    linear-gradient(90deg,
+      rgba(12,6,24,.88) 0%,
+      rgba(12,6,24,.78) 29%,
+      rgba(12,6,24,.61) 49%,
+      rgba(12,6,24,.24) 83%,
+      rgba(12,6,24,.17) 100%),
+    linear-gradient(180deg,
+      rgba(12,6,24,.18) 0%,
+      rgba(12,6,24,.07) 48%,
+      rgba(12,6,24,.24) 100%);
+}
+@media (max-width: 760px) {
+  .aegis-page-hero .aegis-page-hero-art {
+    /* Mobile cover crops sides intentionally; NO blank top/bottom strip. */
+    background-size: cover;
+    background-position: 58% center;
+    opacity: .52;
+  }
+  .aegis-page-hero .aegis-page-hero-overlay {
+    background:
+      linear-gradient(180deg,
+        rgba(10,5,21,.70) 0%,
+        rgba(10,5,21,.59) 24%,
+        rgba(10,5,21,.46) 52%,
+        rgba(10,5,21,.46) 73%,
+        rgba(10,5,21,.70) 100%),
+      linear-gradient(90deg,
+        rgba(10,5,21,.47) 0%,
+        rgba(10,5,21,.25) 60%,
+        rgba(10,5,21,.13) 100%);
+  }
+}
+@media (max-width: 380px) {
+  .aegis-page-hero .aegis-page-hero-art {
+    background-size: cover;
+    background-position: 58% center;
+  }
+}
+
+/* Desktop/tablet artwork scale correction (2026-11-24).
+ * Preserve the approved full-bleed MOBILE presentation at <=760px;
+ * only wider screens return to the earlier zoomed-out right-side artwork.
+ * Keep the existing overlay, opacity, content, and original animated
+ * Overview / AI Defense hero rules completely unchanged. */
+@media (min-width: 761px) {
+  .aegis-page-hero .aegis-page-hero-art {
+    background-size: auto 100%;
+    background-position: right center;
+  }
+}
+
+/* 2026-11-24 — Seamless dark-violet hero artwork (desktop/tablet only).
+ * The generated images have a slightly cooler, darker backdrop than the
+ * surrounding hero. Screen blending lets the purple highlights sit on the
+ * existing hero color instead of displaying the artwork's dark rectangle.
+ * A feathered alpha mask further dissolves the left edge of the illustration.
+ * Keep right-aligned, zoomed-out art and ALL <=760px mobile styles unchanged.
+ * Does not target the Overview wolf hero or AI Defense character hero. */
+@media (min-width: 761px) {
+  .aegis-page-hero .aegis-page-hero-art {
+    mix-blend-mode: screen;
+    /* Stronger feather on the LEFT so the artwork dissolves more gradually
+       into the base hero color instead of showing a detectable boundary. */
+    -webkit-mask-image: linear-gradient(90deg,
+      transparent 0%, transparent 35%, rgba(0,0,0,.08) 48%,
+      rgba(0,0,0,.42) 62%, rgba(0,0,0,.78) 72%, #000 84%);
+    mask-image: linear-gradient(90deg,
+      transparent 0%, transparent 35%, rgba(0,0,0,.08) 48%,
+      rgba(0,0,0,.42) 62%, rgba(0,0,0,.78) 72%, #000 84%);
+  }
+}
