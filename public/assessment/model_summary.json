@@ -1,5 +1,5 @@
 {
-  "project": "FortressAuth Hybrid Intelligent Threat Detection",
+  "project": "Aegis AI: Cybersecurity Threat Analysis and Decision Support Platform",
   "dataset": {
     "type": "synthetic/simulated course-project security telemetry",
     "training_rows": 35000,

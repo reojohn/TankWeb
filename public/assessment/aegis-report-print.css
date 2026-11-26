@@ -1,0 +1,30 @@
+/* Aegis AI research-findings print view: activated only through the report button. */
+#aegis-standalone-print{display:none}
+@media print{
+  @page{size:A4; margin:14mm 13mm}
+  html:has(body.aegis-print-active),body.aegis-print-active{background:#fff!important;color:#181126!important;overflow:visible!important;}
+  body.aegis-print-active > *:not(#aegis-standalone-print){display:none!important}
+  body.aegis-print-active > #aegis-standalone-print{display:block!important;position:static!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:white!important;color:#181126!important;font:10pt/1.55 Arial,sans-serif!important}
+  #aegis-standalone-print *{box-sizing:border-box!important;text-shadow:none!important;box-shadow:none!important}
+  #aegis-standalone-print h1{font-size:29pt!important;line-height:1.12!important;letter-spacing:-.8pt!important;color:#21102e!important;margin:12mm 0 6mm!important}
+  #aegis-standalone-print h2{font-size:14pt!important;color:#381659!important;border-bottom:1pt solid #ded1ea!important;padding-bottom:6pt!important;margin:14pt 0 8pt!important}
+  #aegis-standalone-print p{font-size:9.5pt!important;color:#463b53!important;margin:7pt 0!important}
+  #aegis-standalone-print .aegis-print-cover{padding:7mm 0 6mm!important;border-bottom:3pt solid #7f48b3!important;margin-bottom:8mm!important}
+  #aegis-standalone-print .aegis-print-brand{color:#311347!important;letter-spacing:1.4pt!important;font-weight:800!important;font-size:12pt!important}
+  #aegis-standalone-print .aegis-print-brand span{color:#826c94!important;font-size:7pt!important}
+  #aegis-standalone-print .aegis-print-label{font-size:8pt!important;color:#8053a5!important;letter-spacing:.8pt!important;margin-top:13pt!important}
+  #aegis-standalone-print .aegis-print-scope{margin-top:12pt!important;padding:10pt 12pt!important;background:#f4effa!important;border-radius:6pt!important;font-size:8.5pt!important}
+  #aegis-standalone-print section{break-inside:auto!important;margin:11pt 0!important}
+  #aegis-standalone-print table{width:100%!important;border-collapse:collapse!important;font-size:7.8pt!important;color:#261935!important;table-layout:auto!important}
+  #aegis-standalone-print tr{break-inside:avoid!important}
+  #aegis-standalone-print th{background:#271336!important;color:#fff!important;text-align:left!important;padding:7pt 6pt!important}
+  #aegis-standalone-print td{padding:6pt!important;border-bottom:1pt solid #e3d9ec!important;overflow-wrap:anywhere!important}
+  #aegis-standalone-print tbody tr:nth-child(even){background:#f5f0fa!important}
+  #aegis-standalone-print ul{padding-left:17pt!important;margin:7pt 0!important}
+  #aegis-standalone-print li{margin:4pt 0!important}
+  #aegis-standalone-print .aegis-print-kpis{display:flex!important;gap:12pt!important;margin:8pt 0 12pt!important}
+  #aegis-standalone-print .aegis-print-kpis>div{flex:1!important;padding:12pt!important;background:#eee4f7!important;border:1pt solid #ded0ea!important;border-radius:5pt!important}
+  #aegis-standalone-print .aegis-print-kpis strong{display:block!important;font-size:20pt!important;color:#522477!important}
+  #aegis-standalone-print .aegis-print-kpis span{display:block!important;font-size:7.5pt!important;color:#6e547f!important}
+  #aegis-standalone-print .aegis-print-end{font-size:7pt!important;color:#765f87!important;margin-top:15mm!important;border-top:1pt solid #d9cce5!important;padding-top:5pt!important}
+}

@@ -386,10 +386,45 @@
     const target=$('dynamic-report-preview');if(!target)return;
     const flagged=visible.filter(e=>e.classification!=='NORMAL').length;
     const labeled=visible.filter(e=>e.expected_label);const correct=labeled.filter(e=>e.expected_label===e.classification).length;
-    target.innerHTML=`<div class="dynamic-report-lead"><div class="section-micro">GENERATED ${esc(new Date().toLocaleString())}</div><h3>${isPublicView()?'Public curated research':pair.active?'Shared research pair':'Personal academic'} assessment summary</h3><p>${num(visible.length)} actual model inference(s) on synthetic numeric behavior; ${flagged} flagged predictions. Results are advisory, and no real incidents were evaluated.</p><p>${labeled.length?`${correct}/${labeled.length} labeled curated examples matched. This is not the model's held-out test accuracy.`:'No ground-truth labels were provided for the current records.'}</p></div><div class="table-scroll"><table class="dynamic-table"><thead><tr><th>Classification</th><th>Risk</th><th>Confidence</th><th>Case status</th><th>Source</th></tr></thead><tbody>${visible.length?visible.slice(0,30).map(e=>`<tr><td>${esc(pretty(e.classification))}</td><td>${Number(e.risk_score).toFixed(1)}</td><td>${pct(e.confidence)}</td><td>${esc(pretty(e.status))}</td><td>${esc(e.source_type==='numeric_csv'?'Numeric CSV':'Curated sample')}</td></tr>`).join(''):'<tr><td colspan="5">Analyze a synthetic sample to populate this live report.</td></tr>'}</tbody></table></div><p class="hint">Model version: ${esc(visible[0]?.model_version||'No run yet')}. Held-out evaluation and dynamically analyzed records are separate sources. Maximum 30 findings displayed in this print preview; JSON/CSV exports include the bounded current history.</p>`;
+    target.innerHTML=`<div class="dynamic-report-lead"><div class="section-micro">GENERATED ${esc(new Date().toLocaleString())} · SYNTHETIC EVIDENCE ONLY</div><h3>${isPublicView()?'Public curated research':pair.active?'Shared research pair':'Private synthetic tests'} assessment summary</h3><p>${num(visible.length)} actual model inference(s) on synthetic numeric behavior; ${flagged} flagged predictions. Results are advisory, and no real incidents were evaluated.</p><p>${labeled.length?`${correct}/${labeled.length} labeled curated examples matched. This is not the model's held-out test accuracy.`:'No ground-truth labels were provided for the current records.'}</p></div><div class="table-scroll"><table class="dynamic-table"><thead><tr><th>Classification</th><th>Risk</th><th>Confidence</th><th>Case status</th><th>Source</th></tr></thead><tbody>${visible.length?visible.slice(0,30).map(e=>`<tr><td>${esc(pretty(e.classification))}</td><td>${Number(e.risk_score).toFixed(1)}</td><td>${pct(e.confidence)}</td><td>${esc(pretty(e.status))}</td><td>${esc(e.source_type==='numeric_csv'?'Numeric CSV':'Curated sample')}</td></tr>`).join(''):'<tr><td colspan="5">Analyze a synthetic sample to populate this live report.</td></tr>'}</tbody></table></div><p class="hint">Model version: ${esc(visible[0]?.model_version||'No run yet')}. Held-out evaluation and dynamically analyzed records are separate sources. Maximum 30 findings displayed in this print preview; JSON/CSV exports include the bounded current history.</p>`;
   }
-  function exportJson(){download('aegis-ai-it113-dynamic-findings.json',JSON.stringify({source:'IT113 synthetic numeric academic assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:isPublicView()?'public_project_read_only':pair.active?'shared_pair':persistence?'private_session':'browser_only',entries:viewEntries()},null,2),'application/json');}
-  function exportCsv(){const cols=['at','source_type','sample_id','expected_label','classification','confidence','risk_score','anomaly_score','severity','status','model_version','trace_id'];const csv=[cols.join(','),...viewEntries().map(e=>cols.map(k=>`"${String(e[k]??'').replace(/"/g,'""')}"`).join(','))].join('\r\n');download('fortressauth-it113-dynamic-findings.csv',csv,'text/csv');}
+  function printFindingsReport(){
+    // This is the same selected research scope as the current on-screen report.
+    // Include only vetted aggregate synthetic model fields, never raw inputs or private analyst notes.
+    const selected = viewEntries();
+    const counts = Object.fromEntries(categories.map(c=>[c,0]));
+    selected.forEach(e=>{if(categories.includes(e.classification))counts[e.classification]++;});
+    const labeled=selected.filter(e=>categories.includes(e.expected_label));
+    const matched=labeled.filter(e=>e.expected_label===e.classification).length;
+    const flagged=selected.filter(e=>e.classification!=='NORMAL').length;
+    const followups=selected.filter(e=>['INVESTIGATING','MITIGATED','RESOLVED'].includes(e.status)).length;
+    const scope=isPublicView()?'Public curated findings':pair.active?'Shared synthetic research':'My private synthetic tests';
+    const unique=[...new Set(selected.map(e=>e.classification).filter(c=>categories.includes(c)))];
+    const clsTable=categories.map(c=>`<tr><td>${esc(pretty(c))}</td><td>${counts[c]}</td><td>${selected.length?(100*counts[c]/selected.length).toFixed(1)+'%':'—'}</td></tr>`).join('');
+    const detailRows=selected.slice(0,30).map((e,i)=>{
+      const risk=Number(e.risk_score),confidence=Number(e.confidence);
+      return `<tr><td>${i+1}</td><td>${esc(pretty(e.classification))}</td><td>${Number.isFinite(risk)?risk.toFixed(1):'—'}</td><td>${Number.isFinite(confidence)?(100*confidence).toFixed(2)+'%':'—'}</td><td>${esc(pretty(e.status||'OPEN'))}</td><td>${esc(e.source_type==='numeric_csv'?'Private numeric test':'Curated sample')}</td></tr>`;
+    }).join('');
+    const response=unique.filter(c=>c!=='NORMAL').map(c=>{
+      const [name,action]=advice[c]||['Review before action','Verify findings independently.'];
+      return `<li><b>${esc(pretty(c))}:</b> ${esc(name)} — ${esc(action)} Require authorized validation; the class is not proof of a weakness.</li>`;
+    }).join('');
+    let node=$('aegis-standalone-print');
+    if(!node){node=document.createElement('div');node.id='aegis-standalone-print';node.setAttribute('aria-hidden','true');document.body.appendChild(node);}
+    node.innerHTML=`<div class="aegis-print-cover"><div class="aegis-print-brand">AEGIS AI <span> / SECURITY INTELLIGENCE</span></div><div class="aegis-print-label">SYSTEM-GENERATED · SYNTHETIC RESEARCH</div><h1>Current Security Assessment<br>and Threat Findings</h1><p>This report is generated from the selected findings visible in the Aegis AI research workspace. It is not the separate IT113 academic project documentation.</p><div class="aegis-print-scope"><b>Scope:</b> ${esc(scope)}<br><b>Generated:</b> ${esc(new Date().toLocaleString())}<br><b>Evidence basis:</b> Controlled synthetic numeric model inference</div></div>
+    <section><h2>Executive findings</h2><div class="aegis-print-kpis"><div><strong>${selected.length}</strong><span>Analyzed records</span></div><div><strong>${flagged}</strong><span>Flagged predictions</span></div><div><strong>${followups}</strong><span>Recorded follow-ups</span></div></div><p>${labeled.length?`${matched} of ${labeled.length} selected labeled records match their saved synthetic test labels. This subset is not an unbiased model-accuracy estimate.`:'These selected records do not provide a complete set of verified test labels; no current-session accuracy is asserted.'}</p></section>
+    <section><h2>Classification distribution</h2><table><thead><tr><th>Predicted behavior</th><th>Count</th><th>Share</th></tr></thead><tbody>${clsTable}</tbody></table></section>
+    <section><h2>Selected evidence records</h2><p>Up to 30 recent records shown; JSON/CSV exports contain the bounded selected history.</p><table><thead><tr><th>No.</th><th>Prediction</th><th>Risk / 100</th><th>Class score</th><th>Review status</th><th>Source</th></tr></thead><tbody>${detailRows||'<tr><td colspan="6">No assessments in this selection. Run a synthetic analysis or switch scope.</td></tr>'}</tbody></table></section>
+    <section><h2>Review-first response guidance</h2>${response?`<ul>${response}</ul>`:'<p>No flagged behavior in this selection. Maintain proportionate baseline monitoring; avoid unnecessary controls.</p>'}<p>Recommended controls are category-based guidance. Case-specific confirmation requires independent logs, configuration review and authorized defensive validation.</p></section>
+    <section><h2>Model evidence and limitations</h2><p><b>Saved model evaluation:</b> ${model?`XGBoost held-out accuracy ${pct(model.xgboost.accuracy)}, macro F1 ${pct(model.xgboost.macro_f1)}; autoencoder held-out anomaly recall ${pct(model.autoencoder.holdout_anomaly_recall)} and normal false-positive rate ${pct(model.autoencoder.holdout_normal_false_positive_rate)}.`:'Saved model summary unavailable in this browser session.'}</p><p>These metrics describe a separate, class-balanced synthetic held-out evaluation; they are not performance measured on the selected live feed. Class scores, anomaly scores and composite risk are distinct, uncalibrated measures. No actual attack, exploitable vulnerability, failed security control or remediation success is confirmed. Human verification is required before action.</p></section>
+    <div class="aegis-print-end">AEGIS AI · CONTROLLED SYNTHETIC EVIDENCE · ADVISORY ANALYSIS ONLY</div>`;
+    document.body.classList.add('aegis-print-active');
+    const reset=()=>{document.body.classList.remove('aegis-print-active');node.setAttribute('aria-hidden','true');};
+    window.addEventListener('afterprint',reset,{once:true});
+    try{window.print();}catch(error){reset();throw error;}
+  }
+  function exportJson(){download('aegis-ai-current-synthetic-findings.json',JSON.stringify({source:'Aegis AI controlled synthetic research assessments',real_incidents:false,exported_at:new Date().toISOString(),persistence_mode:isPublicView()?'public_project_read_only':pair.active?'shared_pair':persistence?'private_session':'browser_only',entries:viewEntries()},null,2),'application/json');}
+  function exportCsv(){const cols=['at','source_type','sample_id','expected_label','classification','confidence','risk_score','anomaly_score','severity','status','model_version','trace_id'];const csv=[cols.join(','),...viewEntries().map(e=>cols.map(k=>`"${String(e[k]??'').replace(/"/g,'""')}"`).join(','))].join('\r\n');download('aegis-ai-current-synthetic-findings.csv',csv,'text/csv');}
   async function clearHistory(){
     if(isPublicView()){window.alert('Public project records cannot be cleared by visitors. Switch to My tests to clear only your own history.');return;}
     if(pair.active){window.alert('Shared research findings cannot be cleared from one browser. The owner can remove a partner instead.');return;}
@@ -415,7 +450,7 @@
   $('findings-export')?.addEventListener('click',exportJson);
   $('report-export-session')?.addEventListener('click',exportJson);
   $('report-export-csv')?.addEventListener('click',exportCsv);
-  $('report-print')?.addEventListener('click',()=>window.print());
+  $('report-print')?.addEventListener('click',printFindingsReport);
   storageBadge();renderFindings();renderAnalytics();renderReport();
   restoreSharedResult();
   // Poll only while the page is visible; instantly catch up on tab return.
