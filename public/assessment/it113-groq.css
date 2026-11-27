@@ -2,9 +2,9 @@
 .it113-groq-panel .groq-choices{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0 12px}
 .it113-groq-panel .groq-choices .primary-cta{max-width:100%;white-space:normal}
 .it113-groq-panel .groq-note{font-size:.88rem;line-height:1.6}
-.it113-groq-panel .groq-result{min-height:72px;max-height:480px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;font-size:.93rem;margin:14px 0 20px;border:1px solid rgba(166,157,218,.23);border-radius:12px;background:rgba(20,18,34,.35);padding:17px}
+.it113-groq-panel .groq-result{min-height:72px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;font-size:.93rem;margin:14px 0 20px;border:1px solid rgba(166,157,218,.23);border-radius:12px;background:rgba(20,18,34,.35);padding:17px}
 .it113-groq-panel .groq-subheading{font-size:1.05rem;font-weight:700;margin:8px 0}
-.it113-groq-panel .groq-chat-messages{display:flex;flex-direction:column;gap:11px;max-height:420px;overflow:auto;scroll-behavior:smooth;padding:14px 3px;min-height:70px}
+.it113-groq-panel .groq-chat-messages{display:flex;flex-direction:column;gap:11px;padding:14px 3px;min-height:70px}
 .it113-groq-panel .groq-chat-turn{padding:12px 15px;border:1px solid rgba(166,157,218,.22);border-radius:12px;max-width:95%;overflow-wrap:anywhere}
 .it113-groq-panel .groq-chat-turn > strong{display:block;margin-bottom:6px;font-size:.82rem}
 .it113-groq-panel .groq-chat-turn p{margin:0;white-space:pre-wrap;line-height:1.55}
@@ -110,11 +110,11 @@
 .it113-groq-panel #groq-status[data-kind="error"]{color:#f6a2ac}
 .it113-groq-panel #groq-status[data-kind="success"]{color:#a2e7cb}
 .it113-groq-panel #groq-status[data-kind="fallback"]{color:#efd29a}
+/* Full-length assessment and conversation: use the page for vertical scrolling. */
 .it113-groq-panel .groq-result{
-  padding:19px;margin:0;min-height:115px;max-height:510px;overflow-y:auto;overflow-x:hidden;
+  padding:19px;margin:0;min-height:115px;height:auto;max-height:none;overflow:visible;
   border:1px solid rgba(194,157,240,.21);border-radius:13px;
   background:linear-gradient(135deg,rgba(17,13,29,.94),rgba(22,16,37,.91));
-  scrollbar-width:thin;scrollbar-color:#665077 transparent;
 }
 .it113-groq-panel .groq-placeholder{min-height:90px;display:flex;align-items:center;justify-content:center;gap:12px;color:#a99abb;text-align:center}
 .it113-groq-panel .groq-placeholder>span{font-size:27px;color:#b88fe4}
@@ -129,8 +129,7 @@
 .it113-groq-panel .groq-chat-header-left p{margin:3px 0 0;font-size:11px;color:#9d8fb2}
 .it113-groq-panel .groq-clear-button{flex:0 0 auto;background:rgba(151,104,199,.08)}
 .it113-groq-panel .groq-chat-messages{
-  min-height:76px;max-height:470px;margin:0 0 12px;padding:15px;gap:14px;overflow-y:auto;overflow-x:hidden;
-  scroll-behavior:auto;scrollbar-width:thin;scrollbar-color:#6d4c8b transparent;
+  min-height:76px;height:auto;max-height:none;margin:0 0 12px;padding:15px;gap:14px;overflow:visible;
   border-radius:13px;border:1px solid rgba(181,151,213,.17);background:rgba(12,10,23,.44);
 }
 .it113-groq-panel .groq-chat-messages:empty{min-height:118px;display:grid;place-items:center}
@@ -201,9 +200,9 @@
  .it113-groq-panel .groq-overline{font-size:8px;letter-spacing:1.2px}
  .it113-groq-panel .groq-panel-titles p{font-size:11px}
  .it113-groq-panel .groq-analyst-card,.it113-groq-panel .groq-chat-card{padding:12px;border-radius:14px}
- .it113-groq-panel .groq-result{padding:12px;max-height:420px}
+ .it113-groq-panel .groq-result{padding:12px}
  .it113-groq-panel #groq-run-analyst{width:100%;align-self:auto}
- .it113-groq-panel .groq-chat-messages{padding:10px;max-height:420px}
+ .it113-groq-panel .groq-chat-messages{padding:10px}
  .it113-groq-panel .groq-chat-turn{max-width:100%;padding:11px 12px}
  .it113-groq-panel .groq-chat-header{align-items:flex-start}
  .it113-groq-panel .groq-compose{flex-wrap:wrap}
