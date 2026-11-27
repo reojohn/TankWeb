@@ -37,14 +37,32 @@ function it113_public_curated_labels(): array {
 function it113_public_project_entry(array $row): array {
     $indicators = json_decode((string)($row['indicators'] ?? '[]'), true);
     if (!is_array($indicators)) $indicators = [];
+    // Only fixed, synthetic feature keys and canonical descriptions may be published.
+    $allowed = [
+        'failed_logins_5m'=>'Elevated failed-password frequency',
+        'failed_logins_15m'=>'Repeated authentication failures over time',
+        'unique_usernames_15m'=>'Multiple usernames attempted from one source',
+        'qr_failures_15m'=>'Repeated Personal ID verification failures',
+        'sensitive_path_probes_15m'=>'Sensitive-resource probing',
+        'suspicious_requests_15m'=>'Suspicious request-pattern activity',
+        'scanner_events_15m'=>'Scanner/reconnaissance indicators',
+        'csrf_failures_15m'=>'CSRF validation failures',
+        'auth_rejections_15m'=>'Repeated protected-resource rejection',
+        'ua_changes_15m'=>'Unusual user-agent changes',
+        'unique_paths_5m'=>'Broad endpoint enumeration',
+        'requests_1m'=>'High short-window request rate',
+    ];
     $clean=[];
     foreach (array_slice($indicators, 0, 6) as $item) {
         if (!is_array($item) || !is_string($item['description'] ?? null) ||
             !is_numeric($item['observed'] ?? null)) continue;
         $value=(float)$item['observed'];
-        if (!is_finite($value)) continue;
-        $clean[]=['description'=>substr(strip_tags($item['description']),0,110),
-            'observed'=>$value];
+        if (!is_finite($value) || $value < 0 || $value > 1000000) continue;
+        $feature = $item['feature'] ?? null;
+        // Recover older description-only records only by exact canonical match.
+        if ($feature === null || $feature === '') $feature = array_search($item['description'], $allowed, true);
+        if (!is_string($feature) || !isset($allowed[$feature])) continue;
+        $clean[]=['feature'=>$feature,'description'=>$allowed[$feature],'observed'=>$value];
     }
     return [
         'trace_id'=>(string)$row['trace_id'],

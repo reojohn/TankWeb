@@ -6,7 +6,7 @@
   const byId = id => document.getElementById(id);
   if (!byId('rubric-a-lab')) return;
   const esc = v => String(v ?? '—').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const name = s => String(s || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const name = s => String(s || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bMfa\b/g,'MFA');
   const contexts = Object.freeze({
     NORMAL: {label:'Baseline behavior', risk:'No specific threat pattern is established by this example.', weakness:'No weakness can be inferred from a normal synthetic case.', features:['requests_1m','failed_logins_15m','suspicious_requests_15m','csrf_failures_15m']},
     BRUTE_FORCE: {label:'Repeated authentication attempts',risk:'High-volume failed sign-ins could lead to account compromise if guessing protections are weak.',weakness:'Review password-guessing rate limits, account lockout safeguards and authentication alerts.',features:['failed_logins_5m','failed_logins_15m','auth_endpoint_requests_5m','auth_rejections_15m']},

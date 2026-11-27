@@ -176,6 +176,11 @@ function it113_store_history(): ?array {
     }
 }
 
+/** Review eligibility from the persisted, normalized anomaly score. */
+function it113_requires_review(string $classification, float $anomalyScore): bool {
+    return $classification !== 'NORMAL' || $anomalyScore > 0.4;
+}
+
 function it113_store_status(string $trace, string $status, string $note, int $revision): string {
     $allowed=['OPEN','INVESTIGATING','MITIGATED','RESOLVED'];
     if (!in_array($status,$allowed,true) || strlen($note)>240 || $revision<0 || $revision>15
@@ -192,11 +197,11 @@ function it113_store_status(string $trace, string $status, string $note, int $re
             $auth->execute([$scope['workspace_id'],$scope['sid']]);
             if (!$auth->fetchColumn()) { $pdo->rollBack();return 'conflict'; }
         }
-        $lookup=$pdo->prepare('SELECT status,revision,classification FROM public.it113_demo_assessments
+        $lookup=$pdo->prepare('SELECT status,revision,classification,anomaly_score FROM public.it113_demo_assessments
           WHERE trace_id=? AND '.$where.' FOR UPDATE');
         $lookup->execute([$trace,$scopeValue]);
         $current=$lookup->fetch(PDO::FETCH_ASSOC);
-        if (!$current || $current['classification']==='NORMAL' || (int)$current['revision']!==$revision) {
+        if (!$current || !it113_requires_review((string)$current['classification'], (float)$current['anomaly_score']) || (int)$current['revision']!==$revision) {
             $pdo->rollBack();return 'conflict';
         }
         $transitions=[

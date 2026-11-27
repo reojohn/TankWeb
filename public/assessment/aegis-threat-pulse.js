@@ -15,7 +15,7 @@
   const allowed=['NORMAL','BRUTE_FORCE','CREDENTIAL_STUFFING','RECONNAISSANCE','WEB_ATTACK','MFA_ABUSE','SESSION_ABUSE'];
   let selectedTrace='';
   let lastAnnounced='';
-  const pretty=value=>String(value).replace(/_/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+  const pretty=value=>String(value).replace(/_/g,' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).replace(/\bMfa\b/g,'MFA');
   function setStatus(value,label){
     widget.dataset.state=value;
     state.querySelector('span').textContent=label;
@@ -36,9 +36,10 @@
     selectedTrace=f.trace_id;
     const riskNumber=Number(f.risk_score);
     name.textContent=pretty(f.classification);
-    kicker.textContent='LATEST SYNTHETIC FINDING';
+    const anomalyOnly=window.AegisReview.anomalyOnly(f);
+    kicker.textContent=anomalyOnly?'ANOMALY REQUIRING REVIEW':'LATEST SYNTHETIC ASSESSMENT';
     severity.textContent=pretty(f.severity||'Advisory')+' risk · Advisory';
-    risk.textContent=String(Math.round(riskNumber));
+    risk.textContent=riskNumber.toFixed(1);
     widget.style.setProperty('--pulse-fill',riskNumber+'%');
     action.textContent='Review this finding';widget.setAttribute('aria-label','Open latest public synthetic '+pretty(f.classification)+' finding in Threat Findings');
     setStatus(d.connected?'synced':'stale',d.connected?'Synced':'Last known');

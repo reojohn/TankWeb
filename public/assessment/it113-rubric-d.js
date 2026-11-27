@@ -1,6 +1,7 @@
 /* IT113 Rubric D: advisory, read-only category-to-control mapping. No existing APIs are changed. */
 'use strict';
 (() => {
+  const review=window.AegisReview;
   const $ = id => document.getElementById(id);
   const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const pretty = v => String(v).split('_').map(w => w==='MFA'?'MFA':w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
@@ -24,11 +25,13 @@
     MFA_ABUSE:{priority:'High review / second factor',basis:'Repeated second-factor failures may indicate guessing or friction; the factor itself is not proven bypassed.',evidence:['Review qr_failures_15m against login outcomes and challenge retries','Inspect sanitized challenge expiry, binding and reuse metadata where permitted'],actions:['Rate-limit second-factor attempts without allowing infinite challenges','Bind and expire verification challenges appropriately','Monitor repeated failures and support safe recovery procedures'],verify:['Test expiration and replay rejection with controlled synthetic challenges','Verify legitimate account recovery remains available'],refs:['mfa','auth','nist']},
     SESSION_ABUSE:{priority:'High review / session controls',basis:'CSRF rejection, user-agent changes and session anomalies can warrant review; they do not establish hijacking.',evidence:['Check csrf_failures_15m, ua_changes_15m and auth_rejections_15m','Inspect protected session lifecycle and auth transitions using authorized audit data'],actions:['Rotate session identifiers after privilege change and authentication','Use appropriately scoped Secure, HttpOnly and SameSite cookie attributes','Apply CSRF defenses to state-changing requests and enforce session expiration'],verify:['Verify session regeneration and expiration in authorized regression tests','Test safe CSRF rejection while confirming legitimate state changes still work'],refs:['session','csrf','access','nist']}
   };
+  const anomalyPlan={priority:'Investigate / anomalous baseline',basis:'The classifier predicted Normal but the autoencoder score exceeds its calibrated review boundary. This is not a confirmed attack or vulnerability.',evidence:['Check input consistency and compare reconstruction deviation against normal validation records','Review any recorded threshold indicators and independently verify the behavior'],actions:['Investigate the deviation with authorized, minimized evidence before selecting category-specific controls','Preserve proportionate monitoring; do not automatically block or reset access'],verify:['Compare against known benign and suspicious synthetic examples','Review false-positive behavior and independently validate any proposed control'],refs:['logging','nist']};
+  const planFor=f=>review.anomalyOnly(f)?anomalyPlan:plans[f.classification];
   const link = key => {const r=reference[key];return `<a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.label)} ↗</a>`;};
   const rows = (label,items) => `<div class="rubric-d-column"><h4>${esc(label)}</h4><ol>${items.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>`;
   function renderPlan(category, compact=false) {
-    const p=plans[category];if(!p)return '<p class="hint">Select an existing synthetic finding for category-linked guidance.</p>';
-    return `<div class="rubric-d-plan" data-plan="${esc(category)}"><div class="rubric-d-plan-head"><div><span class="section-micro">${compact?'SELECTED FINDING /':'RUBRIC D /'} ADVISORY RESPONSE PLAN</span><h3>${esc(pretty(category))}</h3></div><strong>${esc(p.priority)}</strong></div><p class="rubric-d-basis"><b>Observed-pattern interpretation:</b> ${esc(p.basis)}</p><div class="rubric-d-plan-grid">${rows('1. Confirm the evidence',p.evidence)}${rows('2. Response / prevention',p.actions)}${rows('3. Verify effectiveness',p.verify)}</div><div class="rubric-d-framework"><b>Security guidance:</b> ${p.refs.map(link).join(' ')}</div><p class="hint">Mapping is category-based and derived from known synthetic behaviors. An actual vulnerability, identity, cause, and remediation effectiveness must be confirmed by authorized review.</p></div>`;
+    const p=category==='ANOMALY_ONLY'?anomalyPlan:plans[category];if(!p)return '<p class="hint">Select an existing synthetic finding for category-linked guidance.</p>';
+    return `<div class="rubric-d-plan" data-plan="${esc(category)}"><div class="rubric-d-plan-head"><div><span class="section-micro">${compact?'SELECTED FINDING /':'RUBRIC D /'} ADVISORY RESPONSE PLAN</span><h3>${esc(category==='ANOMALY_ONLY'?'Normal classification / anomaly requiring review':pretty(category))}</h3></div><strong>${esc(p.priority)}</strong></div><p class="rubric-d-basis"><b>Observed-pattern interpretation:</b> ${esc(p.basis)}</p><div class="rubric-d-plan-grid">${rows('1. Confirm the evidence',p.evidence)}${rows('2. Response / prevention',p.actions)}${rows('3. Verify effectiveness',p.verify)}</div><div class="rubric-d-framework"><b>Security guidance:</b> ${p.refs.map(link).join(' ')}</div><p class="hint">Mapping is category-based and derived from known synthetic behaviors. An actual vulnerability, identity, cause, and remediation effectiveness must be confirmed by authorized review.</p></div>`;
   }
   function exportPlan(category){
     const p=plans[category]; if(!p)return;
@@ -78,7 +81,7 @@
     return {
       trace_id:x.trace_id,classification:x.classification,
       expected_label:plans[x.expected_label]?x.expected_label:null,
-      risk_score:clampNumber(x.risk_score,0,100),confidence:clampNumber(x.confidence,0,1),
+      risk_score:clampNumber(x.risk_score,0,100),confidence:clampNumber(x.confidence,0,1),anomaly_score:clampNumber(x.anomaly_score,0,1),
       status:['OPEN','INVESTIGATING','MITIGATED','RESOLVED'].includes(x.status)?x.status:'OPEN',
       severity:String(x.severity||'').slice(0,20),sample_id:String(x.sample_id||'').slice(0,60),at:String(x.at||'').slice(0,50),
       indicator_evidence:(Array.isArray(x.indicator_evidence)?x.indicator_evidence:[]).slice(0,6)
@@ -89,21 +92,23 @@
   function selectedFinding(){return linkedItems.find(x=>x.trace_id===linkedSelected)||null;}
   function caseControls(finding){
     const detected=new Map(finding.indicator_evidence.map(i=>[i.feature,i]));
-    return (findingControls[finding.classification]||[]).map((item,i)=>{
+    const controls=review.anomalyOnly(finding)?[{title:'Investigate anomalous baseline',features:finding.indicator_evidence.map(i=>i.feature),action:anomalyPlan.actions[0],verify:anomalyPlan.verify[0]},{title:'Review false-positive behavior',features:[],action:anomalyPlan.actions[1],verify:anomalyPlan.verify[1]}]:findingControls[finding.classification]||[];
+    return controls.map((item,i)=>{
       const hits=item.features.map(k=>detected.get(k)).filter(Boolean);
       return {...item,order:i,hits,linked:hits.length>0};
     }).sort((a,b)=>Number(b.linked)-Number(a.linked)||a.order-b.order);
   }
   function findingPlanData(finding){
-    const p=plans[finding.classification];
+    const p=planFor(finding);
     const concerns=[];
+    if(review.anomalyOnly(finding))concerns.push(anomalyPlan.basis);
     if(finding.expected_label&&finding.expected_label!==finding.classification)concerns.push('Held-out label differs from the model prediction; validate the category before prioritizing category-specific controls.');
     if(finding.confidence<0.5)concerns.push('Low classification score: alternative behaviors should be investigated before choosing a response.');
     const controls=caseControls(finding);
     return {study:'Aegis AI IT113 / finding-linked mitigation review',generated_at:new Date().toISOString(),scope:linkedScope,
       synthetic:true,confirmed_incident:false,confirmed_vulnerability:false,enforcement_performed:false,
       finding:{trace_id:finding.trace_id,sample_id:finding.sample_id,classification:finding.classification,
-        expected_label:finding.expected_label,confidence:finding.confidence,risk_score:finding.risk_score,
+        expected_label:finding.expected_label,confidence:finding.confidence,risk_score:finding.risk_score,anomaly_score:finding.anomaly_score,anomaly_flag:review.anomalous(finding),requires_review:review.requiresReview(finding),assessment_disposition:review.disposition(finding),
         recorded_review_status:finding.status,observed_indicators:finding.indicator_evidence},
       research_cautions:concerns,verification_required:true,
       prioritized_controls:controls.map(c=>({name:c.title,evidence_linked:c.linked,
@@ -113,10 +118,10 @@
   }
   function renderLinkedPlan(){
     const host=$('rubric-d-case-plan'),sel=$('rubric-d-case-select');if(!host||!sel)return;
-    const flagged=linkedItems.filter(x=>x.classification!=='NORMAL');
+    const flagged=linkedItems.filter(review.requiresReview);
     const prior=linkedSelected;
     if(!flagged.some(x=>x.trace_id===prior))linkedSelected=flagged[0]?.trace_id||'';
-    sel.innerHTML=flagged.length?flagged.map(f=>`<option value="${esc(f.trace_id)}" ${linkedSelected===f.trace_id?'selected':''}>${esc(pretty(f.classification))} · Risk ${f.risk_score.toFixed(1)} · ${esc(pretty(f.status))} · ${esc(f.sample_id||'Synthetic test')}</option>`).join(''):
+    sel.innerHTML=flagged.length?flagged.map(f=>`<option value="${esc(f.trace_id)}" ${linkedSelected===f.trace_id?'selected':''}>${esc(pretty(f.classification))}${review.anomalyOnly(f)?' · Anomaly requiring review':''} · Risk ${f.risk_score.toFixed(1)} · ${esc(pretty(f.status))} · ${esc(f.sample_id||'Synthetic test')}</option>`).join(''):
       '<option value="">No flagged synthetic findings in this view</option>';
     const f=selectedFinding(),exportButton=$('rubric-d-export-case'),open=$('rubric-d-open-finding');
     if(exportButton)exportButton.disabled=!f;
@@ -125,10 +130,10 @@
       `${flagged.length} public curated flagged finding(s) · synchronized with the existing public research feed${linkedConnected?'':' · public storage may be unavailable'}.`:
       `${flagged.length} flagged finding(s) from My tests · private to this browser session; never published by this workspace.`;
     if(!f){host.innerHTML='<div class="rubric-d-case-empty"><strong>No flagged findings yet</strong><p>Run a curated synthetic example in AI Defense, or select My tests in Threat Findings to inspect your own private numeric analyses. Category reference plans remain available below.</p><button type="button" class="subtle-btn" data-go-to="defense">Open AI Defense ↗</button></div>';return;}
-    const p=plans[f.classification];const controls=caseControls(f);
+    const p=planFor(f);const controls=caseControls(f);
     const low=f.confidence<0.5, mismatch=f.expected_label&&f.expected_label!==f.classification;
-    const warnings=[...(mismatch?[`The saved held-out label is ${pretty(f.expected_label)}, but the model predicted ${pretty(f.classification)}. Treat this as a classification mismatch.`]:[]),...(low?['Low model classification score; alternative interpretations may be plausible.']:[])];
-    host.innerHTML=`<div class="rubric-d-case-hero"><div><span class="section-micro">${linkedScope==='public'?'PUBLIC CURATED':'MY SESSION'} / SELECTED MODEL INFERENCE</span><h3>${esc(pretty(f.classification))}</h3><p>${esc(p.basis)}</p></div><div class="rubric-d-case-metrics"><div><span>HYBRID RISK</span><b>${f.risk_score.toFixed(1)}<small> / 100</small></b></div><div><span>CLASS SCORE</span><b>${(100*f.confidence).toFixed(2)}%</b></div><div><span>REVIEW STATUS</span><b>${esc(pretty(f.status))}</b></div></div></div>
+    const warnings=[...(review.anomalyOnly(f)?[anomalyPlan.basis]:[]),...(mismatch?[`The saved held-out label is ${pretty(f.expected_label)}, but the model predicted ${pretty(f.classification)}. Treat this as a classification mismatch.`]:[]),...(low?['Low model classification score; alternative interpretations may be plausible.']:[])];
+    host.innerHTML=`<div class="rubric-d-case-hero"><div><span class="section-micro">${linkedScope==='public'?'PUBLIC CURATED':'MY SESSION'} / SELECTED MODEL INFERENCE</span><h3>${esc(pretty(f.classification))}</h3><p>${esc(review.disposition(f))}</p><p>${esc(p.basis)}</p></div><div class="rubric-d-case-metrics"><div><span>HYBRID RISK</span><b>${f.risk_score.toFixed(1)}<small> / 100</small></b></div><div><span>MODEL CONFIDENCE</span><b>${(100*f.confidence).toFixed(2)}%</b></div><div><span>REVIEW STATUS</span><b>${esc(pretty(f.status))}</b></div></div></div>
       ${warnings.length?`<div class="rubric-d-warning"><strong>Review before action</strong><ul>${warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>`:''}
       <div class="rubric-d-case-columns"><section><h4>Evidence recorded with this finding</h4>${f.indicator_evidence.length?`<div class="rubric-d-indicators">${f.indicator_evidence.map(i=>`<div><code>${esc(i.feature)}</code><b>${esc(i.observed)}</b><span>${esc(i.description)}</span></div>`).join('')}</div>`:'<p class="hint">No threshold indicators were recorded for this finding; do not infer absent or ineffective controls.</p>'}<p class="hint">These supporting indicators are not XGBoost feature attributions. Aggregate numeric measurements alone cannot confirm a vulnerability.</p></section>
       <section><h4>Priority response plan</h4><div class="rubric-d-control-list">${controls.map((c,i)=>`<article class="rubric-d-control"><div class="rubric-d-control-title"><b>${i+1}. ${esc(c.title)}</b><span class="${c.linked?'linked':'general'}">${c.linked?'Indicator-linked':'Best-practice review'}</span></div>${c.linked?`<p class="rubric-d-why"><strong>Observed:</strong> ${c.hits.map(h=>`<code>${esc(h.feature)}</code> ${esc(h.observed)}`).join(' · ')}</p>`:''}<p><strong>Consider:</strong> ${esc(c.action)}</p><p><strong>Verify:</strong> ${esc(c.verify)}</p></article>`).join('')}</div></section></div>
@@ -154,7 +159,7 @@
       linkedScope=d.scope;linkedConnected=d.public_connected===true;
       linkedItems=d.items.slice(0,80).map(cleanFinding).filter(Boolean);
       if(oldScope!==linkedScope)linkedSelected='';
-      if(linkedItems.some(f=>f.trace_id===d.selected_trace&&f.classification!=='NORMAL'))linkedSelected=d.selected_trace;
+      if(linkedItems.some(f=>f.trace_id===d.selected_trace&&review.requiresReview(f)))linkedSelected=d.selected_trace;
       renderLinkedPlan();
     });
     renderLinkedPlan();
@@ -183,8 +188,9 @@
     const finding=$('finding-detail'),context=$('rubric-d-finding-guidance');if(!finding||!context)return;
     let last='';const updateFinding=()=>{
       const label=(finding.querySelector('.finding-topline h3')?.textContent||'').trim().toUpperCase().replace(/\s+/g,'_');
-      if(label===last)return;last=label;
-      context.innerHTML=plans[label]?renderPlan(label,true):'<p class="hint">Choose a finding from the assessment timeline to see category-specific response and verification guidance.</p>';
+      const key=label==='NORMAL'&&finding.textContent.includes('Anomaly requiring review')?'ANOMALY_ONLY':label;
+      if(key===last)return;last=key;
+      context.innerHTML=(plans[key]||key==='ANOMALY_ONLY')?renderPlan(key,true):'<p class="hint">Choose a finding from the assessment timeline to see category-specific response and verification guidance.</p>';
     };
     new MutationObserver(updateFinding).observe(finding,{subtree:true,childList:true});updateFinding();
   }
